@@ -155,7 +155,7 @@ namespace Tac.Perceptron
 			SensorsField = LearnedStimuls[argStimulNumber];
 
 			DateTime begin = DateTime.Now;
-
+			aTime = 0;
 			for (int i = 0; i < SCount; i++)
 			{
 				if (SensorsField[i] == true)
