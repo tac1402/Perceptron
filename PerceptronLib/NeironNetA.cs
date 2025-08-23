@@ -177,7 +177,6 @@ namespace Tac.Perceptron
 			aTime += t;
 
 			// Запомним как на этот пример реагировали A - элементы
-			//AHConnections.Clear();
 			for (int j = 0; j < ACount; j++)
 			{
 				if (AssociationsField[j] > 0)

@@ -41,13 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AElement.cs" />
     <Compile Include="BitBlock.cs" />
-    <Compile Include="NeironNet.cs" />
+    <Compile Include="NeironNetA.cs" />
     <Compile Include="NeironNetR.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SElement.cs" />
-    <Compile Include="Sinaps.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

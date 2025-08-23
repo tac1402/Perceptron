@@ -137,9 +137,12 @@ namespace Tac.Perceptron
 				}
 				double t = (DateTime.Now - begin).TotalMilliseconds;
 				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
+				Console.WriteLine("\t" + aTime.ToString() + " ms");
 				if (Error == 0) { break; }
 			}
 		}
+
+		double aTime = 0;
 
 		private void SActivation(int argStimulNumber)
 		{
@@ -151,6 +154,8 @@ namespace Tac.Perceptron
 			// Кинем на сенсоры обучающий пример
 			SensorsField = LearnedStimuls[argStimulNumber];
 
+			DateTime begin = DateTime.Now;
+
 			for (int i = 0; i < SCount; i++)
 			{
 				if (SensorsField[i] == true)
@@ -161,6 +166,8 @@ namespace Tac.Perceptron
 					}
 				}
 			}
+			double t = (DateTime.Now - begin).TotalMilliseconds;
+			aTime += t;
 
 			// Запомним как на этот пример реагировали A - элементы
 			AHConnections.Clear();
