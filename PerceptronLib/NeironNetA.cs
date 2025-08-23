@@ -9,7 +9,10 @@ using System.Collections.Specialized;
 namespace Tac.Perceptron
 {
 
-	public class NeironNet
+	/// <summary>
+	/// Оптимизированная версия перцептрона Розенблатта, засчет сохранения реакций A элементов для каждого примера из обучающей выборки (AHConnections)
+	/// </summary>
+	public class NeironNetA
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
 		public int[] AssociationsField; /* Ассоциативное поле */
@@ -32,7 +35,7 @@ namespace Tac.Perceptron
 		private sbyte[] ReactionError;
 		private Random rnd = new Random();
 
-		public NeironNet(int argSCount, int argACount, int argRCount, int argHCount)
+		public NeironNetA(int argSCount, int argACount, int argRCount, int argHCount)
 		{
 			ACount = argACount;
 			SCount = argSCount;

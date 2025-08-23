@@ -8,7 +8,9 @@ using System.Collections.Specialized;
 
 namespace Tac.Perceptron
 {
-
+	/// <summary>
+	/// Классическая версия элементарного перцептрона Розенблатта
+	/// </summary>
 	public class NeironNetR
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
