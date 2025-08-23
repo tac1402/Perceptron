@@ -9,12 +9,14 @@ public class ParityTask
 {
 	public void Run()
 	{
-		NeironNet net = new NeironNet(8, 256, 1, 256);
+		int N = 64;
 
-		BitBlock[] input = new BitBlock[256];
-		BitBlock[] output = new BitBlock[256];
+		NeironNet net = new NeironNet(14, 256 * N, 1, 256 * N);
 
-		for (int i = 0; i < 256; i++)
+		BitBlock[] input = new BitBlock[256 * N];
+		BitBlock[] output = new BitBlock[256 * N];
+
+		for (int i = 0; i < 256 * N; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
 			output[i] = new BitBlock(1, new int[] { IsParity(input[i]) } );

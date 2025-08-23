@@ -21,11 +21,9 @@ namespace Tac.Perceptron
 		public AElement(int argId, SElement sensorsField, int argSCount, Random argRnd)
 		{
 			Id = argId;
-			int SinapsCount = 10;
+			int SinapsCount = 16;
 
 			int sensorNumber = 0;
-			int sensorBlock = 0;
-			int sensorNumber32 = 0;
 			sbyte sensorType = 0;
 
 			for (int j = 0; j < SinapsCount; j++)
@@ -34,8 +32,6 @@ namespace Tac.Perceptron
 
 				if (Sinaps.ContainsKey(sensorNumber) == false)
 				{
-					sensorBlock = sensorNumber / 32;
-					sensorNumber32 = sensorNumber % 32;
 					if (argRnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 
 					Sinaps sinaps = new Sinaps(Id, sensorNumber, sensorType, AssumeSinapsSignal);

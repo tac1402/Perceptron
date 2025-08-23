@@ -14,16 +14,18 @@ namespace Tac.Perceptron
 
 		public BitBlock(int argCount)
 		{
-			Data = new BitVector32[argCount];
-			for (int i = 0; i < argCount; i++)
+			int block = argCount / 32 + 1;
+			Data = new BitVector32[block];
+			for (int i = 0; i < block; i++)
 			{
 				Data[i] = new BitVector32();
 			}
 		}
 		public BitBlock(int argCount, int[] argData)
 		{
-			Data = new BitVector32[argCount];
-			for (int i = 0; i < argCount; i++)
+			int block = argCount / 32 + 1;
+			Data = new BitVector32[block];
+			for (int i = 0; i < block; i++)
 			{
 				Data[i] = new BitVector32(argData[i]);
 			}
