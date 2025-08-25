@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Specialized;
 using Tac.Perceptron;
+using static TorchSharp.torch;
 
 /// <summary>
 /// Пример решения задачи "четность" перцептроном Розенблатта

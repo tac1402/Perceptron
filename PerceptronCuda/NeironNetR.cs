@@ -6,6 +6,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
+using TorchSharp;
+using static TorchSharp.torch;
+
 namespace Tac.Perceptron
 {
 	/// <summary>
@@ -14,7 +17,7 @@ namespace Tac.Perceptron
 	public class NeironNetR
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
-		public int[] AssociationsField; /* Ассоциативное поле */
+		public Tensor AssociationsField; /* Ассоциативное поле */
 		public BitBlock ReactionsField; /* Реагирующие поле */
 
 		private int SCount; // Количество сенсоров
@@ -23,12 +26,12 @@ namespace Tac.Perceptron
 		private int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
 
-		public List<int> AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
+		public int[] AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
 
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
-		public Dictionary<int, int[]> WeightSA; // Веса между S-A элементами
+		public Tensor WeightSA; // Веса между S-A элементами
 		public Dictionary<int, int[]> WeightAR; // Веса между A-R элементами
 
 		private sbyte[] ReactionError;
@@ -43,13 +46,9 @@ namespace Tac.Perceptron
 
 			SensorsField = new BitBlock(SCount);
 
-			WeightSA = new Dictionary<int, int[]>(SCount);
-			for (int i = 0; i < SCount; i++)
-			{
-				WeightSA[i] = new int[ACount];
-			}
+			WeightSA = zeros(SCount, ACount, device: torch.CUDA);
+			AssociationsField = zeros(ACount, device: torch.CUDA);
 
-			AssociationsField = new int[ACount];
 			for (int i = 0; i < ACount; i++)
 			{
 				InitSA(i);
@@ -57,8 +56,6 @@ namespace Tac.Perceptron
 			ReactionsField = new BitBlock(RCount);
 
 			ReactionError = new sbyte[RCount];
-
-			AHConnections = new List<int>();
 
 			LearnedStimuls = new Dictionary<int, BitBlock>();
 			NecessaryReactions = new Dictionary<int, BitBlock>();
@@ -82,12 +79,9 @@ namespace Tac.Perceptron
 			{
 				sensorNumber = rnd.Next(SCount);
 
-				if (WeightSA[sensorNumber][argAId] == 0)
-				{
-					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
+				if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 
-					WeightSA[sensorNumber][argAId] = sensorType;
-				}
+				WeightSA[sensorNumber][argAId] = tensor(sensorType);
 			}
 
 		}
@@ -149,10 +143,7 @@ namespace Tac.Perceptron
 		{
 			DateTime begin = DateTime.Now;
 
-			for (int i = 0; i < ACount; i++)
-			{
-				AssociationsField[i] = 0;
-			}
+			AssociationsField = zeros(ACount, device: torch.CUDA);
 
 			// Кинем на сенсоры обучающий пример
 			SensorsField = LearnedStimuls[argStimulNumber];
@@ -161,22 +152,17 @@ namespace Tac.Perceptron
 			{
 				if (SensorsField[i] == true)
 				{
-					for (int j = 0; j < ACount; j++)
-					{
-						AssociationsField[j] += WeightSA[i][j];
-					}
+					AssociationsField.add_(WeightSA[i]);
 				}
 			}
 
 			// Запомним как на этот пример реагировали A - элементы
-			AHConnections.Clear();
-			for (int j = 0; j < ACount; j++)
-			{
-				if (AssociationsField[j] > 0)
-				{
-					AHConnections.Add(j);
-				}
-			}
+
+			Tensor mask = AssociationsField > 0;
+			Tensor positiveIndices = mask.nonzero().squeeze();
+
+			AHConnections = positiveIndices.cpu().to_type(ScalarType.Int32).data<int>().ToArray<int>();
+
 			double t = (DateTime.Now - begin).TotalMilliseconds;
 			aTime += t;
 		}
@@ -187,7 +173,7 @@ namespace Tac.Perceptron
 			int[] Summa = new int[RCount];
 			for (int j = 0; j < RCount; j++)
 			{
-				for (int i = 0; i < AHConnections.Count; i++)
+				for (int i = 0; i < AHConnections.Length; i++)
 				{
 					int index = AHConnections[i];
 					Summa[j] += WeightAR[index][j];
@@ -225,7 +211,7 @@ namespace Tac.Perceptron
 		{
 			for (int j = 0; j < RCount; j++)
 			{
-				for (int i = 0; i < AHConnections.Count; i++)
+				for (int i = 0; i < AHConnections.Length; i++)
 				{
 					int index = AHConnections[i];
 					WeightAR[index][j] = WeightAR[index][j] + ReactionError[j];
