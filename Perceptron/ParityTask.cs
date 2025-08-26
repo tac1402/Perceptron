@@ -9,9 +9,9 @@ public class ParityTask
 {
 	public void Run()
 	{
-		int N = 128;
+		int N = 64;
 
-		NeironNetR net = new NeironNetR(15, 256 * N, 1, 256 * N);
+		NeironNetR net = new NeironNetR(14, 256 * N, 1, 256 * N);
 
 		BitBlock[] input = new BitBlock[256 * N];
 		BitBlock[] output = new BitBlock[256 * N];

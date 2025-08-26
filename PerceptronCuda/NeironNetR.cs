@@ -18,23 +18,24 @@ namespace Tac.Perceptron
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
 		public Tensor AssociationsField; /* Ассоциативное поле */
-		public BitBlock ReactionsField; /* Реагирующие поле */
+		//public BitBlock ReactionsField; /* Реагирующие поле */
+		public Tensor ReactionsField; /* Реагирующие поле */
 
 		private int SCount; // Количество сенсоров
 		private int ACount; // Количество ассоциаций
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
-
-		public int[] AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
+		public Tensor AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
 
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
-		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
+		public Tensor NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
 		public Tensor WeightSA; // Веса между S-A элементами
-		public Dictionary<int, int[]> WeightAR; // Веса между A-R элементами
+		public Tensor WeightAR; // Веса между A-R элементами
 
-		private sbyte[] ReactionError;
+		private Tensor ReactionError;
+
 		private Random rnd = new Random(10);
 
 		public NeironNetR(int argSCount, int argACount, int argRCount, int argHCount)
@@ -53,19 +54,12 @@ namespace Tac.Perceptron
 			{
 				InitSA(i);
 			}
-			ReactionsField = new BitBlock(RCount);
-
-			ReactionError = new sbyte[RCount];
 
 			LearnedStimuls = new Dictionary<int, BitBlock>();
-			NecessaryReactions = new Dictionary<int, BitBlock>();
 
+			NecessaryReactions = zeros(HCount, RCount, device: torch.CUDA);
 
-			WeightAR = new Dictionary<int, int[]>(ACount);
-			for (int i = 0; i < ACount; i++)
-			{
-				WeightAR[i] = new int[RCount];
-			}
+			WeightAR = zeros(ACount, RCount, device: torch.CUDA);
 		}
 
 		private void InitSA(int argAId)
@@ -98,7 +92,11 @@ namespace Tac.Perceptron
 			LearnedStimuls.Add(argStimulNumber, argPerception);
 
 			// Запомним какая реакция должна быть на этот пример
-			NecessaryReactions.Add(argStimulNumber, argReaction);
+			for (int i = 0; i < RCount; i++)
+			{
+				NecessaryReactions[argStimulNumber][i] = tensor(argReaction[i]);
+			}
+
 		}
 
 
@@ -159,9 +157,11 @@ namespace Tac.Perceptron
 			// Запомним как на этот пример реагировали A - элементы
 
 			Tensor mask = AssociationsField > 0;
-			Tensor positiveIndices = mask.nonzero().squeeze();
+			AHConnections = mask.nonzero().squeeze();
 
-			AHConnections = positiveIndices.cpu().to_type(ScalarType.Int32).data<int>().ToArray<int>();
+			mask.Dispose();
+
+			//AHConnections_ = AHConnections.cpu().to_type(ScalarType.Int32).data<int>().ToArray<int>();
 
 			double t = (DateTime.Now - begin).TotalMilliseconds;
 			aTime += t;
@@ -170,53 +170,55 @@ namespace Tac.Perceptron
 
 		private void RActivation(int argStimulNumber)
 		{
-			int[] Summa = new int[RCount];
-			for (int j = 0; j < RCount; j++)
-			{
-				for (int i = 0; i < AHConnections.Length; i++)
-				{
-					int index = AHConnections[i];
-					Summa[j] += WeightAR[index][j];
-				}
-			}
-			for (int i = 0; i < RCount; i++)
-			{
-				if (Summa[i] > 0) { ReactionsField[i] = true; }
-				if (Summa[i] <= 0) { ReactionsField[i] = false; }
-			}
+			Tensor Summa = zeros(RCount, device: torch.CUDA);
+			Tensor selectedRows = WeightAR.index_select(0, AHConnections);
+			Summa = selectedRows.sum();
+
+			ReactionsField = Summa > 0;
+
+			//int[] Summa_a = Summa.cpu().to_type(ScalarType.Int32).data<int>().ToArray<int>();
+
+			Summa.Dispose();
+			selectedRows.Dispose();
 		}
 
 		private bool GetError(int argStimulNumber)
 		{
-			bool IsError = false;
-			for (int i = 0; i < RCount; i++)
-			{
-				bool v = NecessaryReactions[argStimulNumber][i];
+			Tensor mask = ReactionsField != NecessaryReactions[argStimulNumber];
 
-				if (ReactionsField[i] == v)
-				{
-					ReactionError[i] = 0;
-				}
-				else
-				{
-					IsError = true;
-					sbyte v2 = -1; if (v == true) { v2 = 1; }
-					ReactionError[i] = v2;
-				}
+			bool IsError = mask.any().item<bool>();
+			ReactionError = zeros(RCount, device: torch.CUDA);
+
+			if (IsError)
+			{
+				// Преобразуем ReactionsField в числовой формат (1.0 для true, 0.0 для false)
+				Tensor reactionsNumeric = NecessaryReactions[argStimulNumber].to_type(ScalarType.Float32);
+				// Вычисляем значения для ошибок: 1 для true, -1 для false
+				Tensor errorValues = (2 * reactionsNumeric - 1) * mask.to_type(ScalarType.Float32);
+				ReactionError.add_(errorValues);
+
+				reactionsNumeric.Dispose();
+				errorValues.Dispose();
 			}
+			mask.Dispose();
+
 			return IsError;
 		}
 
 		private void LearnedStimul(int argStimulNumber)
 		{
-			for (int j = 0; j < RCount; j++)
-			{
-				for (int i = 0; i < AHConnections.Length; i++)
-				{
-					int index = AHConnections[i];
-					WeightAR[index][j] = WeightAR[index][j] + ReactionError[j];
-				}
-			}
+
+			Tensor expandedError = ReactionError.unsqueeze(0);
+			Tensor broadcastedError = expandedError.expand((int)AHConnections.size(0), -1);
+			Tensor selectedRows = WeightAR.index_select(0, AHConnections);
+			Tensor updatedRows = selectedRows + broadcastedError;
+
+			WeightAR.index_copy_(0, AHConnections, updatedRows);
+
+			expandedError.Dispose();
+			broadcastedError.Dispose();
+			selectedRows.Dispose();
+			updatedRows.Dispose();
 		}
 	}
 }
