@@ -79,24 +79,31 @@ namespace Tac.Perceptron
 
 		private void InitSA(int argAId)
 		{
-			int SinapsCount = 16;
+			int sinapsXCount = 12;
+			int sinapsYCount = 12;
+			int sinapsCount = sinapsXCount + sinapsYCount;
 
 			int sensorNumber = 0;
 			sbyte sensorType = 0;
 
-			for (int j = 0; j < SinapsCount; j++)
+			for (int j = 0; j < sinapsCount; j++)
 			{
 				sensorNumber = rnd.Next(SCount);
 
-				if (WeightSA[sensorNumber][argAId] == 0)
+				if (j < sinapsXCount)
 				{
-					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
-
-					WeightSA[sensorNumber][argAId] = sensorType;
+					sensorType = 1;
 				}
-			}
+				else
+				{
+					sensorType = -1;
+				}
+				//if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 
+				WeightSA[sensorNumber][argAId] = sensorType;
+			}
 		}
+
 
 		/// <summary>
 		/// Добавить на обработку новый пример из обучающей выборки
