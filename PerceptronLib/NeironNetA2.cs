@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Reflection;
 
 namespace Tac.Perceptron
 {
@@ -12,14 +13,17 @@ namespace Tac.Perceptron
 	/// <summary>
 	/// Оптимизированная версия перцептрона Розенблатта, засчет сохранения реакций A элементов для каждого примера из обучающей выборки (AHConnections)
 	/// </summary>
-	public class NeironNetA
+	public class NeironNetA2
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
 		public int[] AssociationsField; /* Ассоциативное поле */
 		public BitBlock ReactionsField; /* Реагирующие поле */
 
+		public BitBlock A2Field;
+
 		private int SCount; // Количество сенсоров
-		private int ACount; // Количество ассоциаций
+		private int A1Count; // Количество ассоциаций
+		private int A2Count; // Количество ассоциаций
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
@@ -29,15 +33,17 @@ namespace Tac.Perceptron
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
-		public Dictionary<int, int[]> WeightSA; // Веса между S-A элементами
-		public Dictionary<int, int[]> WeightAR; // Веса между A-R элементами
+		public Dictionary<int, int[]> WeightSA; // Веса между S-A1 элементами
+		public Dictionary<int, float[]> WeightA1A2; // Веса между A1-A2 элементами
+		public Dictionary<int, float[]> WeightAR; // Веса между A2-R элементами
 
 		private sbyte[] ReactionError;
-		private Random rnd = new Random();
+		private Random rnd = new Random(10);
 
-		public NeironNetA(int argSCount, int argACount, int argRCount, int argHCount)
+		public NeironNetA2(int argSCount, int argA1Count, int argA2Count, int argRCount, int argHCount)
 		{
-			ACount = argACount;
+			A1Count = argA1Count;
+			A2Count = argA2Count;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
@@ -47,7 +53,7 @@ namespace Tac.Perceptron
 			WeightSA = new Dictionary<int, int[]>(SCount);
 			for (int i = 0; i < SCount; i++)
 			{
-				WeightSA[i] = new int[ACount];
+				WeightSA[i] = new int[A1Count];
 			}
 
 			AHConnections = new Dictionary<int, List<int>>();
@@ -56,24 +62,41 @@ namespace Tac.Perceptron
 				AHConnections[i] = new List<int>();
 			}
 
-			AssociationsField = new int[ACount];
-			for (int i = 0; i < ACount; i++)
+			AssociationsField = new int[A1Count];
+			for (int i = 0; i < A1Count; i++)
 			{
 				InitSA(i);
 			}
-			ReactionsField = new BitBlock(RCount);
 
+			ReactionsField = new BitBlock(RCount);
 			ReactionError = new sbyte[RCount];
+
+			A2Field =  new BitBlock(A2Count);
 
 
 			LearnedStimuls = new Dictionary<int, BitBlock>();
 			NecessaryReactions = new Dictionary<int, BitBlock>();
 
 
-			WeightAR = new Dictionary<int, int[]>(ACount);
-			for (int i = 0; i < ACount; i++)
+			WeightA1A2 = new Dictionary<int, float[]>(A1Count);
+			for (int i = 0; i < A1Count; i++)
 			{
-				WeightAR[i] = new int[RCount];
+				WeightA1A2[i] = new float[A2Count];
+			}
+
+			for (int i = 0; i < A1Count; i++)
+			{
+				for (int j = 0; j < A2Count; j++)
+				{
+					WeightA1A2[i][j] = (float) (1 - (rnd.NextDouble() * 2));
+				}
+			}
+
+
+			WeightAR = new Dictionary<int, float[]>(A2Count);
+			for (int i = 0; i < A2Count; i++)
+			{
+				WeightAR[i] = new float[RCount];
 			}
 		}
 
@@ -138,13 +161,16 @@ namespace Tac.Perceptron
 				{
 					// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
 					if (n == 0) { SActivation(i); }
+
+					A2Activation(i);
 					// Активируем R-элементы, т.е. рассчитываем выходы
 					RActivation(i);
 					// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
 					bool e = GetError(i);
 					if (e == true)
 					{
-						LearnedStimul(i);
+						LearnedStimulA1A2(i);
+						LearnedStimulA2R(i);
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 					}
 				}
@@ -160,7 +186,7 @@ namespace Tac.Perceptron
 		private void SActivation(int argStimulNumber)
 		{
 
-			for (int i = 0; i < ACount; i++)
+			for (int i = 0; i < A1Count; i++)
 			{
 				AssociationsField[i] = 0;
 			}
@@ -174,7 +200,7 @@ namespace Tac.Perceptron
 			{
 				if (SensorsField[i] == true)
 				{
-					for (int j = 0; j < ACount; j++)
+					for (int j = 0; j < A1Count; j++)
 					{
 						AssociationsField[j] += WeightSA[i][j];
 					}
@@ -184,7 +210,7 @@ namespace Tac.Perceptron
 			aTime += t;
 
 			// Запомним как на этот пример реагировали A - элементы
-			for (int j = 0; j < ACount; j++)
+			for (int j = 0; j < A1Count; j++)
 			{
 				if (AssociationsField[j] > 0)
 				{
@@ -194,15 +220,37 @@ namespace Tac.Perceptron
 		}
 
 
-		private void RActivation(int argStimulNumber)
+		private void A2Activation(int argStimulNumber)
 		{
-			int[] Summa = new int[RCount];
-			for (int j = 0; j < RCount; j++)
+			float[] Summa = new float[A2Count];
+			for (int j = 0; j < A2Count; j++)
 			{
 				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
 				{
 					int index = AHConnections[argStimulNumber][i];
-					Summa[j] += WeightAR[index][j];
+					Summa[j] += WeightA1A2[index][j];
+				}
+			}
+			for (int i = 0; i < A2Count; i++)
+			{
+				if (Summa[i] > 0) { A2Field[i] = true; }
+				if (Summa[i] <= 0) { A2Field[i] = false; }
+			}
+
+			int a = 1;
+		}
+
+		private void RActivation(int argStimulNumber)
+		{
+			float[] Summa = new float[RCount];
+			for (int j = 0; j < RCount; j++)
+			{
+				for (int i = 0; i < A2Count; i++)
+				{
+					if (A2Field[i] == true)
+					{
+						Summa[j] += WeightAR[i][j];
+					}
 				}
 			}
 			for (int i = 0; i < RCount; i++)
@@ -211,6 +259,7 @@ namespace Tac.Perceptron
 				if (Summa[i] <= 0) { ReactionsField[i] = false; }
 			}
 		}
+
 
 		private bool GetError(int argStimulNumber)
 		{
@@ -233,14 +282,46 @@ namespace Tac.Perceptron
 			return IsError;
 		}
 
-		private void LearnedStimul(int argStimulNumber)
+
+		float maxSumma = 1;
+
+		private void LearnedStimulA1A2(int argStimulNumber)
 		{
-			for (int j = 0; j < RCount; j++)
+			for (int j = 0; j < A2Count; j++)
 			{
+				/*float summa = 0;
 				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
 				{
 					int index = AHConnections[argStimulNumber][i];
-					WeightAR[index][j] = WeightAR[index][j] + ReactionError[j];
+					summa += WeightA1A2[index][j];
+				}
+				summa /= AHConnections[argStimulNumber].Count;
+
+				if (summa > maxSumma) { maxSumma = summa; }
+
+				float x_norm = summa / maxSumma;*/
+
+				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
+				{
+					int index = AHConnections[argStimulNumber][i];
+
+					// 0.0001f
+					//WeightA1A2[index][j] = WeightA1A2[index][j] + ReactionError[0] * 0.001f;
+				}
+			}
+		}
+
+
+		private void LearnedStimulA2R(int argStimulNumber)
+		{
+			for (int j = 0; j < RCount; j++)
+			{
+				for (int i = 0; i < A2Count; i++)
+				{
+					if (A2Field[i] == true)
+					{
+						WeightAR[i][j] = WeightAR[i][j] + ReactionError[j]*1.0f;
+					}
 				}
 			}
 		}

@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="BitBlock.cs" />
     <Compile Include="NeironNetA.cs" />
+    <Compile Include="NeironNetA2.cs" />
     <Compile Include="NeironNetB.cs" />
     <Compile Include="NeironNetR.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
