@@ -42,6 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitBlock.cs" />
+    <Compile Include="NeironNetTree.cs" />
+    <Compile Include="PerceptronAnalyze.cs" />
     <Compile Include="NeironNetA.cs" />
     <Compile Include="NeironNetA2.cs" />
     <Compile Include="NeironNetB.cs" />

@@ -15,7 +15,7 @@ public class ParityTask
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(10, 300, 1000, 1, 256 * N);
-		NeironNetA net = new NeironNetA(16, 600, 1, 256 * N);
+		NeironNetTree net = new NeironNetTree(16, 5000, 1, 256 * N);
 
 		BitBlock[] input = new BitBlock[256 * N];
 		BitBlock[] output = new BitBlock[256 * N];
@@ -27,6 +27,7 @@ public class ParityTask
 
 			net.JoinStimul(i, input[i], output[i]);
 		}
+
 		net.Learned();
 	}
 
