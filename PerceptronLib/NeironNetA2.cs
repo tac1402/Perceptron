@@ -84,13 +84,13 @@ namespace Tac.Perceptron
 				WeightA1A2[i] = new float[A2Count];
 			}
 
-			for (int i = 0; i < A1Count; i++)
+			/*for (int i = 0; i < A1Count; i++)
 			{
 				for (int j = 0; j < A2Count; j++)
 				{
 					WeightA1A2[i][j] = (float) (1 - (rnd.NextDouble() * 2));
 				}
-			}
+			}*/
 
 
 			WeightAR = new Dictionary<int, float[]>(A2Count);
@@ -169,11 +169,17 @@ namespace Tac.Perceptron
 					bool e = GetError(i);
 					if (e == true)
 					{
-						LearnedStimulA1A2(i);
+						float p = (float)rnd.NextDouble();
+						if (p > 0.5f)
+						{
+							LearnedStimulA1A2(i);
+						}
+
 						LearnedStimulA2R(i);
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 					}
 				}
+
 				double t = (DateTime.Now - begin).TotalMilliseconds;
 				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
 				Console.WriteLine("\t" + aTime.ToString() + " ms");
@@ -285,6 +291,12 @@ namespace Tac.Perceptron
 
 		float maxSumma = 1;
 
+		float p1 = 0.5f;
+		float p2 = 0.3f;
+		float p3 = 0.2f;
+		float correct = 0.001f;
+
+
 		private void LearnedStimulA1A2(int argStimulNumber)
 		{
 			for (int j = 0; j < A2Count; j++)
@@ -301,12 +313,52 @@ namespace Tac.Perceptron
 
 				float x_norm = summa / maxSumma;*/
 
-				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
-				{
-					int index = AHConnections[argStimulNumber][i];
 
-					// 0.0001f
-					//WeightA1A2[index][j] = WeightA1A2[index][j] + ReactionError[0] * 0.001f;
+				if (A2Field[j] == true)
+				{
+					if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+					{
+						for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
+						{
+							int index = AHConnections[argStimulNumber][i];
+
+							float p = (float)rnd.NextDouble();
+							if (p < p1)
+							{
+								WeightA1A2[index][j] -= correct;
+							}
+						}
+					}
+				}
+				else
+				{
+					if (Math.Sign(WeightAR[j][0]) == Math.Sign(ReactionError[0]))
+					{
+						for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
+						{
+							int index = AHConnections[argStimulNumber][i];
+
+							float p = (float)rnd.NextDouble();
+							if (p < p2)
+							{
+								WeightA1A2[index][j] += correct;
+							}
+						}
+					}
+					if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+					{
+						for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
+						{
+							int index = AHConnections[argStimulNumber][i];
+
+							float p = (float)rnd.NextDouble();
+							if (p < p3)
+							{
+								WeightA1A2[index][j] += correct;
+							}
+						}
+					}
+
 				}
 			}
 		}

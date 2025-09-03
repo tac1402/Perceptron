@@ -49,6 +49,20 @@ namespace Tac.Perceptron
 			}
 		}
 
+		public override string ToString() => ToString(Count);
+
+		public string ToString(int argCount)
+		{
+			string s = "";
+			for (int i = 0; i < argCount; i++)
+			{
+				if (this[i] == true)
+					s += "1";
+				else 
+					s += "0";
+			}
+			return s;
+		}
 
 	}
 }

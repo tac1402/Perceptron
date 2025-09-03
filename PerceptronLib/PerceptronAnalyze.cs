@@ -13,6 +13,9 @@ namespace Tac.Perceptron
 	public class PerceptronAnalyze
 	{
 		private DecisionTreeID3 id3;
+		public Graph graphP;
+		public Graph graphN;
+
 		private int ACount;
 
 		public int[] Result;
@@ -21,7 +24,7 @@ namespace Tac.Perceptron
 		{
 			for (int i = 0; i < root.Count; i++)
 			{
-				int index = root[i] + argFrom;
+				int index = root[i];
 				Result[index] = 1;
 			}
 			Console.WriteLine(root.Count.ToString());
@@ -83,9 +86,13 @@ namespace Tac.Perceptron
 			(samples, samplesClass) = getSamples(argHCount, argAHConnections, argNecessaryReactions, argRNumber, argFrom, argTill);
 
 			id3 = new DecisionTreeID3(argFrom);
-			id3.mountTree(samples, samplesClass, attributes, 0);
+			id3.graphP = graphP;
+			id3.mountTree(samples, samplesClass, attributes, 0, null);
 
 			printNode(id3.root, argFrom);
+
+			graphP = id3.graphP;
+			//graphN = id3.graphN;
 
 			/*for (int i = 0; i < ACount; i++)
 			{
@@ -105,6 +112,8 @@ namespace Tac.Perceptron
 	internal class DecisionTreeID3
 	{
 		public List<int> root = new List<int>();
+		public Graph graphP;
+		public Graph graphN;
 
 		private int total = 0;
 		private double entropySet = 0.0;
@@ -113,6 +122,8 @@ namespace Tac.Perceptron
 		public DecisionTreeID3(int argFrom)
 		{ 
 			from = argFrom;
+			graphP = new Graph();
+			graphN = new Graph();
 		}
 
 		/// <summary>
@@ -263,7 +274,7 @@ namespace Tac.Perceptron
 		/// <summary>
 		/// Построить дерево решений на основе представленных образцов
 		/// </summary>
-		public void mountTree(Dictionary<int, int[]> samples, bool[] samplesClass, int[] attributes, int Level)
+		public int mountTree(Dictionary<int, int[]> samples, bool[] samplesClass, int[] attributes, int Level, Graph graph)
 		{
 			if (Level == 1)
 			{
@@ -274,9 +285,9 @@ namespace Tac.Perceptron
 				Console.Write(Level.ToString());
 			}
 
-			if (allSamplesPositives(samplesClass) == true) { return; }
-			if (allSamplesNegatives(samplesClass) == true) { return; }
-			if (attributes.Length == 0) { return; }
+			if (allSamplesPositives(samplesClass) == true) { return -1; }
+			if (allSamplesNegatives(samplesClass) == true) { return -1; }
+			if (attributes.Length == 0) { return -1; }
 
 			total = samples.Count;
 			int totalPositives = countTotalPositives(samplesClass);
@@ -287,6 +298,12 @@ namespace Tac.Perceptron
 
 
 			File.AppendAllText("tree.txt", string.Empty.PadRight(Level * 2, ' ') + (bestAttribute + from).ToString() + " - L" + Level.ToString() + "\n");
+
+			/*if (graph.Nodes.ContainsKey(bestAttribute + from) == false)
+			{
+				graph.Nodes.Add(bestAttribute + from, (bestAttribute + from).ToString());
+			}*/
+
 
 			root.Add(bestAttribute);
 
@@ -331,10 +348,14 @@ namespace Tac.Perceptron
 				}
 			}
 
-
+			int positiveLink = -1;
 			if (s.Count != 0)
 			{
-				mountTree(s, sc, at.ToArray(), Level+1);
+				if (Level == 0)
+				{
+					graph = graphP;
+				}
+				positiveLink = mountTree(s, sc, at.ToArray(), Level+1, graph);
 			}
 
 
@@ -351,11 +372,30 @@ namespace Tac.Perceptron
 					k++;
 				}
 			}
-			
+
+			int negativeLink = -1;
 			if (s.Count != 0)
 			{
-				mountTree(s, sc, at.ToArray(), Level + 1);
+				if (Level == 0)
+				{
+					graph = graphP;
+				}
+				negativeLink = mountTree(s, sc, at.ToArray(), Level + 1, graph);
 			}
+
+			if (Level >= 0)
+			{
+				if (positiveLink != -1)
+				{
+					graph.AddBranch(bestAttribute + from, positiveLink, "+");
+				}
+				if (negativeLink != -1)
+				{
+					graph.AddBranch(bestAttribute + from, negativeLink, "-");
+				}
+			}
+
+			return bestAttribute + from;
 		}
 
 	}

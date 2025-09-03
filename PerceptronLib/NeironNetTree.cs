@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Tac.Perceptron
 {
@@ -123,19 +124,25 @@ namespace Tac.Perceptron
 
 
 
-		int MaxTreeCount = 2;
-		int batchCount = 2500;
+		int MaxTreeCount = 1;
+		int batchCount = 1000;
 		ArrayList AElement = new ArrayList();
 		int From = 0, Till = 0;
 		int Flag = 1;
-		public void Analyze()
+		//public List<Graph> graph = new List<Graph>();
+		public Graph graph = new Graph();
+
+		public void Analyze(int argRNumber, int argBatchNumber)
 		{
 
 			PerceptronAnalyze id3 = new PerceptronAnalyze();
 
-			Till += batchCount;
+			From = argBatchNumber * batchCount;
+			Till = batchCount + argBatchNumber * batchCount;
 
-			id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, 0, From, Till);
+			id3.graphP = graph;
+
+			id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, argRNumber, From, Till);
 
 
 			for (int n = 0; n < ACount; n++)
@@ -149,9 +156,14 @@ namespace Tac.Perceptron
 				}
 			}
 
+			Console.WriteLine("AElement = " + AElement.Count.ToString());
+			graph = id3.graphP;
+			//graph.Add(id3.graphN);
 
-			if (Flag == MaxTreeCount)
+			if (argBatchNumber == MaxTreeCount)
 			{
+				//graph.Add(id3.graphP);
+
 				Dictionary<int, string> mask = new Dictionary<int, string>();
 				for (int i = 0; i < ACount; i++)
 				{
@@ -162,7 +174,7 @@ namespace Tac.Perceptron
 							WeightSA[j][i] = 0;
 						}
 					}
-					else
+					/*else
 					{
 						string maskLine = "";
 						for (int j = 0; j < SCount; j++)
@@ -181,18 +193,18 @@ namespace Tac.Perceptron
 							}
 						}
 						mask.Add(i, maskLine);
-					}
+					}*/
 				}
 
-				foreach (var m in mask)
+				/*foreach (var m in mask)
 				{
-					File.AppendAllText("mask.txt", m.Value + "=" + m.Key + "\n");
-				}
+					File.AppendAllText("mask.txt", m.Value + "=" + m.Key.ToString() + "\n");
+				}*/
 			}
 
-			From += batchCount;
 
-			Flag++;
+
+			//Flag++;
 
 			//Console.WriteLine(AElement.Count.ToString());
 
@@ -227,8 +239,36 @@ namespace Tac.Perceptron
 				}
 				if (n >= 2)
 				{
-					// За каждую итерацию прокручиваем все примеры из обучающей выборки
+					/*string samples = "";
 					for (int i = 0; i < HCount; i++)
+					{ 
+						if (AHConnections[i].Contains(501) == true) continue;
+						if (AHConnections[i].Contains(525) == true) continue;
+						if (AHConnections[i].Contains(504) == true) continue;
+						//if (AHConnections[i].Contains(3) == false) continue;
+
+						BitBlock v = new BitBlock(1, new int[] { i });
+						samples += v.ToString() + "\n";
+					}
+
+					File.WriteAllText("samples.txt", samples);
+					*/
+					/*string ah = "";
+					for (int i = 0; i < HCount; i++)
+					{
+						ah += NecessaryReactions[i][0].ToString() + "\t";
+
+						for (int j = 0; j < AHConnections[i].Count; j++)
+						{
+							ah += AHConnections[i][j].ToString() + ", ";
+						}
+						ah += "\n";
+					}
+					File.WriteAllText("ah.txt", ah);*/
+
+
+					// За каждую итерацию прокручиваем все примеры из обучающей выборки
+					for (int i = 1; i < HCount; i++)
 					{
 						// Активируем R-элементы, т.е. рассчитываем выходы
 						RActivation(i);
@@ -240,15 +280,20 @@ namespace Tac.Perceptron
 							Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 						}
 					}
+					double t = (DateTime.Now - begin).TotalMilliseconds;
+					Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
+					Console.WriteLine("\t" + aTime.ToString() + " ms");
+					if (Error == 0) { break; }
 				}
 				if (n == 0)
 				{
-					Analyze();
-					Analyze();
-					//Analyze();
-					//Analyze();
-					//Analyze();
-					//Analyze();
+					for (int i = 0; i < MaxTreeCount; i++)
+					{
+						for (int j = 0; j < RCount; j++)
+						{
+							Analyze(j, i);
+						}
+					}
 
 					AHConnections = new Dictionary<int, List<int>>();
 					for (int i = 0; i < HCount; i++)
@@ -260,12 +305,23 @@ namespace Tac.Perceptron
 				{
 					int a = 1;
 				}
-
-				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
-				Console.WriteLine("\t" + aTime.ToString() + " ms");
-				if (Error == 0) { break; }
 			}
+
+			string file = "";
+			for (int i = 0; i < ACount; i++)
+			{
+				if (WeightAR[i][0] != 0)
+				{
+					file += i.ToString() + "=" + WeightAR[i][0].ToString() + "\n";
+				}
+			}
+			File.WriteAllText("Weight.txt", file);
+
+			/*for (int i = 0; i < graph.Count; i++)
+			{
+				graph[i].Save("tree_" + i.ToString());
+			}*/
+			graph.Save("tree_");
 		}
 
 		double aTime = 0;
