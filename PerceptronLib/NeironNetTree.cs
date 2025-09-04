@@ -79,10 +79,23 @@ namespace Tac.Perceptron
 			}
 		}
 
+
+		int randomSinapsType = 2;
 		private void InitSA(int argAId)
 		{
-			int sinapsXCount = 16;
-			int sinapsYCount = 16;
+			int sinapsXCount = 0;
+			int sinapsYCount = 0;
+
+			if (randomSinapsType == 1)
+			{
+				sinapsXCount = 2;
+				sinapsYCount = 2;
+			}
+			else if (randomSinapsType == 2)
+			{
+				sinapsXCount = SCount;
+				sinapsYCount = SCount;
+			}
 			int sinapsCount = sinapsXCount + sinapsYCount;
 
 			int sensorNumber = 0;
@@ -92,15 +105,21 @@ namespace Tac.Perceptron
 			{
 				sensorNumber = rnd.Next(SCount);
 
-				if (j < sinapsXCount)
+				if (randomSinapsType == 1)
 				{
-					sensorType = 1;
+					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 				}
-				else
+				else if (randomSinapsType == 2)
 				{
-					sensorType = -1;
+					if (j < sinapsXCount)
+					{
+						sensorType = 1;
+					}
+					else
+					{
+						sensorType = -1;
+					}
 				}
-				//if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 
 				WeightSA[sensorNumber][argAId] = sensorType;
 			}
@@ -124,8 +143,8 @@ namespace Tac.Perceptron
 
 
 
-		int MaxTreeCount = 1;
-		int batchCount = 1000;
+		int MaxTreeCount = 2;
+		int batchCount = 3000;
 		ArrayList AElement = new ArrayList();
 		int From = 0, Till = 0;
 		int Flag = 1;
@@ -152,7 +171,10 @@ namespace Tac.Perceptron
 				}
 				else
 				{
-					AElement.Add(n);
+					if (AElement.Contains(n) == false)
+					{
+						AElement.Add(n);
+					}
 				}
 			}
 
@@ -307,6 +329,7 @@ namespace Tac.Perceptron
 				}
 			}
 
+			/*
 			string file = "";
 			for (int i = 0; i < ACount; i++)
 			{
@@ -316,6 +339,7 @@ namespace Tac.Perceptron
 				}
 			}
 			File.WriteAllText("Weight.txt", file);
+			*/
 
 			/*for (int i = 0; i < graph.Count; i++)
 			{

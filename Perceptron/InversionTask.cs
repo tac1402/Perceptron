@@ -4,32 +4,30 @@ using System.IO;
 using Tac.Perceptron;
 
 /// <summary>
-/// Пример решения задачи "где четность" перцептроном Розенблатта
+/// Пример решения задачи "инверсия" перцептроном Розенблатта
 /// </summary>
-public class ParityWhereTask
+public class InversionTask
 {
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 1;
+		int N2 = 256;
+		int L = 16;
 
-		NeironNetTree net = new NeironNetTree(16, 1000, 4, N1 * N2);
+		NeironNetTree net = new NeironNetTree(L, 3000, L, N1 * N2);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];
 
-		int max = 0;
 		//List<string> o = new List<string>();
 		for (int i = 0; i < N1 * N2; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
 
-			int c = WhereParity(input[i]);
-			if (max < c) { max = c; }
-
+			int c = Inversion(input[i], L);
 			output[i] = new BitBlock(1, new int[] { c });
 
-			//o.Add(output[i].ToString(4));
+			//o.Add(output[i].ToString(16));
 
 			net.JoinStimul(i, input[i], output[i]);
 		}
@@ -45,34 +43,24 @@ public class ParityWhereTask
 		net.Learned();
 	}
 
-	private int WhereParity(BitBlock argInput)
+	private int Inversion(BitBlock argInput, int argBitCount)
 	{
-		int ret = 1;
-		int p = 0;
-		int sum = 0;
-		int where = 0;
-		string whereBit = "";
+		int ret = 0;
+		string inversion = "";
 
-		for (int i = 0; i < argInput.Count; i++)
+		for (int i = argBitCount - 1; i >= 0; i--)
 		{
 			if (argInput[i] == true)
 			{
-				sum++;
+				inversion += "0";
 			}
-		}
-		p = sum % 2;
-
-		if (p == 1)
-		{
-			where = (sum - 1) / 2;
-			whereBit += "1";
-			for (int i = 0; i < where; i++)
+			else
 			{
-				whereBit += "0";
+				inversion += "1";
 			}
-
-			ret = Convert.ToInt32(whereBit, 2);
 		}
+
+		ret = Convert.ToInt32(inversion, 2);
 
 		return ret;
 	}

@@ -1,0 +1,212 @@
+//автор: Сергей Гаврилов
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+
+public interface IClassifer
+{
+    void Fit(double[][] inputs, double[][] outputs);
+    double[] Decide(double[] vector);
+}
+
+public class Knn : IClassifer
+{
+    private double[][] inputs;
+    private double[][] outputs;
+    public int kNn = 30;
+
+    public Knn(int kNn)
+    {
+        this.kNn = kNn;
+    }
+
+    public void Fit(double[][] inputs, double[][] outputs)
+    {
+        this.inputs = inputs;
+        this.outputs = outputs;
+    }
+
+    public double[] Decide(double[] vector)
+    {
+        var tosort = new SortedDictionary<double, double[]>();
+
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            double distance = 0;
+            for (int j = 0; j < inputs[i].Length; j++)
+                distance += Math.Pow(inputs[i][j] - vector[j], 2);
+
+            if (!tosort.ContainsKey(distance)) tosort.Add(distance, outputs[i]);
+
+        }
+
+        kNn = Math.Min(kNn, tosort.Count);
+        var sort = tosort.ToArray();
+        var outputSize = outputs[0].Length;
+        double[] sum = new double[outputSize];
+        double W = 0;
+
+        for (int i = 0; i < kNn; i++)
+        {
+            var w = Math.Exp(-sort[i].Key);
+            for (int j = 0; j < outputSize; j++) sum[j] += sort[i].Value[j] * w;
+            W += w;
+        }
+
+        for (int i = 0; i < outputSize; i++) sum[i] /= W;
+
+        return sum;
+    }
+}
+
+public class RosenblattPerceptron : IClassifer
+{
+    private double[][] aWeights;
+    private double[] rWeights;
+    private readonly double lr;
+    private readonly Random rnd;
+    int maxEpochs;
+    public RosenblattPerceptron(int inputDim = 2, int aCount = 50, double learningRate = 0.1, int seed = 0, int maxEpochs = 10)
+    {
+        lr = learningRate;
+        this.maxEpochs = maxEpochs;
+        rnd = new Random(seed);
+
+        aWeights = new double[aCount][];
+        for (int i = 0; i < aCount; i++)
+        {
+            aWeights[i] = new double[inputDim + 1];
+            for (int j = 0; j < aWeights[i].Length; j++)
+                aWeights[i][j] = rnd.NextDouble() * 2 - 1;
+        }
+
+        rWeights = new double[aCount + 1];
+        this.maxEpochs = maxEpochs;
+    }
+
+    private int Step(double z) => z > 0 ? 1 : -1;
+
+    private double[] Project(double[] input)
+    {
+        double[] outA = new double[aWeights.Length];
+        for (int i = 0; i < aWeights.Length; i++)
+        {
+            double s = aWeights[i].Last();
+            for (int j = 0; j < input.Length; j++)
+                s += aWeights[i][j] * input[j];
+            outA[i] = Step(s);
+        }
+        return outA;
+    }
+
+    public double[] Decide(double[] vector)
+    {
+        var proj = Project(vector);
+        double s = rWeights.Last();
+        for (int i = 0; i < proj.Length; i++)
+            s += rWeights[i] * proj[i];
+        return new double[] { Step(s) };
+    }
+
+    public void Fit(double[][] inputs, double[][] outputs)
+    {
+
+        for (int epoch = 0; epoch < maxEpochs; epoch++)
+        {
+            int errors = 0;
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                var proj = Project(inputs[i]);
+                double s = rWeights.Last();
+                for (int j = 0; j < proj.Length; j++)
+                    s += rWeights[j] * proj[j];
+                int pred = Step(s);
+
+                int target = (int)outputs[i][0];
+                int delta = target - pred;
+                if (delta != 0)
+                {
+                    for (int j = 0; j < proj.Length; j++)
+                        rWeights[j] += lr * delta * proj[j];
+                    rWeights[rWeights.Length - 1] += lr * delta;
+                    errors++;
+                }
+            }
+            if (errors == 0) break;
+        }
+    }
+}
+
+public class Program
+{
+
+    public static double[][][] SpiralDataset(double complex = 3, int count = 1000)
+    {
+        var inputs = new List<double[]>();
+        var outputs = new List<double[]>();
+        var rnd = new Random();
+        double rnd2() => rnd.NextDouble() * 2 - 1;
+
+        var max = complex * Math.PI;
+        for (int i = 0; i < count; i++)
+        {
+            double theta = max * i / count;
+            double r = theta;
+
+            double x1 = r * Math.Cos(theta) + rnd2() * r / 10;
+            double y1 = r * Math.Sin(theta) + rnd2() * r / 10;
+
+            inputs.Add(new[] { x1 / max, y1 / max });
+            outputs.Add(new[] { 1.0 });
+
+            double x2 = -r * Math.Cos(theta) + rnd2() * r / 10;
+            double y2 = -r * Math.Sin(theta) + rnd2() * r / 10;
+
+            inputs.Add(new[] { x2 / max, y2 / max });
+            outputs.Add(new[] { -1.0 });
+        }
+
+
+        return new[] { inputs.ToArray(), outputs.ToArray() };
+
+    }
+
+    public static double Accuracy(double[][] predict, double[][] outputs)
+    {
+        var setCount = Math.Min(outputs.Length, predict.Length);
+        double plus = 0, minus = 0, accuracy = 0;
+
+        for (int sample = 0; sample < setCount; sample++)
+        {
+            var m = predict[sample][0] * outputs[sample][0];
+            if (m > 0) plus++;
+            if (m < 0) minus++;
+        }
+
+        accuracy = plus / setCount;
+
+        return accuracy;
+    }
+
+
+    private static void TextMl(IClassifer ml, double[][] inputs, double[][] outputs)
+    {
+        ml.Fit(inputs, outputs);
+        var predict = inputs.Select(ml.Decide).ToArray();
+        var acc = Accuracy(predict, outputs);
+        Console.WriteLine($"{ml.GetType().Name} Accuracy: {acc * 100}%");
+    }
+
+
+    public static void Main(string[] args)
+    {
+        var dataset = SpiralDataset(5,1000);
+
+        TextMl(new Knn(10), dataset[0], dataset[1]);
+        TextMl(new RosenblattPerceptron(aCount: 1000, maxEpochs: 100), dataset[0], dataset[1]);
+
+        Console.ReadKey();
+    }
+}

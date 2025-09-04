@@ -297,7 +297,7 @@ namespace Tac.Perceptron
 			int bestAttribute = getBestAttribute(samples, samplesClass, attributes);
 
 
-			File.AppendAllText("tree.txt", string.Empty.PadRight(Level * 2, ' ') + (bestAttribute + from).ToString() + " - L" + Level.ToString() + "\n");
+			//File.AppendAllText("tree.txt", string.Empty.PadRight(Level * 2, ' ') + (bestAttribute + from).ToString() + " - L" + Level.ToString() + "\n");
 
 			/*if (graph.Nodes.ContainsKey(bestAttribute + from) == false)
 			{
