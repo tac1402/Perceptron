@@ -1,0 +1,456 @@
+//автор: Сергей Гаврилов
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+
+
+
+public interface IClassifer
+{
+    void Fit(double[][] inputs, double[][] outputs);
+    double[] Decide(double[] vector);
+}
+
+
+public class Knn : IClassifer
+{
+    private double[][] trainingInputs;
+    private double[][] trainingOutputs;
+    private readonly int k;
+
+    public Knn(int k = 5)
+    {
+        this.k = k;
+    }
+
+    public void Fit(double[][] inputs, double[][] outputs)
+    {
+        trainingInputs = inputs;
+        trainingOutputs = outputs;
+    }
+
+    public double[] Decide(double[] vector)
+    {
+        var distances = new List<(double distance, double output)>();
+
+        for (int i = 0; i < trainingInputs.Length; i++)
+        {
+            double distance = EuclideanDistance(vector, trainingInputs[i]);
+            distances.Add((distance, trainingOutputs[i][0]));
+        }
+        var nearestNeighbors = distances.OrderBy(d => d.distance).Take(k);
+
+        double sum = nearestNeighbors.Sum(n => n.output);
+        return new[] { (double)Math.Sign(sum) };
+    }
+
+    private double EuclideanDistance(double[] a, double[] b)
+    {
+        double sum = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            sum += Math.Pow(a[i] - b[i], 2);
+        }
+        return Math.Sqrt(sum);
+    }
+}
+
+public class SimpleDecisionTree : IClassifer
+{
+    private TreeNode root;
+    private readonly int maxDepth;
+    private readonly int minSamplesSplit;
+    private readonly Random rnd;
+
+    public SimpleDecisionTree(int maxDepth = 20, int minSamplesSplit = 2, int seed = 42)
+    {
+        this.maxDepth = maxDepth;
+        this.minSamplesSplit = minSamplesSplit;
+        rnd = new Random(seed);
+    }
+
+    public void Fit(double[][] inputs, double[][] outputs)
+    {
+        var data = new List<DataPoint>();
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            data.Add(new DataPoint(inputs[i], outputs[i][0]));
+        }
+        root = BuildTree(data, 0);
+    }
+
+    public double[] Decide(double[] vector)
+    {
+        return new[] { Predict(root, vector) };
+    }
+
+    private TreeNode BuildTree(List<DataPoint> data, int depth)
+    {
+        if (data.Count == 0)
+            return new TreeNode { IsLeaf = true, Value = 0 };
+
+        if (depth >= maxDepth || data.Count < minSamplesSplit || IsPure(data))
+        {
+            return new TreeNode
+            {
+                IsLeaf = true,
+                Value = MajorityClass(data)
+            };
+        }
+
+        var bestSplit = FindBestSplit(data);
+        if (bestSplit == null)
+            return new TreeNode { IsLeaf = true, Value = MajorityClass(data) };
+
+        var leftData = new List<DataPoint>();
+        var rightData = new List<DataPoint>();
+
+        foreach (var point in data)
+        {
+            if (point.Features[bestSplit.FeatureIndex] <= bestSplit.Threshold)
+                leftData.Add(point);
+            else
+                rightData.Add(point);
+        }
+
+        return new TreeNode
+        {
+            IsLeaf = false,
+            FeatureIndex = bestSplit.FeatureIndex,
+            Threshold = bestSplit.Threshold,
+            Left = BuildTree(leftData, depth + 1),
+            Right = BuildTree(rightData, depth + 1)
+        };
+    }
+
+    private SplitInfo FindBestSplit(List<DataPoint> data)
+    {
+        if (data.Count < 2) return null;
+
+        int numFeatures = data[0].Features.Length;
+        SplitInfo bestSplit = null;
+        double bestGain = -1;
+
+        var featuresToCheck = Enumerable.Range(0, numFeatures)
+            .OrderBy(x => rnd.Next())
+            .Take(Math.Max(1, (int)Math.Sqrt(numFeatures)))
+            .ToList();
+
+        foreach (int featureIndex in featuresToCheck)
+        {
+            var values = data.Select(d => d.Features[featureIndex]).Distinct().OrderBy(x => x).ToArray();
+            var thresholds = new List<double>();
+
+            for (int i = 0; i < values.Length - 1; i++)
+            {
+                thresholds.Add((values[i] + values[i + 1]) / 2.0);
+            }
+
+            var randomThresholds = thresholds.OrderBy(x => rnd.Next())
+                .Take(Math.Min(10, thresholds.Count))
+                .ToList();
+
+            foreach (double threshold in randomThresholds)
+            {
+                double gain = CalculateGain(data, featureIndex, threshold);
+                if (gain > bestGain)
+                {
+                    bestGain = gain;
+                    bestSplit = new SplitInfo
+                    {
+                        FeatureIndex = featureIndex,
+                        Threshold = threshold,
+                        Gain = gain
+                    };
+                }
+            }
+        }
+
+        return bestSplit;
+    }
+
+    private double CalculateGain(List<DataPoint> data, int featureIndex, double threshold)
+    {
+        var left = new List<DataPoint>();
+        var right = new List<DataPoint>();
+
+        foreach (var point in data)
+        {
+            if (point.Features[featureIndex] <= threshold)
+                left.Add(point);
+            else
+                right.Add(point);
+        }
+
+        if (left.Count == 0 || right.Count == 0)
+            return 0;
+
+        double parentImpurity = GiniImpurity(data);
+        double leftImpurity = GiniImpurity(left);
+        double rightImpurity = GiniImpurity(right);
+
+        double total = data.Count;
+        return parentImpurity - (left.Count / total * leftImpurity + right.Count / total * rightImpurity);
+    }
+
+    private double GiniImpurity(List<DataPoint> data)
+    {
+        if (data.Count == 0) return 0;
+
+        int countPos = data.Count(p => p.Label > 0);
+        int countNeg = data.Count - countPos;
+
+        double pPos = (double)countPos / data.Count;
+        double pNeg = (double)countNeg / data.Count;
+
+        return 1 - (pPos * pPos + pNeg * pNeg);
+    }
+
+    private bool IsPure(List<DataPoint> data)
+    {
+        if (data.Count == 0) return true;
+        double firstLabel = data[0].Label;
+        return data.All(p => Math.Sign(p.Label) == Math.Sign(firstLabel));
+    }
+
+    private double MajorityClass(List<DataPoint> data)
+    {
+        if (data.Count == 0) return 0;
+
+        int countPos = data.Count(p => p.Label > 0);
+        int countNeg = data.Count - countPos;
+
+        return countPos >= countNeg ? 1.0 : -1.0;
+    }
+
+    private double Predict(TreeNode node, double[] features)
+    {
+        if (node.IsLeaf)
+            return node.Value;
+
+        if (features[node.FeatureIndex] <= node.Threshold)
+            return Predict(node.Left, features);
+        else
+            return Predict(node.Right, features);
+    }
+
+    private class DataPoint
+    {
+        public double[] Features { get; }
+        public double Label { get; }
+
+        public DataPoint(double[] features, double label)
+        {
+            Features = features;
+            Label = label;
+        }
+    }
+
+    private class TreeNode
+    {
+        public bool IsLeaf { get; set; }
+        public double Value { get; set; } 
+        public int FeatureIndex { get; set; }
+        public double Threshold { get; set; }
+        public TreeNode Left { get; set; }
+        public TreeNode Right { get; set; }
+    }
+
+    private class SplitInfo
+    {
+        public int FeatureIndex { get; set; }
+        public double Threshold { get; set; }
+        public double Gain { get; set; }
+    }
+}
+
+
+public class RosenblattPerceptron : IClassifer
+{
+    private int[][] aWeights;
+    private int[] rWeights;
+    private readonly Random rnd;
+    int maxEpochs;
+    public RosenblattPerceptron(int inputDim = 2, int aCount = 500, int seed = 0, int maxEpochs = 20)
+    {
+        this.maxEpochs = maxEpochs;
+        rnd = new Random(seed);
+
+        aWeights = new int[aCount][];
+        for (int i = 0; i < aCount; i++)
+        {
+            aWeights[i] = new int[inputDim + 1];
+            for (int j = 0; j < aWeights[i].Length; j++)
+                aWeights[i][j] = rnd.Next(-100,101);
+        }
+
+        rWeights = new int[aCount + 1];
+        this.maxEpochs = maxEpochs;
+    }
+
+    public int[] MixIndex(int N, Random rnd)
+    {
+
+        int[] a = new int[N];
+        for (int i = 0; i < N; i++) a[i] = i;
+        for (int i = 0; i < N; i++)
+        {
+            if (a[i] == i)
+            {
+                int p = rnd.Next(0, N);
+                a[i] = a[p];
+                a[p] = i;
+            }
+        }
+
+        return a;
+    }
+
+    private int Step(int z) => z > 0 ? 1 : -1;
+
+    private int[] Project(double[] input)
+    {
+        int[] outA = new int[aWeights.Length];
+        for (int i = 0; i < aWeights.Length; i++)
+        {
+            int s = aWeights[i].Last();
+            for (int j = 0; j < input.Length; j++) s += (int)(aWeights[i][j] * input[j]);
+            outA[i] = Step(s);
+        }
+        return outA;
+    }
+
+    public double[] Decide(double[] vector)
+    {
+        var proj = Project(vector);
+        var s = rWeights.Last();
+        for (int i = 0; i < proj.Length; i++) s += rWeights[i] * proj[i];
+        return new[] { (double)Step(s) };
+    }
+
+    public void Fit(double[][] inputs, double[][] outputs)
+    {
+
+        var inputsProject = new int[inputs.Length][];
+        for (int i = 0; i < inputs.Length; i++) inputsProject[i] = Project(inputs[i]);
+
+        for (int epoch = 0; epoch < maxEpochs; epoch++)
+        {
+            var mix = MixIndex(inputs.Length, rnd);
+            int errors = 0;
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                var m = mix[i];
+                var proj = inputsProject[m];
+                var s = rWeights.Last();
+                for (int j = 0; j < proj.Length; j++) s += rWeights[j] * proj[j];
+                int pred = Step(s);
+
+                int target = (int)outputs[m][0];
+                int delta = target - pred;
+                if (delta != 0)
+                {
+                    for (int j = 0; j < proj.Length; j++) rWeights[j] += (delta * proj[j]);
+                    rWeights[rWeights.Length - 1] += delta;
+                    errors++;
+                }
+            }
+            if (errors == 0) break;
+        }
+    }
+}
+
+
+
+
+
+public class Program
+{
+
+    public static double[][][] SpiralDataset(double complex = 3, int count = 1000)
+    {
+        var inputs = new List<double[]>();
+        var outputs = new List<double[]>();
+        var rnd = new Random();
+        double rnd2() => rnd.NextDouble() * 2 - 1;
+
+        var max = complex * Math.PI;
+        for (int i = 0; i < count; i++)
+        {
+            double theta = max * i / count;
+            double r = theta;
+
+            double x1 = r * Math.Cos(theta) + rnd2() * r / 10;
+            double y1 = r * Math.Sin(theta) + rnd2() * r / 10;
+
+            inputs.Add(new[] { x1 / max, y1 / max });
+            outputs.Add(new[] { 1.0 });
+
+            double x2 = -r * Math.Cos(theta) + rnd2() * r / 10;
+            double y2 = -r * Math.Sin(theta) + rnd2() * r / 10;
+
+            inputs.Add(new[] { x2 / max, y2 / max });
+            outputs.Add(new[] { -1.0 });
+        }
+
+
+        return new[] { inputs.ToArray(), outputs.ToArray() };
+
+    }
+
+    public static double Accuracy(double[][] predict, double[][] outputs)
+    {
+        var setCount = Math.Min(outputs.Length, predict.Length);
+        double plus = 0, minus = 0, accuracy = 0;
+
+        for (int sample = 0; sample < setCount; sample++)
+        {
+            var m = predict[sample][0] * outputs[sample][0];
+            if (m > 0) plus++;
+            if (m < 0) minus++;
+        }
+
+        accuracy = plus / setCount;
+
+        return accuracy;
+    }
+
+    public static async Task<TimeSpan> StopWatch(Action action, string procName = "StopWatch: ")
+    {
+        var sw = Stopwatch.StartNew();
+        action();
+        sw.Stop();
+        Console.WriteLine(procName + " TimeLag: " + sw.Elapsed.TotalMilliseconds);
+        return sw.Elapsed;
+    }
+
+    private static Task<TimeSpan> TestMl(IClassifer ml, double[][] inputs, double[][] outputs)
+    {
+        return StopWatch(() =>
+        {
+            ml.Fit(inputs, outputs);
+            var predict = inputs.Select(ml.Decide).ToArray();
+            var acc = Accuracy(predict, outputs);
+            Console.WriteLine($"{ml.GetType().Name} Accuracy: {acc * 100}%");
+        });
+    }
+
+
+    public static void Main(string[] args)
+    {
+        var dataset = SpiralDataset(5,10000);
+
+        var tknn = TestMl(new Knn(10), dataset[0], dataset[1]).Result.TotalMilliseconds;
+        var ttree = TestMl(new SimpleDecisionTree(), dataset[0], dataset[1]).Result.TotalMilliseconds;
+        var trblt = TestMl(new RosenblattPerceptron(aCount: 1000, maxEpochs: 10), dataset[0], dataset[1]).Result.TotalMilliseconds;
+
+        Console.WriteLine($"knn:100%");
+        Console.WriteLine($"tree:{Math.Round(100* ttree / tknn, 2)}%");
+        Console.WriteLine($"rosenblatt:{Math.Round(100* trblt / tknn, 2)}%");
+
+        Console.ReadKey();
+    }
+}

@@ -1,0 +1,447 @@
+//автор: Сергей Гаврилов
+
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <random>
+#include <chrono>
+#include <algorithm>
+#include <numeric>
+#include <functional>
+#include <optional>
+
+using namespace std;
+using namespace chrono;
+
+
+class IClassifier {
+public:
+    virtual ~IClassifier() = default;
+    virtual void Fit(const vector<vector<double>>& inputs, const vector<vector<double>>& outputs) = 0;
+    virtual vector<double> Decide(const vector<double>& vector) = 0;
+};
+
+
+class Knn : public IClassifier {
+private:
+    vector<vector<double>> trainingInputs;
+    vector<vector<double>> trainingOutputs;
+    int k;
+
+    double EuclideanDistance(const vector<double>& a, const vector<double>& b) {
+        double sum = 0;
+        for (size_t i = 0; i < a.size(); i++) {
+            sum += pow(a[i] - b[i], 2);
+        }
+        return sqrt(sum);
+    }
+
+public:
+    Knn(int k = 5) : k(k) {}
+
+    void Fit(const vector<vector<double>>& inputs, const vector<vector<double>>& outputs) override {
+        trainingInputs = inputs;
+        trainingOutputs = outputs;
+    }
+
+    vector<double> Decide(const vector<double>& v) override {
+        vector<pair<double, double>> distances;
+
+        for (size_t i = 0; i < trainingInputs.size(); i++) {
+            double distance = EuclideanDistance(v, trainingInputs[i]);
+            distances.emplace_back(distance, trainingOutputs[i][0]);
+        }
+
+        sort(distances.begin(), distances.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; });
+
+        double sum = 0;
+        for (int i = 0; i < min(k, (int)distances.size()); i++) {
+            sum += distances[i].second;
+        }
+
+        return { (double)((sum > 0) ? 1 : -1) };
+    }
+};
+
+
+class SimpleDecisionTree : public IClassifier {
+private:
+    struct DataPoint {
+        vector<double> Features;
+        double Label;
+
+        DataPoint(const vector<double>& features, double label)
+            : Features(features), Label(label) {
+        }
+    };
+
+    struct TreeNode {
+        bool IsLeaf = false;
+        double Value = 0;
+        int FeatureIndex = 0;
+        double Threshold = 0;
+        unique_ptr<TreeNode> Left;
+        unique_ptr<TreeNode> Right;
+    };
+
+    struct SplitInfo {
+        int FeatureIndex = 0;
+        double Threshold = 0;
+        double Gain = 0;
+    };
+
+    unique_ptr<TreeNode> root;
+    int maxDepth;
+    int minSamplesSplit;
+    mt19937 rnd;
+
+    unique_ptr<TreeNode> BuildTree(const vector<DataPoint>& data, int depth) {
+        if (data.empty()) {
+            auto node = make_unique<TreeNode>();
+            node->IsLeaf = true;
+            node->Value = 0;
+            return node;
+        }
+
+        if (depth >= maxDepth || data.size() < minSamplesSplit || IsPure(data)) {
+            auto node = make_unique<TreeNode>();
+            node->IsLeaf = true;
+            node->Value = MajorityClass(data);
+            return node;
+        }
+
+        auto bestSplit = FindBestSplit(data);
+        if (!bestSplit.has_value()) {
+            auto node = make_unique<TreeNode>();
+            node->IsLeaf = true;
+            node->Value = MajorityClass(data);
+            return node;
+        }
+
+        vector<DataPoint> leftData, rightData;
+        for (const auto& point : data) {
+            if (point.Features[bestSplit->FeatureIndex] <= bestSplit->Threshold) {
+                leftData.push_back(point);
+            }
+            else {
+                rightData.push_back(point);
+            }
+        }
+
+        auto node = make_unique<TreeNode>();
+        node->IsLeaf = false;
+        node->FeatureIndex = bestSplit->FeatureIndex;
+        node->Threshold = bestSplit->Threshold;
+        node->Left = BuildTree(leftData, depth + 1);
+        node->Right = BuildTree(rightData, depth + 1);
+
+        return node;
+    }
+
+    optional<SplitInfo> FindBestSplit(const vector<DataPoint>& data) {
+        if (data.size() < 2) return nullopt;
+
+        int numFeatures = data[0].Features.size();
+        optional<SplitInfo> bestSplit = nullopt;
+        double bestGain = -1;
+
+        vector<int> features(numFeatures);
+        iota(features.begin(), features.end(), 0);
+        shuffle(features.begin(), features.end(), rnd);
+
+        int featuresToCheck = max(1, (int)sqrt(numFeatures));
+
+        for (int i = 0; i < featuresToCheck; i++) {
+            int featureIndex = features[i];
+
+            vector<double> values;
+            for (const auto& point : data) {
+                values.push_back(point.Features[featureIndex]);
+            }
+            sort(values.begin(), values.end());
+            values.erase(unique(values.begin(), values.end()), values.end());
+
+            vector<double> thresholds;
+            for (size_t j = 0; j < values.size() - 1; j++) {
+                thresholds.push_back((values[j] + values[j + 1]) / 2.0);
+            }
+
+            shuffle(thresholds.begin(), thresholds.end(), rnd);
+            int thresholdsToCheck = min(10, (int)thresholds.size());
+
+            for (int j = 0; j < thresholdsToCheck; j++) {
+                double threshold = thresholds[j];
+                double gain = CalculateGain(data, featureIndex, threshold);
+
+                if (gain > bestGain) {
+                    bestGain = gain;
+                    bestSplit = SplitInfo{ featureIndex, threshold, gain };
+                }
+            }
+        }
+
+        return bestSplit;
+    }
+
+    double CalculateGain(const vector<DataPoint>& data, int featureIndex, double threshold) {
+        vector<DataPoint> left, right;
+
+        for (const auto& point : data) {
+            if (point.Features[featureIndex] <= threshold) {
+                left.push_back(point);
+            }
+            else {
+                right.push_back(point);
+            }
+        }
+
+        if (left.empty() || right.empty()) return 0;
+
+        double parentImpurity = GiniImpurity(data);
+        double leftImpurity = GiniImpurity(left);
+        double rightImpurity = GiniImpurity(right);
+
+        double total = data.size();
+        return parentImpurity - (left.size() / total * leftImpurity + right.size() / total * rightImpurity);
+    }
+
+    double GiniImpurity(const vector<DataPoint>& data) {
+        if (data.empty()) return 0;
+
+        int countPos = count_if(data.begin(), data.end(),
+            [](const DataPoint& p) { return p.Label > 0; });
+        int countNeg = data.size() - countPos;
+
+        double pPos = (double)countPos / data.size();
+        double pNeg = (double)countNeg / data.size();
+
+        return 1 - (pPos * pPos + pNeg * pNeg);
+    }
+
+    bool IsPure(const vector<DataPoint>& data) {
+        if (data.empty()) return true;
+        double firstLabel = data[0].Label;
+        return all_of(data.begin(), data.end(),
+            [firstLabel](const DataPoint& p) {
+                return (p.Label > 0 && firstLabel > 0) || (p.Label < 0 && firstLabel < 0);
+            });
+    }
+
+    double MajorityClass(const vector<DataPoint>& data) {
+        if (data.empty()) return 0;
+
+        int countPos = count_if(data.begin(), data.end(),
+            [](const DataPoint& p) { return p.Label > 0; });
+        int countNeg = data.size() - countPos;
+
+        return countPos >= countNeg ? 1.0 : -1.0;
+    }
+
+    double Predict(const TreeNode* node, const vector<double>& features) {
+        if (node->IsLeaf) {
+            return node->Value;
+        }
+
+        if (features[node->FeatureIndex] <= node->Threshold) {
+            return Predict(node->Left.get(), features);
+        }
+        else {
+            return Predict(node->Right.get(), features);
+        }
+    }
+
+public:
+    SimpleDecisionTree(int maxDepth = 20, int minSamplesSplit = 2, int seed = 42)
+        : maxDepth(maxDepth), minSamplesSplit(minSamplesSplit), rnd(seed) {
+    }
+
+    void Fit(const vector<vector<double>>& inputs, const vector<vector<double>>& outputs) override {
+        vector<DataPoint> data;
+        for (size_t i = 0; i < inputs.size(); i++) {
+            data.emplace_back(inputs[i], outputs[i][0]);
+        }
+        root = BuildTree(data, 0);
+    }
+
+    vector<double> Decide(const vector<double>& vector) override {
+        return { Predict(root.get(), vector) };
+    }
+};
+
+class RosenblattPerceptron : public IClassifier {
+private:
+    vector<vector<int>> aWeights;
+    vector<int> rWeights;
+    mt19937 rnd;
+    int maxEpochs;
+
+    vector<int> MixIndex(int N) {
+        vector<int> a(N);
+        iota(a.begin(), a.end(), 0);
+        for (int i = 0; i < N; i++) {
+            if (a[i] == i) {
+                int p = uniform_int_distribution<int>(0, N - 1)(rnd);
+                swap(a[i], a[p]);
+            }
+        }
+        return a;
+    }
+
+    int Step(int z) { return z > 0 ? 1 : -1; }
+
+    vector<int> Project(const vector<double>& input) {
+        vector<int> outA(aWeights.size());
+        for (size_t i = 0; i < aWeights.size(); i++) {
+            int s = aWeights[i].back();
+            for (size_t j = 0; j < input.size(); j++) {
+                s += (int)(aWeights[i][j] * input[j]);
+            }
+            outA[i] = Step(s);
+        }
+        return outA;
+    }
+
+public:
+    RosenblattPerceptron(int inputDim = 2, int aCount = 500, int seed = 0, int maxEpochs = 20)
+        : rnd(seed), maxEpochs(maxEpochs) {
+
+        uniform_int_distribution<int> dist(-100, 100);
+
+        aWeights.resize(aCount);
+        for (int i = 0; i < aCount; i++) {
+            aWeights[i].resize(inputDim + 1);
+            for (size_t j = 0; j < aWeights[i].size(); j++) {
+                aWeights[i][j] = dist(rnd);
+            }
+        }
+
+        rWeights.resize(aCount + 1, 0);
+    }
+
+    void Fit(const vector<vector<double>>& inputs, const vector<vector<double>>& outputs) override {
+        vector<vector<int>> inputsProject(inputs.size());
+        for (size_t i = 0; i < inputs.size(); i++) {
+            inputsProject[i] = Project(inputs[i]);
+        }
+
+        for (int epoch = 0; epoch < maxEpochs; epoch++) {
+            auto mix = MixIndex(inputs.size());
+            int errors = 0;
+
+            for (size_t i = 0; i < inputs.size(); i++) {
+                int m = mix[i];
+                const auto& proj = inputsProject[m];
+
+                int s = rWeights.back();
+                for (size_t j = 0; j < proj.size(); j++) {
+                    s += rWeights[j] * proj[j];
+                }
+                int pred = Step(s);
+                int target = (int)outputs[m][0];
+                int delta = target - pred;
+
+                if (delta != 0) {
+                    for (size_t j = 0; j < proj.size(); j++) {
+                        rWeights[j] += delta * proj[j];
+                    }
+                    rWeights.back() += delta;
+                    errors++;
+                }
+            }
+
+            if (errors == 0) break;
+        }
+    }
+
+    vector<double> Decide(const vector<double>& vector) override {
+        auto proj = Project(vector);
+        int s = rWeights.back();
+        for (size_t i = 0; i < proj.size(); i++) {
+            s += rWeights[i] * proj[i];
+        }
+        return { (double)Step(s) };
+    }
+};
+
+vector<vector<vector<double>>> SpiralDataset(double complex = 3, int count = 1000) {
+    vector<vector<double>> inputs;
+    vector<vector<double>> outputs;
+    mt19937 rnd(random_device{}());
+    uniform_real_distribution<double> dist(-1, 1);
+
+    auto rnd2 = [&]() { return dist(rnd); };
+
+    double max = complex * 3.14159265358979323846;
+    for (int i = 0; i < count; i++) {
+        double theta = max * i / count;
+        double r = theta;
+
+        double x1 = r * cos(theta) + rnd2() * r / 10;
+        double y1 = r * sin(theta) + rnd2() * r / 10;
+
+        inputs.push_back({ x1 / max, y1 / max });
+        outputs.push_back({ 1.0 });
+
+        double x2 = -r * cos(theta) + rnd2() * r / 10;
+        double y2 = -r * sin(theta) + rnd2() * r / 10;
+
+        inputs.push_back({ x2 / max, y2 / max });
+        outputs.push_back({ -1.0 });
+    }
+
+    return { inputs, outputs };
+}
+
+double Accuracy(const vector<vector<double>>& predict, const vector<vector<double>>& outputs) {
+    size_t setCount = min(outputs.size(), predict.size());
+    double plus = 0;
+
+    for (size_t sample = 0; sample < setCount; sample++) {
+        double m = predict[sample][0] * outputs[sample][0];
+        if (m > 0) plus++;
+    }
+
+    return plus / setCount;
+}
+
+template<typename Func>
+auto StopWatch(Func action, const string& procName = "StopWatch: ") {
+    auto start = high_resolution_clock::now();
+    action();
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end - start);
+
+    cout << procName << " TimeLag: " << duration.count() << "ms" << endl;
+    return duration;
+}
+
+auto TestMl(IClassifier& ml, const vector<vector<double>>& inputs, const vector<vector<double>>& outputs) {
+    return StopWatch([&]() {
+        ml.Fit(inputs, outputs);
+        vector<vector<double>> predict;
+        for (const auto& input : inputs) {
+            predict.push_back(ml.Decide(input));
+        }
+        double acc = Accuracy(predict, outputs);
+        cout << typeid(ml).name() << " Accuracy: " << acc * 100 << "%" << endl;
+        }, "TestMl: ");
+}
+
+int main() {
+    auto dataset = SpiralDataset(5, 10000);
+
+    Knn knn(10);
+    SimpleDecisionTree tree;
+    RosenblattPerceptron rblt(2, 1000, 0, 10);
+
+    auto tknn = TestMl(knn, dataset[0], dataset[1]).count();
+    auto ttree = TestMl(tree, dataset[0], dataset[1]).count();
+    auto trblt = TestMl(rblt, dataset[0], dataset[1]).count();
+
+    cout << "knn: 100%" << endl;
+    cout << "tree: " << 100 * (double)ttree / tknn << "%" << endl;
+    cout << "rosenblatt: " << 100 * (double)trblt / tknn << "%" << endl;
+
+    return 0;
+}
