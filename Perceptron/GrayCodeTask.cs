@@ -15,7 +15,7 @@ public class GrayCodeTask
 		int N2 = 256;
 		int L = 16;
 
-		NeironNetTree net = new NeironNetTree(L, 6000, L, N1 * N2);
+		NeironNetTree net = new NeironNetTree(L, 5000, L, N1 * N2);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];

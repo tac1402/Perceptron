@@ -4,7 +4,7 @@ internal class Program
 {
 	static void Main(string[] args)
 	{
-		GrayCodeTask task = new GrayCodeTask();
+		ParityTask task = new ParityTask();
 		task.Run();
 	}
 }

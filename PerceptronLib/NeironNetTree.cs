@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tac.Perceptron
@@ -143,25 +144,40 @@ namespace Tac.Perceptron
 
 
 
-		int MaxTreeCount = 2;
-		int batchCount = 3000;
+		int MaxTreeCount = 1;
+		int batchCount = 5000;
 		ArrayList AElement = new ArrayList();
 		int From = 0, Till = 0;
 		int Flag = 1;
 		//public List<Graph> graph = new List<Graph>();
 		public Graph graph = new Graph();
 
+
+		private void StartAnalyze()
+		{
+			id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, rNumber, From, Till);
+		}
+
+		PerceptronAnalyze id3;
+		int rNumber;
+
 		public void Analyze(int argRNumber, int argBatchNumber)
 		{
-
-			PerceptronAnalyze id3 = new PerceptronAnalyze();
+			id3 = new PerceptronAnalyze();
 
 			From = argBatchNumber * batchCount;
 			Till = batchCount + argBatchNumber * batchCount;
+			rNumber = argRNumber;
 
 			id3.graphP = graph;
 
-			id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, argRNumber, From, Till);
+
+
+			//id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, argRNumber, From, Till);
+
+			Thread t = new Thread(StartAnalyze, 16 * 1024 * 1024); // 16 МБ
+			t.Start();
+			t.Join();
 
 
 			for (int n = 0; n < ACount; n++)

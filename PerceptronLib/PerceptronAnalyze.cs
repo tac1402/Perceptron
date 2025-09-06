@@ -280,14 +280,22 @@ namespace Tac.Perceptron
 			{
 				Console.WriteLine();
 			}
-			else if (Level > 1 && Level <= 6)
+			else if (Level > 1 && Level <= 9)
 			{
 				Console.Write(Level.ToString());
+			}
+			else if (Level > 9)
+			{
+				if (Level % 100 == 0)
+				{
+					Console.Write(".");
+				}
 			}
 
 			if (allSamplesPositives(samplesClass) == true) { return -1; }
 			if (allSamplesNegatives(samplesClass) == true) { return -1; }
 			if (attributes.Length == 0) { return -1; }
+			if (Level > 10) { return -1; }
 
 			total = samples.Count;
 			int totalPositives = countTotalPositives(samplesClass);
