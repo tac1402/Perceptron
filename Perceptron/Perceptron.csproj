@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="GrayCodeTask.cs" />
     <Compile Include="InversionTask.cs" />
+    <Compile Include="MNIST_Task.cs" />
     <Compile Include="ParityTask.cs" />
     <Compile Include="ParityWhereTask.cs" />
     <Compile Include="Program.cs" />
