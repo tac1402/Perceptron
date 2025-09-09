@@ -22,10 +22,10 @@ namespace Tac.Perceptron
 		public int[] AssociationsField; /* Ассоциативное поле */
 		public BitBlock ReactionsField; /* Реагирующие поле */
 
-		private int SCount; // Количество сенсоров
-		private int ACount; // Количество ассоциаций
-		private int RCount; // Количество реакций
-		private int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
+		protected int SCount; // Количество сенсоров
+		protected int ACount; // Количество ассоциаций
+		protected int RCount; // Количество реакций
+		protected int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
 
 		public Dictionary<int, List<int>> AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
@@ -39,17 +39,11 @@ namespace Tac.Perceptron
 		public Dictionary<int, int[]> WeightSA; // Веса между S-A элементами
 		public Dictionary<int, int[]> WeightAR; // Веса между A-R элементами
 
-		private sbyte[] ReactionError;
-		private Random rnd = new Random(10);
+		protected sbyte[] ReactionError;
+		protected Random rnd = new Random(10);
 
-		/// <summary>
-		/// Количество выходов, которые уже обучились (используется для оптимизации)
-		/// </summary>
-		private int ROk = 0;
-		/// <summary>
-		/// Количество ошибок на каждом R выходе в процессе обучения (используется для оптимизации)
-		/// </summary>
-		private int[] RErrorCount;
+		protected int AHMinimum = 0;
+		protected double aTime = 0;
 
 
 		public NeironNetTree(int argSCount, int argACount, int argRCount, int argHCount)
@@ -58,6 +52,8 @@ namespace Tac.Perceptron
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
+
+			batchCount = ACount;
 
 			SensorsField = new BitBlock(SCount);
 
@@ -91,8 +87,6 @@ namespace Tac.Perceptron
 			{
 				WeightAR[i] = new int[RCount];
 			}
-
-			RErrorCount = new int[RCount];
 		}
 
 		public bool IsAnalyze = false;
@@ -108,7 +102,7 @@ namespace Tac.Perceptron
 		public int SinapsXCount = 0;
 		public int SinapsYCount = 0;
 
-		private void InitSA(int argAId)
+		protected void InitSA(int argAId)
 		{
 
 			if (sinapsType == SinapsType.Full)
@@ -174,12 +168,11 @@ namespace Tac.Perceptron
 		}
 
 
-		int MaxTreeCount = 1;
-		int batchCount = 5000;
+		public int MaxTreeCount = 1;
+		public int batchCount = 0;
+
 		ArrayList AElement = new ArrayList();
 		int From = 0, Till = 0;
-		int Flag = 1;
-		//public List<Graph> graph = new List<Graph>();
 		public Graph graph = new Graph();
 
 
@@ -226,12 +219,9 @@ namespace Tac.Perceptron
 
 			Console.WriteLine("AElement = " + AElement.Count.ToString());
 			graph = id3.graphP;
-			//graph.Add(id3.graphN);
 
 			if (argBatchNumber == MaxTreeCount)
 			{
-				//graph.Add(id3.graphP);
-
 				Dictionary<int, string> mask = new Dictionary<int, string>();
 				for (int i = 0; i < ACount; i++)
 				{
@@ -242,59 +232,21 @@ namespace Tac.Perceptron
 							WeightSA[j][i] = 0;
 						}
 					}
-					/*else
-					{
-						string maskLine = "";
-						for (int j = 0; j < SCount; j++)
-						{
-							if (WeightSA[j][i] == 0)
-							{
-								maskLine += "0";
-							}
-							else if (WeightSA[j][i] == 1)
-							{
-								maskLine += "+";
-							}
-							else if (WeightSA[j][i] == -1)
-							{
-								maskLine += "-";
-							}
-						}
-						mask.Add(i, maskLine);
-					}*/
 				}
-
-				/*foreach (var m in mask)
-				{
-					File.AppendAllText("mask.txt", m.Value + "=" + m.Key.ToString() + "\n");
-				}*/
 			}
-
-
-
-			//Flag++;
-
-			//Console.WriteLine(AElement.Count.ToString());
-
-			/*for (int i = 1; i < ACount + 1; i++)
-			{
-				AssociationsFiled[i].ActivationLevel = 0;
-			}*/
-
 		}
 
 
 		/// <summary>
 		/// Когда все примеры добавлены, вызывается чтобы перцептрон их выучил
 		/// </summary>
-		public void Learned()
+		public virtual void Learned()
 		{
 			AHMinimum = ACount;
 			for (int i = 0; i < ACount; i++)
 			{
 				InitSA(i);
 			}
-			RErrorClear(true);
 
 			int nb = 0;
 			if (IsAnalyze == false) { nb = 1; }
@@ -303,7 +255,6 @@ namespace Tac.Perceptron
 			for (int n = nb; n < 100000; n++)
 			{
 				int Error = 0;
-				RErrorClear();
 
 				DateTime begin = DateTime.Now;
 				aTime = 0;
@@ -336,17 +287,9 @@ namespace Tac.Perceptron
 							Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 						}
 					}
-					for (int i = 0; i < RCount; i++)
-					{
-						if (RErrorCount[i] == 0)
-						{
-							RErrorCount[i] = -1;
-							ROk++;
-						}
-					}
 
 					double t = (DateTime.Now - begin).TotalMilliseconds;
-					Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms, ROk = " + ROk.ToString());
+					Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
 					if (Error == 0) { break; }
 				}
 				if (n == 0)
@@ -385,7 +328,6 @@ namespace Tac.Perceptron
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
 
-			RErrorClear(true);
 			AHConnections = new Dictionary<int, List<int>>();
 			for (int i = 0; i < HCount; i++)
 			{
@@ -442,16 +384,12 @@ namespace Tac.Perceptron
 
 
 
-		double aTime = 0;
-
-		int AHMinimum = 0;
-
 		/// <summary>
 		/// Активация S-A слоя
 		/// </summary>
 		/// <param name="argStimulNumber">Номер примера в выборке</param>
 		/// <param name="argMode">0 - обучение, 1 - экзамен</param>
-		private void SActivation(int argStimulNumber, int argMode = 0)
+		protected void SActivation(int argStimulNumber, int argMode = 0)
 		{
 
 			for (int i = 0; i < ACount; i++)
@@ -500,40 +438,16 @@ namespace Tac.Perceptron
 			}
 		}
 
-		private void RErrorClear(bool argFull = false)
-		{
-			if (argFull == true)
-			{
-				for (int i = 0; i < RCount; i++)
-				{
-					RErrorCount[i] = 0;
-				}
-			}
-			else
-			{
-				for (int i = 0; i < RCount; i++)
-				{
-					if (RErrorCount[i] != -1)
-					{
-						RErrorCount[i] = 0;
-					}
-				}
-			}
-		}
 
-
-		private void RActivation(int argStimulNumber)
+		protected void RActivation(int argStimulNumber)
 		{
 			int[] Summa = new int[RCount];
 			for (int j = 0; j < RCount; j++)
 			{
-				if (RErrorCount[j] != -1)
+				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
 				{
-					for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
-					{
-						int index = AHConnections[argStimulNumber][i];
-						Summa[j] += WeightAR[index][j];
-					}
+					int index = AHConnections[argStimulNumber][i];
+					Summa[j] += WeightAR[index][j];
 				}
 			}
 			for (int i = 0; i < RCount; i++)
@@ -543,42 +457,38 @@ namespace Tac.Perceptron
 			}
 		}
 
-		private bool GetError(int argStimulNumber, int argMode = 0)
+		protected bool GetError(int argStimulNumber, int argMode = 0)
 		{
 			bool IsError = false;
 			for (int i = 0; i < RCount; i++)
 			{
-				if (RErrorCount[i] != -1)
+				bool v = NecessaryReactions[argStimulNumber][i];
+
+				if (argMode == 0)
 				{
-					bool v = NecessaryReactions[argStimulNumber][i];
+					v = NecessaryReactions[argStimulNumber][i];
+				}
+				else if (argMode == 1)
+				{
+					v = ExaminReactions[argStimulNumber][i];
+				}
 
-					if (argMode == 0)
-					{
-						v = NecessaryReactions[argStimulNumber][i];
-					}
-					else if (argMode == 1)
-					{
-						v = ExaminReactions[argStimulNumber][i];
-					}
+				if (ReactionsField[i] == v)
+				{
+					ReactionError[i] = 0;
+				}
+				else
+				{
+					IsError = true;
+					sbyte v2 = -1; if (v == true) { v2 = 1; }
+					ReactionError[i] = v2;
 
-					if (ReactionsField[i] == v)
-					{
-						ReactionError[i] = 0;
-					}
-					else
-					{
-						IsError = true;
-						sbyte v2 = -1; if (v == true) { v2 = 1; }
-						ReactionError[i] = v2;
-
-						RErrorCount[i]++;
-					}
 				}
 			}
 			return IsError;
 		}
 
-		private void LearnedStimul(int argStimulNumber)
+		protected void LearnedStimul(int argStimulNumber)
 		{
 			for (int j = 0; j < RCount; j++)
 			{

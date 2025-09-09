@@ -16,8 +16,9 @@ public class MNIST_Task
 		//int N1 = 10000;
 		int L = 441;
 
-		NeironNetTree net = new NeironNetTree(L, 40000, 10, N1);
-		net.IsAnalyze = false;
+		NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
+		//NeironNetBT net = new NeironNetBT(L, 40000, 10, N1, 10, 10);
+		net.IsAnalyze = true;
 		net.SinapsXCount = 2;
 		net.SinapsYCount = 2;
 		net.sinapsType = NeironNetTree.SinapsType.Custom;
