@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36310.24 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewMNIST", "ViewMNIST.csproj", "{86E50D0F-756D-4D31-AFA8-48C68B7CDC75}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86E50D0F-756D-4D31-AFA8-48C68B7CDC75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86E50D0F-756D-4D31-AFA8-48C68B7CDC75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86E50D0F-756D-4D31-AFA8-48C68B7CDC75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86E50D0F-756D-4D31-AFA8-48C68B7CDC75}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F4C98C2B-8CBF-40CB-8E6D-23A8802349BA}
+	EndGlobalSection
+EndGlobal
