@@ -1,10 +1,17 @@
-﻿using System;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
 namespace Tac.Perceptron
 {
+
+	/// <summary>
+	/// Блочное обучение
+	/// </summary>
 	public class NeironNetBT : NeironNetTree
 	{
 		private int BCount; // Количество блоков обучения
@@ -118,6 +125,7 @@ namespace Tac.Perceptron
 			file.Close();
 			Console.WriteLine("LoadAH");
 		}
+
 
 
 		public override void Learned()

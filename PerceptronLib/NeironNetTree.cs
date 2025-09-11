@@ -6,9 +6,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Tac.Perceptron
 {
@@ -23,7 +25,7 @@ namespace Tac.Perceptron
 		public BitBlock ReactionsField; /* Реагирующие поле */
 
 		protected int SCount; // Количество сенсоров
-		protected int ACount; // Количество ассоциаций
+		public int ACount; // Количество ассоциаций
 		protected int RCount; // Количество реакций
 		protected int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
@@ -40,18 +42,25 @@ namespace Tac.Perceptron
 		public Dictionary<int, int[]> WeightAR; // Веса между A-R элементами
 
 		protected sbyte[] ReactionError;
-		protected Random rnd = new Random(10);
+
+		public int RndNumber = 11;
+		protected Random rnd;
 
 		protected int AHMinimum = 0;
 		protected double aTime = 0;
 
+		private bool isSR = false;
 
-		public NeironNetTree(int argSCount, int argACount, int argRCount, int argHCount)
+		public NeironNetTree(int argSCount, int argACount, int argRCount, int argHCount, bool argIsSR = false)
 		{
+			rnd = new Random(RndNumber);
 			ACount = argACount;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
+
+			isSR = argIsSR;
+			if (argIsSR == true) { ACount += SCount * 2; }
 
 			batchCount = ACount;
 
@@ -104,6 +113,19 @@ namespace Tac.Perceptron
 
 		protected void InitSA(int argAId)
 		{
+			if (isSR == true)
+			{
+				if (argAId < SCount)
+				{
+					WeightSA[argAId][argAId] = 1;
+					return;
+				}
+				else if (argAId >= SCount && argAId < SCount * 2)
+				{
+					WeightSA[argAId - SCount][argAId] = -1;
+					return;
+				}
+			}
 
 			if (sinapsType == SinapsType.Full)
 			{
@@ -116,27 +138,14 @@ namespace Tac.Perceptron
 				SinapsYCount = 2;
 			}
 
-
 			int sinapsCount = SinapsXCount + SinapsYCount;
 
 			int sensorNumber = 0;
 			sbyte sensorType = 0;
-
 			for (int j = 0; j < sinapsCount; j++)
 			{
 				sensorNumber = rnd.Next(SCount);
-
 				if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
-
-				/*
-				if (j < sinapsXCount)
-				{
-					sensorType = 1;
-				}
-				else
-				{
-					sensorType = -1;
-				}*/
 
 				WeightSA[sensorNumber][argAId] = sensorType;
 			}
@@ -171,7 +180,7 @@ namespace Tac.Perceptron
 		public int MaxTreeCount = 1;
 		public int batchCount = 0;
 
-		ArrayList AElement = new ArrayList();
+		List<int> AElement = new List<int>();
 		int From = 0, Till = 0;
 		public Graph graph = new Graph();
 
@@ -236,6 +245,65 @@ namespace Tac.Perceptron
 			}
 		}
 
+		public int SANumber = 0;
+		public int SASelectCount = 1;
+
+		public void SaveSA(string argFileName, List<int> argActive)
+		{
+			Console.Write(".");
+			FileStream file = new FileStream(argFileName, FileMode.Create);
+			BinaryWriter writer = new BinaryWriter(file);
+
+			for (int j = 0; j < argActive.Count; j++)
+			{
+				int index = argActive[j];
+				for (int i = 0; i < SCount; i++)
+				{
+					if (WeightSA[i][index] != 0)
+					{
+						writer.Write(i);
+						writer.Write(WeightSA[i][index]);
+					}
+				}
+				writer.Write(-2);
+			}
+			writer.Close();
+			file.Close();
+			Console.WriteLine("SaveSA");
+		}
+
+
+		private bool isLoaded = false;
+
+
+		public void LoadSA(string argFileName)
+		{
+			isLoaded = false;
+			Console.Write(".");
+			FileStream file = new FileStream(argFileName, FileMode.Open);
+			BinaryReader reader = new BinaryReader(file);
+
+			int i = 0;
+			while (reader.BaseStream.Position != reader.BaseStream.Length)
+			{
+				int v = reader.ReadInt32();
+				if (v != -2)
+				{
+					int type = reader.ReadInt32();
+					WeightSA[v][i] = type;
+				}
+				else
+				{
+					i++;
+					ACount++;
+				}
+			}
+			reader.Close();
+			file.Close();
+			Console.WriteLine("LoadAH");
+			isLoaded = true;
+		}
+
 
 		/// <summary>
 		/// Когда все примеры добавлены, вызывается чтобы перцептрон их выучил
@@ -243,9 +311,12 @@ namespace Tac.Perceptron
 		public virtual void Learned()
 		{
 			AHMinimum = ACount;
-			for (int i = 0; i < ACount; i++)
+			if (isLoaded == false)
 			{
-				InitSA(i);
+				for (int i = 0; i < ACount; i++)
+				{
+					InitSA(i);
+				}
 			}
 
 			int nb = 0;
@@ -296,19 +367,52 @@ namespace Tac.Perceptron
 				{
 					if (IsAnalyze == true)
 					{
-						for (int i = 0; i < MaxTreeCount; i++)
+						SANumber++; // temp
+
+						for (int s = 0; s < SASelectCount; s++)
 						{
-							for (int j = 0; j < RCount; j++)
+							rnd = new Random(RndNumber + s);
+
+							for (int i = 0; i < MaxTreeCount; i++)
 							{
-								Analyze(j, i);
+								for (int j = 0; j < RCount; j++)
+								{
+									Analyze(j, i);
+								}
+							}
+							SANumber++;
+
+							SaveSA("SA_" + SANumber.ToString() + ".bin", AElement);
+
+
+							AElement = new List<int>();
+							WeightSA = new Dictionary<int, int[]>(SCount);
+							for (int i = 0; i < SCount; i++)
+							{
+								WeightSA[i] = new int[ACount];
+							}
+							for (int i = 0; i < ACount; i++)
+							{
+								InitSA(i);
 							}
 						}
+
 
 						AHConnections = new Dictionary<int, List<int>>();
 						for (int i = 0; i < HCount; i++)
 						{
 							AHConnections[i] = new List<int>();
 						}
+
+						for (int i = 0; i < HCount; i++)
+						{
+							// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
+							SActivation(i);
+
+							if (i % 10000 == 0)
+								Console.WriteLine("AHMinimum = " + AHMinimum.ToString());
+						}
+
 					}
 				}
 				if (n == 1)
