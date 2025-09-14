@@ -32,6 +32,7 @@ namespace ViewMNIST
 			this.PictureNumberTxt = new System.Windows.Forms.TextBox();
 			this.button1 = new System.Windows.Forms.Button();
 			this.pictureBox = new System.Windows.Forms.PictureBox();
+			this.SaveAllData = new System.Windows.Forms.Button();
 			((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
 			this.SuspendLayout();
 			// 
@@ -48,7 +49,7 @@ namespace ViewMNIST
 			this.button1.Name = "button1";
 			this.button1.Size = new System.Drawing.Size(75, 23);
 			this.button1.TabIndex = 11;
-			this.button1.Text = "button1";
+			this.button1.Text = "NextPicture";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new System.EventHandler(this.button1_Click);
 			// 
@@ -62,11 +63,22 @@ namespace ViewMNIST
 			this.pictureBox.TabIndex = 12;
 			this.pictureBox.TabStop = false;
 			// 
+			// SaveAllData
+			// 
+			this.SaveAllData.Location = new System.Drawing.Point(382, 12);
+			this.SaveAllData.Name = "SaveAllData";
+			this.SaveAllData.Size = new System.Drawing.Size(75, 23);
+			this.SaveAllData.TabIndex = 13;
+			this.SaveAllData.Text = "SaveAllData";
+			this.SaveAllData.UseVisualStyleBackColor = true;
+			this.SaveAllData.Click += new System.EventHandler(this.SaveAllData_Click);
+			// 
 			// PictureView
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(844, 552);
+			this.Controls.Add(this.SaveAllData);
 			this.Controls.Add(this.pictureBox);
 			this.Controls.Add(this.button1);
 			this.Controls.Add(this.PictureNumberTxt);
@@ -82,5 +94,6 @@ namespace ViewMNIST
 		  private System.Windows.Forms.TextBox PictureNumberTxt;
 		  private System.Windows.Forms.Button button1;
 		private System.Windows.Forms.PictureBox pictureBox;
+		private System.Windows.Forms.Button SaveAllData;
 	}
 }

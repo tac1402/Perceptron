@@ -18,24 +18,43 @@ namespace ViewMNIST
 		public PictureView()
 		{
 			InitializeComponent();
-			ReadPicture();
-			ReadLabels();
+			//ReadE();
+			ReadL();
+		}
+
+		public void ReadL()
+		{
+			//FashionMNIST
+			ReadPicture("train-images-idx3-ubyte", 60000);
+			ReadLabels("train-labels-idx1-ubyte", 60000);
+			//MNIST
+			//ReadPicture("train-images.idx3-ubyte", 60000);
+			//ReadLabels("train-labels.idx1-ubyte", 60000);
+		}
+
+		public void ReadE()
+		{
+			//FashionMNIST
+			ReadPicture("t10k-images-idx3-ubyte", 10000);
+			ReadLabels("t10k-labels-idx1-ubyte", 10000);
+			//MNIST
+			//ReadPicture("t10k-images.idx3-ubyte", 10000);
+			//ReadLabels("t10k-labels.idx1-ubyte", 10000);
 		}
 
 		byte[,] tmpPicture = new byte[60000,28 * 28];
 		string[] tmpLabels = new string [60000];
 		int PictureNumber=0;
 
-		public void ReadPicture()
+		public void ReadPicture(string argFileName, int argCount)
 		{
-			//FileStream fs = new FileStream("train-images.idx3-ubyte", FileMode.Open, FileAccess.Read);
-			FileStream fs = new FileStream("t10k-images.idx3-ubyte", FileMode.Open, FileAccess.Read);
+			FileStream fs = new FileStream(argFileName, FileMode.Open, FileAccess.Read);
 			BinaryReader r = new BinaryReader(fs);
 			for (int i = 0; i < 4; i++)
 			{
 				r.ReadInt32();
 			}
-			for (int n = 0; n < 10000-1 ; n++)
+			for (int n = 0; n < argCount; n++)
 			{
 				for (int i = 0; i < 28 * 28; i++)
 				{
@@ -44,16 +63,16 @@ namespace ViewMNIST
 			}
 		}
 
-		public void ReadLabels()
+		public void ReadLabels(string argFileName, int argCount)
 		{
-			//FileStream fs = new FileStream("train-labels.idx1-ubyte", FileMode.Open, FileAccess.Read);
-			FileStream fs = new FileStream("t10k-labels.idx1-ubyte", FileMode.Open, FileAccess.Read);
+			FileStream fs = new FileStream(argFileName, FileMode.Open, FileAccess.Read);
+
 			BinaryReader r = new BinaryReader(fs);
 			for (int i = 0; i < 2; i++)
 			{
 				r.ReadInt32();
 			}
-			for (int n = 0; n < 10000 - 1; n++)
+			for (int n = 0; n < argCount; n++)
 			{
 				tmpLabels[n] = r.ReadByte().ToString();
 			}
@@ -61,17 +80,22 @@ namespace ViewMNIST
 
 		public void ImageDraw()
 		{
-			pictureBox.Image = Image.FromFile("map1.jpg");
-			tmpBitmap = new Bitmap(pictureBox.Image);
 
-			Bitmap newBitmap = new Bitmap(21, 21);
+			int sizeX = 28; // 21
+			int sizeY = 28; // 21
+
+			Bitmap newBitmap = new Bitmap(sizeX, sizeY);
 
 			string tmp="";
+
+			int frameX = -1; // 3
+			int frameY = 28; // 25
+
 
 			int g = 0, x = -1, y = -1;
 			for (int i = 0; i < 28; i++)
 			{
-				if (i <= 3 || i >= 25)
+				if (i <= frameX || i >= frameY)
 				{
 				}
 				else
@@ -81,21 +105,21 @@ namespace ViewMNIST
 				x = -1;
 				for (int j = 0; j < 28; j++)
 				{
-					if (i <= 3 || i >= 25 || j <= 3 || j >= 25)
+					if (i <= frameX || i >= frameY || j <= frameX || j >= frameY)
 					{
 						tmpBitmap.SetPixel(j, i, Color.FromArgb(255, Color.Red));
 						g++;
 						continue;
 					}
 
-					if (j <= 3 || j >= 25)
+					if (j <= frameX || j >= frameY)
 					{ }
 					else
 					{
 						x++;
 					}
 					byte tmpValue=0;
-					if (tmpPicture[PictureNumber, g] > 100) tmpValue = 255;
+					if (tmpPicture[PictureNumber, g] > 128) tmpValue = 255;
 					tmpBitmap.SetPixel(j, i, Color.FromArgb(tmpValue, Color.Black));
 
 					if (tmpValue == 0)
@@ -112,13 +136,14 @@ namespace ViewMNIST
 					g++;
 				}
 			}
-			// Обновление карты на форме
+
+			// Обновление на форме
 			pictureBox.Image = tmpBitmap;
 
 			if (PictureNumber <= 10000)
 			{
-				newBitmap.Save("e" + PictureNumber.ToString() + ".png", ImageFormat.Png);
-				//xFile.WriteFile("ExaminationSet.txt", tmpLabels[PictureNumber] + ":" + tmp);
+				//newBitmap.Save("e" + PictureNumber.ToString() + ".png", ImageFormat.Png);
+				//File.AppendAllText("ExaminationSet.txt", tmpLabels[PictureNumber] + ":" + tmp + "\n");
 				PictureNumber++;
 			}
 			PictureNumberTxt.Text = PictureNumber.ToString();
@@ -127,9 +152,60 @@ namespace ViewMNIST
 
 		private void button1_Click(object sender, EventArgs e)
 		{
-			PictureNumber++;
 			ImageDraw();
 		}
 
+		private void SaveNext(string argFileName, int argCount)
+		{
+			string tmp = "";
+
+			int frameX = -1; // 3
+			int frameY = 28; // 25
+
+			int g = 0;
+			for (int i = 0; i < 28; i++)
+			{
+				for (int j = 0; j < 28; j++)
+				{
+					if (i <= frameX || i >= frameY || j <= frameX || j >= frameY)
+					{
+						g++;
+						continue;
+					}
+
+					byte tmpValue = 0;
+					if (tmpPicture[PictureNumber, g] > 128) tmpValue = 255;
+
+					if (tmpValue == 0)
+					{
+						tmp += "0";
+					}
+					else
+					{
+						tmp += "1";
+					}
+
+					g++;
+				}
+			}
+
+			if (PictureNumber <= argCount)
+			{
+				File.AppendAllText(argFileName, tmpLabels[PictureNumber] + ":" + tmp + "\n");
+				PictureNumber++;
+			}
+		}
+
+		private void SaveAllData_Click(object sender, EventArgs e)
+		{
+			PictureNumber = 0;
+
+			int count = 60000;
+			for (int i = 0; i < count; i++)
+			{
+				//SaveNext("ExaminationSet.txt", count);
+				SaveNext("LearningSet.txt", count);
+			}
+		}
 	}
 }
