@@ -43,10 +43,12 @@ namespace Tac.Perceptron
 
 		protected sbyte[] ReactionError;
 
-		public int RndNumber = 11;
+		public int RndNumber = 10;
 		protected Random rnd;
 
 		protected int AHMinimum = 0;
+		protected int AHAvg = 0;
+		protected int AHMaximum = 0;
 		protected double aTime = 0;
 
 		private bool isSR = false;
@@ -105,6 +107,7 @@ namespace Tac.Perceptron
 		{ 
 			Custom = 1,
 			Sinaps2x2 = 2,
+			Random = 3,
 			Full = 10
 		}
 
@@ -129,8 +132,8 @@ namespace Tac.Perceptron
 
 			if (sinapsType == SinapsType.Full)
 			{
-				SinapsXCount = SCount /2;
-				SinapsYCount = SCount /2;
+				SinapsXCount = SCount / 2;
+				SinapsYCount = SCount / 2;
 			}
 			else if (sinapsType == SinapsType.Sinaps2x2)
 			{
@@ -142,13 +145,83 @@ namespace Tac.Perceptron
 
 			int sensorNumber = 0;
 			sbyte sensorType = 0;
-			for (int j = 0; j < sinapsCount; j++)
-			{
-				sensorNumber = rnd.Next(SCount);
-				if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 
-				WeightSA[sensorNumber][argAId] = sensorType;
+			if (sinapsType == SinapsType.Random)
+			{
+				sinapsCount = rnd.Next(0, SinapsXCount);
+				for (int j = 0; j < sinapsCount; j++)
+				{
+					sensorNumber = rnd.Next(SCount);
+					WeightSA[sensorNumber][argAId] = 1;
+				}
+				sinapsCount = rnd.Next(0, SinapsYCount);
+				for (int j = 0; j < sinapsCount; j++)
+				{
+					sensorNumber = rnd.Next(SCount);
+					WeightSA[sensorNumber][argAId] = -1;
+				}
 			}
+			else
+			{
+				var square = GetRandomSquare();
+				for (int j = 0; j < sinapsCount; j++)
+				{
+					//sensorNumber = rnd.Next(SCount);
+					sensorNumber = GetRandomPointInSquare(square);
+
+					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
+					//if (j < SinapsXCount) sensorType = 1; else sensorType = -1;
+
+					WeightSA[sensorNumber][argAId] = sensorType;
+				}
+			}
+		}
+
+		private (int x, int y) GetRandomSquare()
+		{
+			// Шаг 1: Выбор случайного квадрата
+			/*var squares = new (int x, int y)[] {
+				(0, 0),  // Верхний левый
+				(14, 0), // Верхний правый
+				(7, 7),  // Центральный
+				(0, 14), // Нижний левый
+				(14, 14) // Нижний правый
+			};*/
+
+			List<(int x, int y)> squares = new List<(int, int)>();
+
+			// Генерируем квадраты с шагом 7 по обеим осям
+			for (int y = 0; y < 28; y += 7)
+			{
+				for (int x = 0; x <28; x += 7)
+				{
+					squares.Add((x, y));
+				}
+			}
+			for (int y = 0; y < 28 - 7; y += 7)
+			{
+				for (int x = 0; x < 28 - 7; x += 7)
+				{
+					squares.Add((x + 3, y + 3));
+				}
+			}
+
+
+			(int x, int y) selectedSquare = squares[rnd.Next(0, squares.Count)];
+
+			return selectedSquare;
+		}
+
+
+		private int GetRandomPointInSquare((int x, int y) argSquare)
+		{
+			// Шаг 2: Генерация точки внутри квадрата
+			int xCoord = argSquare.x + rnd.Next(0, 7);
+			int yCoord = argSquare.y + rnd.Next(0, 7);
+
+			// Шаг 3: Преобразование в индекс (если требуется)
+			int globalIndex = yCoord * 28 + xCoord;
+			return globalIndex;
 		}
 
 
@@ -311,6 +384,9 @@ namespace Tac.Perceptron
 		public virtual void Learned()
 		{
 			AHMinimum = ACount;
+			AHAvg = 0;
+			AHMaximum = 0;
+
 			if (isLoaded == false)
 			{
 				for (int i = 0; i < ACount; i++)
@@ -321,6 +397,10 @@ namespace Tac.Perceptron
 
 			int nb = 0;
 			if (IsAnalyze == false) { nb = 1; }
+
+			int stopError = 5;
+			int stopCount = 0;
+			int oldError = 0;
 
 			// Делаем очень много итераций
 			for (int n = nb; n < 100000; n++)
@@ -338,9 +418,9 @@ namespace Tac.Perceptron
 						SActivation(i);
 
 						if (i % 10000 == 0)
-							Console.WriteLine("AHMinimum = " + AHMinimum.ToString());
+							Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 					}
-					Console.WriteLine("AHMinimum = " + AHMinimum.ToString());
+					Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 					Console.WriteLine("\t" + aTime.ToString() + " ms");
 				}
 				if (n >= 2)
@@ -361,42 +441,44 @@ namespace Tac.Perceptron
 
 					double t = (DateTime.Now - begin).TotalMilliseconds;
 					Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
-					if (Error == 0) { break; }
+
+					if (oldError == Error) { stopCount++; }	else { stopCount = 0; }
+					oldError = Error;
+
+					if (Error == 0 || stopCount >= stopError) { break; }
 				}
 				if (n == 0)
 				{
 					if (IsAnalyze == true)
 					{
-						SANumber++; // temp
-
-						for (int s = 0; s < SASelectCount; s++)
+						if (SASelectCount == 0)
 						{
-							rnd = new Random(RndNumber + s);
-
-							for (int i = 0; i < MaxTreeCount; i++)
+							Analyze();
+						}
+						else
+						{
+							for (int s = 0; s < SASelectCount; s++)
 							{
-								for (int j = 0; j < RCount; j++)
+								rnd = new Random(RndNumber + s);
+
+								Analyze();
+								SANumber++;
+
+								SaveSA("SA_" + SANumber.ToString() + ".bin", AElement);
+
+
+								AElement = new List<int>();
+								WeightSA = new Dictionary<int, int[]>(SCount);
+								for (int i = 0; i < SCount; i++)
 								{
-									Analyze(j, i);
+									WeightSA[i] = new int[ACount];
+								}
+								for (int i = 0; i < ACount; i++)
+								{
+									InitSA(i);
 								}
 							}
-							SANumber++;
-
-							SaveSA("SA_" + SANumber.ToString() + ".bin", AElement);
-
-
-							AElement = new List<int>();
-							WeightSA = new Dictionary<int, int[]>(SCount);
-							for (int i = 0; i < SCount; i++)
-							{
-								WeightSA[i] = new int[ACount];
-							}
-							for (int i = 0; i < ACount; i++)
-							{
-								InitSA(i);
-							}
 						}
-
 
 						AHConnections = new Dictionary<int, List<int>>();
 						for (int i = 0; i < HCount; i++)
@@ -410,7 +492,7 @@ namespace Tac.Perceptron
 							SActivation(i);
 
 							if (i % 10000 == 0)
-								Console.WriteLine("AHMinimum = " + AHMinimum.ToString());
+								Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 						}
 
 					}
@@ -422,6 +504,17 @@ namespace Tac.Perceptron
 			}
 
 			graph.Save("tree_");
+		}
+
+		private void Analyze()
+		{
+			for (int i = 0; i < MaxTreeCount; i++)
+			{
+				for (int j = 0; j < RCount; j++)
+				{
+					Analyze(j, i);
+				}
+			}
 		}
 
 
@@ -539,6 +632,19 @@ namespace Tac.Perceptron
 			if (AHConnections[argStimulNumber].Count < AHMinimum)
 			{
 				AHMinimum = AHConnections[argStimulNumber].Count;
+			}
+			if (AHConnections[argStimulNumber].Count > AHMaximum)
+			{
+				AHMaximum = AHConnections[argStimulNumber].Count;
+			}
+			if (AHAvg == 0)
+			{
+				AHAvg += AHConnections[argStimulNumber].Count;
+			}
+			else
+			{
+				AHAvg += AHConnections[argStimulNumber].Count;
+				AHAvg /= 2;
 			}
 		}
 

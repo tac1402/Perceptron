@@ -131,6 +131,9 @@ namespace Tac.Perceptron
 		public override void Learned()
 		{
 			AHMinimum = ACount;
+			AHAvg = 0;
+			AHMaximum = 0;
+
 			for (int i = 0; i < ACount; i++)
 			{
 				InitSA(i);
@@ -168,7 +171,7 @@ namespace Tac.Perceptron
 							{ 
 								SActivationLB(stimulNumber, i);
 								if (i % 10000 == 0)
-									Console.WriteLine("AHMinimum = " + AHMinimum.ToString());
+									Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 							}
 							// Активируем R-элементы, т.е. рассчитываем выходы
 							RActivation(i);

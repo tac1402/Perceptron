@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using Tac.Perceptron;
 
@@ -12,28 +13,30 @@ public class MNIST_Task
 {
 	public void Run()
 	{
-		int N1 = 59999;
+		int N1 = 30000; // 59999;
 		//int N1 = 10000;
-		int L = 441;
+		int L = 784; // 441;
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		NeironNetTree net = new NeironNetTree(L, 20000, 10, N1, true);
+		NeironNetTree net = new NeironNetTree(L, 10000, 10, N1, false);
 		//net.ACount = 0;
 		//net.LoadSA("SA_1.bin");
 		//net.LoadSA("SA_2.bin");
 
 		//NeironNetBT net = new NeironNetBT(L, 20000, 10, N1, 10, 10);
-		net.IsAnalyze = false;
-		net.SASelectCount = 3;
-		net.SinapsXCount = 2;
-		net.SinapsYCount = 2;
+		net.IsAnalyze = true;
+		net.SASelectCount = 0;
+		net.SinapsXCount = 32;
+		net.SinapsYCount = 25;
 		net.sinapsType = NeironNetTree.SinapsType.Custom;
 
-		string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
-		string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");
+		//string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
+		//string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");
+		string[] LearningSet = File.ReadAllLines("MNIST_Fashion\\LearningSetF.txt");
+		string[] ExaminationSet = File.ReadAllLines("MNIST_Fashion\\ExaminationSetF.txt");
 
 
-		int E = 9999;
+		int E = 10000; // 9999;
 		BitBlock[] inputE = new BitBlock[E];
 		BitBlock[] outputE = new BitBlock[E];
 		for (int i = 0; i < E; i++)
@@ -94,4 +97,67 @@ public class MNIST_Task
 		net.Learned();
 		net.Examin(E);
 	}
+
+	/// <summary>
+	/// Пересортировать обучающую и экзаменационную выборку
+	/// </summary>
+	public void ReSort()
+	{
+		int rndNumber = 100;
+		Random rnd = new Random(rndNumber);
+		int N = 59999;
+		int E = 9999;
+		int L = 441;
+
+		string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
+		string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");
+
+		string[] set = new string[E + N];
+
+		for (int i = 0; i < N; i++)
+		{
+			set[i] = LearningSet[i];
+		}
+		for (int i = N; i < N + E; i++)
+		{
+			set[i] = ExaminationSet[i - N];
+		}
+
+		string[] newLearningSet = new string[N];
+		string[] newExaminationSet = new string[E];
+
+		List<int> ExamSet = new List<int>();
+		for (int i = 0; i < E; i++)
+		{
+			bool IsReSort = false;
+			while (IsReSort == false)
+			{
+				int index = rnd.Next(0, N + E);
+				if (ExamSet.Contains(index) == false)
+				{
+					ExamSet.Add(index);
+					IsReSort = true;
+				}
+			}
+		}
+
+		for (int i = 0; i < ExamSet.Count; i++)
+		{
+			newExaminationSet[i] = set[ExamSet[i]];
+		}
+		int k = 0;
+		for (int i = 0; i < N+E; i++)
+		{
+			if (ExamSet.Contains(i) == false)
+			{
+				newLearningSet[k] = set[i];
+				k++;
+			}
+		}
+		File.WriteAllLines("MNIST\\LearningSet#" +rndNumber.ToString()+ ".txt", newLearningSet);
+		File.WriteAllLines("MNIST\\ExaminationSet#" + rndNumber.ToString() + ".txt", newExaminationSet);
+
+	}
+
+
 }
