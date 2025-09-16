@@ -4,6 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
 
 namespace Tac.Perceptron
 {
@@ -15,9 +18,12 @@ namespace Tac.Perceptron
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
 		//public int[] AssociationsField; /* Ассоциативное поле */
-		public BitBlock ReactionsField; /* Реагирующие поле */
+		public BitBlock ReactionsOutput; /* Реагирующие поле */
 
 		public float[] AField;
+		public float[] AFieldNorm;
+		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
+
 
 		private int SCount; // Количество сенсоров
 		private int ACount; // Количество ассоциаций
@@ -63,11 +69,19 @@ namespace Tac.Perceptron
 				InitSA(i);
 			}*/
 
-			ReactionsField = new BitBlock(RCount);
+			ReactionsOutput = new BitBlock(RCount);
 			ReactionError = new sbyte[RCount];
 
 			AField = new float[ACount];
 
+			for (int i = 0; i < HCount; i++)
+			{
+				Activations.Add(i, new float[ACount]);
+			}
+			gainValue = new float[ACount];
+			gainNorm = new float[ACount];
+			gainNormAvg = new float[ACount];
+			gainNormCount = new int[ACount];
 
 			LearnedStimuls = new Dictionary<int, BitBlock>();
 			NecessaryReactions = new Dictionary<int, BitBlock>();
@@ -134,6 +148,9 @@ namespace Tac.Perceptron
 		/// </summary>
 		public void Learned()
 		{
+			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
+
+
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
 			{
@@ -141,6 +158,8 @@ namespace Tac.Perceptron
 
 				DateTime begin = DateTime.Now;
 				aTime = 0;
+
+
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
 				{
@@ -155,7 +174,7 @@ namespace Tac.Perceptron
 					if (e == true)
 					{
 						float p = (float)rnd.NextDouble();
-						if (p > 0.7f)
+						//if (p > 0.7f)
 						{
 							LearnedStimulSA(i);
 						}
@@ -164,15 +183,170 @@ namespace Tac.Perceptron
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 					}
 				}
+				gainValue = gain.CalculateInformationGain(Activations, ACount);
+				gainNorm = Normalize(gainValue);
+				stop = 0;
+				string gainTxt = "";
+				for (int j = 0; j < ACount; j++)
+				{
+					if (gainNorm[j] > 0)
+					{
+						stop++;
+						gainNormCount[j] ++;
+					}
+					else
+					{
+						gainNormCount[j] = 0;
+					}
+
+					if (gainNormCount[j] == 1)
+					{
+						gainNormAvg[j] = gainNorm[j];
+					}
+					else if (gainNormCount[j] > 1)
+					{
+						gainNormAvg[j] = (gainNormAvg[j] + gainNorm[j]) / 2;
+					}
+
+					//gainTxt += gainNorm[j].ToString() + "|";
+				}
+				gainTxt += "\n";
+				//File.AppendAllText("gain.txt", gainTxt);
+				//ClearGain();
 
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
+				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms " + stop.ToString() + "\t" + clearCount.ToString());
 				if (Error == 0) { break; }
 			}
 		}
 
+		float[] gainValue;
+		float[] gainNorm;
+		float[] gainNormAvg;
+		int[] gainNormCount;
+		int clearCount = 0;
+
 		double aTime = 0;
+
+		private void ClearGain()
+		{
+			clearCount = 0;
+			for (int i = 0; i < ACount; i++)
+			{
+				if (gainNormCount[i] > 100 && gainNormAvg[i] < 0.01f)
+				{
+					for (int j = 0; j < SCount; j++)
+					{
+						WeightSA[j][i] = 0;
+					}
+					clearCount++;
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Вычисляем бинарную кросс-энтропию
+		/// BinaryCrossEntropy
+		/// </summary>
+		public static float BCE(float logit, float target)
+		{
+			// Стабильная реализация бинарной кросс-энтропии с логитами
+			return Math.Max(logit, 0) - logit * target + (float)Math.Log(1 + Math.Exp(-Math.Abs(logit)));
+		}
+
+
+		//Ограничивает значение x диапазоном[x_min, x_max]
+		private float clip(float x, float min = 1e-6f, float max = 1 - 1e-6f)
+		{
+			if (x < min)
+				return min;
+			else if (x > max)
+				return max;
+			else
+				return x;
+		}
+
+		public float[] Normalize(float[] AField)
+		{
+			// Находим максимальное по модулю значение
+			float maxAbs = 0;
+			for (int i = 0; i < AField.Length; i++)
+			{
+				float absValue = Math.Abs(AField[i]);
+				if (absValue > maxAbs) maxAbs = absValue;
+			}
+
+			// Если все значения нулевые, возвращаем исходный массив
+			if (maxAbs == 0)
+				return AField;
+
+			// Нормализуем значения
+			float[] normalized = new float[AField.Length];
+
+			for (int i = 0; i < AField.Length; i++)
+			{
+				normalized[i] = AField[i] / maxAbs;
+			}
+
+			return normalized;
+		}
+
+		public float[] LogNormalize(float[] AField)
+		{
+			// Находим максимальное по модулю значение
+			float maxAbs = 0;
+			for (int i = 0; i < AField.Length; i++)
+			{
+				float absValue = Math.Abs(AField[i]);
+				if (absValue > maxAbs) maxAbs = absValue;
+			}
+
+			// Если все значения нулевые, возвращаем исходный массив
+			if (maxAbs == 0)
+				return AField;
+
+			// Вычисляем логарифмический нормализующий делитель
+			float logDenom = (float)Math.Log(1 + maxAbs);
+
+			// Нормализуем значения с использованием логарифма
+			float[] normalized = new float[AField.Length];
+			for (int i = 0; i < AField.Length; i++)
+			{
+				float x = AField[i];
+				if (x == 0)
+				{
+					normalized[i] = 0;
+				}
+				else
+				{
+					float sign = Math.Sign(x);
+					float absX = Math.Abs(x);
+					normalized[i] = sign * (float)(Math.Log(1 + absX ) / logDenom);
+				}
+			}
+
+			return normalized;
+		}
+
+
+		public float[] SigmoidLogNormalize(float[] AField)
+		{
+			float value = AField[0];
+
+			// Логарифмическое преобразование с последующим сигмоидным отображением
+			//float sign = Math.Sign(value);
+			float absValue = Math.Abs(value);
+
+			// Логарифмическое преобразование
+			float logValue = (float)Math.Log(1 + absValue);
+
+			// Сигмоидное отображение для приведения к диапазону [0, 1]
+			float sigmoid = 1f / (1f + (float)Math.Exp(-logValue));
+
+			return new float[] { sigmoid };
+		}
 
 		/*private void SActivation(int argStimulNumber)
 		{
@@ -234,26 +408,39 @@ namespace Tac.Perceptron
 				if (Summa[i] <= 0) { AField[i] = false; }
 			}*/
 
+			Activations[argStimulNumber] = AField;
+
+
+			AFieldNorm = LogNormalize(AField);
+			//AFieldNorm = Normalize(AField);
+
 			int a = 1;
 		}
 
+
+		float[] RField;
+		float[] RFieldNorm;
+
 		private void RActivation(int argStimulNumber)
 		{
-			float[] Summa = new float[RCount];
+			RField = new float[RCount];
 			for (int j = 0; j < RCount; j++)
 			{
 				for (int i = 0; i < ACount; i++)
 				{
 					if (AField[i] > 0)
 					{
-						Summa[j] += WeightAR[i][j];
+						RField[j] += WeightAR[i][j];
 					}
 				}
 			}
+
+			//RFieldNorm = SigmoidLogNormalize(RField);
+
 			for (int i = 0; i < RCount; i++)
 			{
-				if (Summa[i] > 0) { ReactionsField[i] = true; }
-				if (Summa[i] <= 0) { ReactionsField[i] = false; }
+				if (RField[i] > 0) { ReactionsOutput[i] = true; }
+				if (RField[i] <= 0) { ReactionsOutput[i] = false; }
 			}
 		}
 
@@ -265,7 +452,7 @@ namespace Tac.Perceptron
 			{
 				bool v = NecessaryReactions[argStimulNumber][i];
 
-				if (ReactionsField[i] == v)
+				if (ReactionsOutput[i] == v)
 				{
 					ReactionError[i] = 0;
 				}
@@ -280,63 +467,69 @@ namespace Tac.Perceptron
 		}
 
 
-		float p1 = 0.6f;
-		float p2 = 0.4f;
-		float p3 = 0.01f;
-		float correct = 0.001f;
-
+		float p1 = 0.5f;
+		float p2 = 0.5f;
+		float p3 = 0.00001f;
+		float correct1 = 0.0001f;
+		float correct2 = 0.0001f;
+		float correct3 = 0.000001f;
+		int stop = 0;
 
 		private void LearnedStimulSA(int argStimulNumber)
 		{
 			for (int j = 0; j < ACount; j++)
 			{
-				float pp = (float)rnd.NextDouble();
-				if (pp > 0.95f)
+				if (AField[j] > 0)
 				{
-					if (AField[j] > 0)
+					if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
 					{
-						if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+						for (int i = 0; i < SCount; i++)
 						{
-							for (int i = 0; i < SCount; i++)
+							if (SensorsField[i] == true)
 							{
-								if (SensorsField[i] == true)
+								float p = (float)rnd.NextDouble();
+								float entropy = BCE(AFieldNorm[j], -1);
+
+								//float g = p4 + gainNorm[j];
+								if (p < p1 * entropy)
 								{
-									float p = (float)rnd.NextDouble();
-									if (p < p1)
-									{
-										WeightSA[i][j] -= correct * AField[j];
-									}
+									WeightSA[i][j] -= correct1 * AFieldNorm[j];
 								}
 							}
 						}
 					}
-					else
+				}
+				else
+				{
+					if (Math.Sign(WeightAR[j][0]) == Math.Sign(ReactionError[0]))
 					{
-						if (Math.Sign(WeightAR[j][0]) == Math.Sign(ReactionError[0]))
+						for (int i = 0; i < SCount; i++)
 						{
-							for (int i = 0; i < SCount; i++)
+							if (SensorsField[i] == true)
 							{
-								if (SensorsField[i] == true)
+								float p = (float)rnd.NextDouble();
+								float entropy = BCE(AFieldNorm[j], 1);
+
+								//float g = p4 + gainNorm[j];
+								if (p < p2 * entropy)
 								{
-									float p = (float)rnd.NextDouble();
-									if (p < p2)
-									{
-										WeightSA[i][j] += correct * AField[j];
-									}
+									WeightSA[i][j] += correct2 * AFieldNorm[j];
 								}
 							}
 						}
-						if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+					}
+					if (stop < ACount *0.5f  && Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+					{
+						for (int i = 0; i < SCount; i++)
 						{
-							for (int i = 0; i < SCount; i++)
+							if (SensorsField[i] == true)
 							{
-								if (SensorsField[i] == true)
+								float p = (float)rnd.NextDouble();
+								//float entropy = BCE(AFieldNorm[j], -1);
+
+								if (p < p3)
 								{
-									float p = (float)rnd.NextDouble();
-									if (p < p3)
-									{
-										WeightSA[i][j] += correct;
-									}
+									WeightSA[i][j] += correct3;
 								}
 							}
 						}
@@ -354,7 +547,7 @@ namespace Tac.Perceptron
 				{
 					if (AField[i] > 0)
 					{
-						WeightAR[i][j] = WeightAR[i][j] + ReactionError[j] * 1.0f;
+						WeightAR[i][j] = WeightAR[i][j] +  ReactionError[j];
 					}
 				}
 			}

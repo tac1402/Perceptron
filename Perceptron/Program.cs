@@ -4,7 +4,7 @@ internal class Program
 {
 	static void Main(string[] args)
 	{
-		MNIST_Task task = new MNIST_Task();
+		ParityTask task = new ParityTask();
 		task.Run();
 		//task.ReSort();
 	}
