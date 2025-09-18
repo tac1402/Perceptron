@@ -16,8 +16,8 @@ public class ParityTask
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		NeironNetSAR net = new NeironNetSAR(10, 200, 1, N1 * N2);
-		//NeironNetTree net = new NeironNetTree(16, 5000, 1, N1 * N2);
+		//NeironNetSAR net = new NeironNetSAR(10, 300, 1, N1 * N2);
+		NeironNetA net = new NeironNetA(10, 1000, 1, N1 * N2);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];

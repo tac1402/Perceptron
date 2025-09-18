@@ -234,7 +234,7 @@ namespace Tac.Perceptron
 			clearCount = 0;
 			for (int i = 0; i < ACount; i++)
 			{
-				if (gainNormCount[i] > 100 && gainNormAvg[i] < 0.01f)
+				if (gainNormCount[i] > 100 && gainNormAvg[i] < 0.0001f)
 				{
 					for (int j = 0; j < SCount; j++)
 					{
@@ -411,8 +411,8 @@ namespace Tac.Perceptron
 			Activations[argStimulNumber] = AField;
 
 
-			AFieldNorm = LogNormalize(AField);
-			//AFieldNorm = Normalize(AField);
+			//AFieldNorm = LogNormalize(AField);
+			AFieldNorm = Normalize(AField);
 
 			int a = 1;
 		}
@@ -430,12 +430,12 @@ namespace Tac.Perceptron
 				{
 					if (AField[i] > 0)
 					{
-						RField[j] += WeightAR[i][j];
+						RField[j] += WeightAR[i][j]/* * AFieldNorm[i]*/;
 					}
 				}
 			}
 
-			//RFieldNorm = SigmoidLogNormalize(RField);
+			RFieldNorm = SigmoidLogNormalize(RField);
 
 			for (int i = 0; i < RCount; i++)
 			{

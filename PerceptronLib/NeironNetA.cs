@@ -79,8 +79,8 @@ namespace Tac.Perceptron
 
 		private void InitSA(int argAId)
 		{
-			int sinapsXCount = 16;
-			int sinapsYCount = 16;
+			int sinapsXCount = SCount;
+			int sinapsYCount = SCount;
 			int sinapsCount = sinapsXCount + sinapsYCount;
 
 			int sensorNumber = 0;
