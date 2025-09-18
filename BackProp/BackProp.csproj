@@ -44,7 +44,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Adam.cs" />
+    <Compile Include="Layer.cs" />
     <Compile Include="NeuralNetwork.cs" />
+    <Compile Include="NeuralNetworkFast.cs" />
     <Compile Include="ParityDataset.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
