@@ -6,40 +6,43 @@ namespace BackProp
 {
 	public class Layer
 	{
+		public int Precision;
+
 		private int inputSize;
 		private int outputSize;
 
-		private Dictionary<int, float[]> weights;
-		private float[] biases;
+		private Dictionary<int, NArray> weights;
+		private NArray biases;
 
 		private Adam weightsOptimizer;
 		private Adam biasesOptimizer;
 
-		public Layer(int inputSize, int outputSize, float learningRate, Random random)
+		public Layer(int argInputSize, int argOutputSize, float argLearningRate, Random argRandom, int argPrecision)
 		{
-			this.inputSize = inputSize;
-			this.outputSize = outputSize;
+			Precision = argPrecision;
+			inputSize = argInputSize;
+			outputSize = argOutputSize;
 
 			// Инициализация весов и смещений
-			weights = new Dictionary<int, float[]>();
-			for (int i = 0; i < inputSize; i++)
+			weights = new Dictionary<int, NArray>();
+			for (int i = 0; i < argInputSize; i++)
 			{
-				weights.Add(i, new float[outputSize]);
+				weights.Add(i, new NArray(argOutputSize, Precision));
 			}
-			biases = new float[outputSize];
+			biases = new NArray(argOutputSize, Precision);
 
-			for (int j = 0; j < outputSize; j++)
+			for (int j = 0; j < argOutputSize; j++)
 			{
-				biases[j] = ((float)random.NextDouble() * 2 - 1) * 0.1f;
-				for (int i = 0; i < inputSize; i++)
+				biases[j] = ((float)argRandom.NextDouble() * 2 - 1) * 0.1f;
+				for (int i = 0; i < argInputSize; i++)
 				{
-					weights[i][j] = ((float)random.NextDouble() * 2 - 1) * 0.1f;
+					weights[i][j] = ((float)argRandom.NextDouble() * 2 - 1) * 0.1f;
 				}
 			}
 
 			// Инициализация оптимизаторов
-			weightsOptimizer = new Adam(weights, learningRate);
-			biasesOptimizer = new Adam(biases, learningRate);
+			weightsOptimizer = new Adam(weights, Precision, argLearningRate);
+			biasesOptimizer = new Adam(biases, Precision, argLearningRate);
 		}
 
 		public void SetLearningRate(float learningRate)
@@ -60,10 +63,10 @@ namespace BackProp
 			biasesOptimizer.TimeStep = 0;
 		}
 
-		public (float[] preActivation, float[] output) Forward(float[] input, Func<float, float> activation)
+		public (NArray preActivation, NArray output) Forward(NArray input, FN activation)
 		{
 			// Вычисление взвешенной суммы
-			float[] preActivation = new float[outputSize];
+			NArray preActivation = new NArray(outputSize, Precision);
 			for (int j = 0; j < outputSize; j++)
 			{
 				preActivation[j] = biases[j];
@@ -74,7 +77,7 @@ namespace BackProp
 			}
 
 			// Применение функции активации
-			float[] output = new float[outputSize];
+			NArray output = new NArray(outputSize, Precision);
 			for (int j = 0; j < outputSize; j++)
 			{
 				output[j] = activation(preActivation[j]);
@@ -83,11 +86,11 @@ namespace BackProp
 			return (preActivation, output);
 		}
 
-		public float[] Backward(float[] outputGradient, float[] previousLayerOutput, float[] preActivation, Func<float, float> activationDerivative)
+		public NArray Backward(NArray outputGradient, NArray previousLayerOutput, NArray preActivation, FN activationDerivative)
 		{
 
 			// Вычисляем градиент до активации (умножаем на производную функции активации)
-			float[] preActivationGradient = new float[outputSize];
+			NArray preActivationGradient = new NArray(outputSize, Precision);
 			for (int j = 0; j < outputSize; j++)
 			{
 				preActivationGradient[j] = outputGradient[j] * activationDerivative(preActivation[j]);
@@ -97,7 +100,7 @@ namespace BackProp
 			SetGradients(preActivationGradient, previousLayerOutput);
 
 			// Вычисление ошибки для предыдущего слоя
-			float[] previousLayerErrors = new float[inputSize];
+			NArray previousLayerErrors = new NArray(inputSize, Precision);
 			for (int i = 0; i < inputSize; i++)
 			{
 				for (int j = 0; j < outputSize; j++)
@@ -109,7 +112,7 @@ namespace BackProp
 			return previousLayerErrors;
 		}
 
-		private void SetGradients(float[] outputGradients, float[] input)
+		private void SetGradients(NArray outputGradients, NArray input)
 		{
 			// Установка градиентов для весов
 			for (int i = 0; i < inputSize; i++)

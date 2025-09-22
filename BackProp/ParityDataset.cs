@@ -1,54 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BackProp
 {
 
 	public class ParityDataset
 	{
-		public float[][] features;
-		public float[] labels;
+		public NArray[] features;
+		public NArray labels;
 
-		public ParityDataset(float[][] features, float[] labels)
+		public ParityDataset(NArray[] argFeatures, NArray argLabels)
 		{
-			if (features.Length != labels.Length)
-				throw new ArgumentException("Features and labels must have the same length");
-
-			this.features = features;
-			this.labels = labels;
+			features = argFeatures;
+			labels = argLabels;
 		}
 
 		public long Count => features.Length;
 
-		public (float[] features, float labels) GetItem(long index)
-		{
-			if (index < 0 || index >= Count)
-				throw new IndexOutOfRangeException($"Index {index} is out of range for dataset with {Count} items");
-
-			return (features[index], labels[index]);
-		}
-
 		// Создание датасета для задачи четности (XOR)
 		public static ParityDataset CreateXORDataset()
 		{
-			float[][] features = new float[][]
-			{
-			new float[] {0, 0},
-			new float[] {0, 1},
-			new float[] {1, 0},
-			new float[] {1, 1}
-			};
+			NArray[] features = new NArray[4];
+			features[0].Set(0, 0);
+			features[1].Set(0, 1);
+			features[2].Set(1, 0);
+			features[3].Set(1, 1);
 
-			float[] labels = new float[]
-			{
-				0,
-				1,
-				1,
-				0
-			};
+			NArray labels = new NArray(4, 0);
+			labels.Set(0, 1, 1, 0);
 
 			return new ParityDataset(features, labels);
 		}
@@ -56,22 +35,20 @@ namespace BackProp
 		// Метод для создания датасета n-битной четности
 		public static ParityDataset CreateNParityDataset(int numBits)
 		{
-			long numSamples = (long)Math.Pow(2, numBits);
-			float[][] features = new float[numSamples][];
-			float[] labels = new float[numSamples];
+			int numSamples = (int)Math.Pow(2, numBits);
+			NArray[] features = new NArray[numSamples];
+			NArray labels = new NArray(numSamples, 0);
 
-			for (long i = 0; i < numSamples; i++)
+			for (int i = 0; i < numSamples; i++)
 			{
-				features[i] = new float[numBits];
+				features[i] = new NArray(numBits, 0);
 				int sum = 0;
 
-				// Заполняем features битовым представлением числа i
 				for (int j = 0; j < numBits; j++)
 				{
-					// Используем принцип периодов как в вашем примере
 					long period = (long)Math.Pow(2, j + 1);
 					long halfPeriod = period / 2;
-					float value = ((i % period) >= halfPeriod) ? 1.0f : 0.0f;
+					double value = ((i % period) >= halfPeriod) ? 1.0f : 0.0f;
 
 					features[i][j] = value;
 					sum += (int)value;

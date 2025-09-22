@@ -8,14 +8,14 @@ public class ParityNetwork : Module<Tensor, Tensor>
 	private readonly Linear fc1;
 	private readonly Linear fc2;
 	private readonly ReLU relu;
-	//private readonly Sigmoid sigmoid;
+	private readonly Sigmoid sigmoid;
 
 	public ParityNetwork(int input_size) : base("ParityNetwork")
 	{
-		fc1 = Linear(input_size, 30);
-		fc2 = Linear(30, 1);
+		fc1 = Linear(input_size, 100);
+		fc2 = Linear(100, 1);
 		relu = ReLU();
-		//sigmoid = Sigmoid();
+		sigmoid = Sigmoid();
 
 		// Регистрируем модули для управления параметрами
 		RegisterComponents();
@@ -26,8 +26,7 @@ public class ParityNetwork : Module<Tensor, Tensor>
 		using (var d = torch.NewDisposeScope())
 		{
 			x = relu.forward(fc1.forward(x));
-			//x = sigmoid.forward(fc2.forward(x));
-			x = fc2.forward(x);
+			x = sigmoid.forward(fc2.forward(x));
 			return x.MoveToOuterDisposeScope();
 		}
 	}

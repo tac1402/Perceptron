@@ -36,16 +36,17 @@ namespace MLP
 
 			// Создание загрузчика данных
 			int batch_size = 32;
-			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: true);
+			var train_loader = new DataLoader(train_dataset, batch_size/*, shuffle: true*/);
 
 			// Создание модели, функции потерь и оптимизатора
-			double learningRate = 0.1;
+			double learningRate = 0.01;
 			var model = new ParityNetwork(num_inputs);
+			var criterion = MSELoss();
 			//var criterion = BCELoss();
 			//var optimizer = new Adam(model.parameters(), 0.0001);
 
 			// Обучение модели
-			int num_epochs = 10000;
+			int num_epochs = 100000;
 			double oldtrain_loss = 0.0;
 			double train_loss = 0.0;
 			for (int epoch = 0; epoch < num_epochs; epoch++)
@@ -70,10 +71,12 @@ namespace MLP
 						var outputs = model.forward(batch_X);
 
 						// Вычисление потерь
-						//var loss = criterion.forward(outputs, batch_y);
+						var loss = criterion.forward(outputs, batch_y);
 
 						// Используем нашу ручную реализацию BCELoss
-						var loss = ManualLossFunctions.ManualBCELoss(outputs, batch_y);
+						//var loss = ManualLossFunctions.ManualBCELoss(outputs, batch_y);
+						
+
 
 						// Обратный проход и оптимизация
 						//optimizer.zero_grad();
@@ -103,13 +106,13 @@ namespace MLP
 				}
 
 				// Вывод статистики
-				var time = DateTime.Now;
-				Console.WriteLine($"{time} epoch={epoch}, train_loss={train_loss}, accuracy={correct}");
+				//if (epoch % 100 == 0)
+				Console.WriteLine($"epoch={epoch}, train_loss={train_loss}, accuracy={num_samples - correct}");
 
-				if (oldtrain_loss < train_loss)
+				/*if (oldtrain_loss < train_loss)
 				{
 					learningRate -= learningRate * 0.01;
-				}
+				}*/
 
 				// Прерывание обучения при достижении 100% точности
 				if (correct == num_samples)

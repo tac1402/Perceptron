@@ -8,22 +8,24 @@ namespace BackProp
 {
 	public class NeuralNetwork
 	{
+		public int Precision;
 
 		private Layer inputHiddenLayer;
 		private Layer hiddenOutputLayer;
 
 		private Random random;
 
-		public NeuralNetwork(int inputSize, int hiddenSize, int outputSize, float learningRate, int seed = 1)
+		public NeuralNetwork(int argInputSize, int argHiddenSize, int argOutputSize, float argLearningRate, int argPrecision, int argSeed = 1)
 		{
-			random = new Random(seed);
+			Precision = argPrecision;
+			random = new Random(argSeed);
 
 			// Создаем слои с соответствующими оптимизаторами
-			inputHiddenLayer = new Layer(inputSize, hiddenSize, learningRate, random);
-			hiddenOutputLayer = new Layer(hiddenSize, outputSize, learningRate, random);
+			inputHiddenLayer = new Layer(argInputSize, argHiddenSize, argLearningRate, random, argPrecision);
+			hiddenOutputLayer = new Layer(argHiddenSize, argOutputSize, argLearningRate, random, argPrecision);
 		}
 
-		public (float[] hiddenInputs, float[] hiddenOutputs, float[] outputInputs, float[] outputs) Forward(float[] input)
+		public (NArray hiddenInputs, NArray hiddenOutputs, NArray outputInputs, NArray outputs) Forward(NArray input)
 		{
 			// Прямое распространение через скрытый слой
 			var (hiddenInputs, hiddenOutputs) = inputHiddenLayer.Forward(input, ReLU);
@@ -34,14 +36,14 @@ namespace BackProp
 			return (hiddenInputs, hiddenOutputs, outputInputs, outputs);
 		}
 
-		public void Backward(float[] input, float target, float[] hiddenInputs, float[] hiddenOutputs, float[] outputs)
+		public void Backward(NArray input, double lossGradient, NArray hiddenInputs, NArray hiddenOutputs, NArray outputs)
 		{
 			// Вычисление градиента выходного слоя
-			float[] error = new float[1];
-			error[0] = outputs[0] - target;
+			NArray error = new NArray(1, outputs.Precision);
+			error[0] = lossGradient; // outputs[0] - target;
 
 			// Обратное распространение через выходной слой
-			float[] hiddenErrors = hiddenOutputLayer.Backward(error, hiddenOutputs, outputs, SigmoidDerivative);
+			NArray hiddenErrors = hiddenOutputLayer.Backward(error, hiddenOutputs, outputs, SigmoidDerivative);
 
 			// Обратное распространение через скрытый слой
 			inputHiddenLayer.Backward(hiddenErrors, input, hiddenInputs, ReLUDerivative);
@@ -58,7 +60,7 @@ namespace BackProp
 		bool is98 = false;
 		bool is99 = false;
 
-		public void Train(float[][] inputs, float[] targets, int epochs)
+		public void Train(NArray[] inputs, NArray targets, int epochs)
 		{
 
 			for (int epoch = 0; epoch < epochs; epoch++)
@@ -82,21 +84,24 @@ namespace BackProp
 						errorCount++;
 					}
 
+					// Вычисление градиента функции потерь (MSE derivative)
+					double lossGradient = 2.0f * (outputs[0] - targets[i]);
+
 					// Обратное распространение
-					Backward(inputs[i], targets[i], hiddenInputs, hiddenOutputs, outputs);
+					Backward(inputs[i], lossGradient, hiddenInputs, hiddenOutputs, outputs);
 
 					// Обновление весов
 					Update();
 				}
 
 				// Вывод статистики
-				if (epoch % 100 == 0)
+				//if (epoch % 100 == 0)
 				{
-					double averageLoss = totalLoss / inputs.Length;
+					//double averageLoss = totalLoss / inputs.Length;
 					double accuracy = (double)(inputs.Length - errorCount) / inputs.Length * 100;
-					Console.WriteLine($"Epoch {epoch}, Loss: {averageLoss:F6}, Errors: {errorCount}/{inputs.Length}, Accuracy: {accuracy:F2}%");
+					Console.WriteLine($"Epoch {epoch}, Loss: {totalLoss}, Errors: {errorCount}/{inputs.Length}, Accuracy: {accuracy:F2}%");
 
-					if (accuracy > 97 && is98 == false)
+					/*if (accuracy > 97 && is98 == false)
 					{
 						inputHiddenLayer.SetLearningRate(0.001f);
 						hiddenOutputLayer.SetLearningRate(0.001f);
@@ -108,14 +113,14 @@ namespace BackProp
 					}
 					else if (accuracy > 99 && is99 == false)
 					{
-						inputHiddenLayer.SetLearningRate(0.0005f);
-						hiddenOutputLayer.SetLearningRate(0.0005f);
+						inputHiddenLayer.SetLearningRate(0.0002f);
+						hiddenOutputLayer.SetLearningRate(0.0002f);
 
 						inputHiddenLayer.ResetAdam();
 						hiddenOutputLayer.ResetAdam();
 
 						is99 = true;
-					}
+					}*/
 
 
 				}
@@ -127,16 +132,18 @@ namespace BackProp
 			}
 		}
 
-		public float Predict(float[] input)
+		public double Predict(NArray input)
 		{
 			var (_, _, _, outputs) = Forward(input);
 			return outputs[0];
 		}
 
-		public float ReLU(float x) => Math.Max(0, x);
-		public float ReLUDerivative(float x) => x > 0 ? 1 : 0;
-		public float Sigmoid(float x) => (float)(1.0 / (1.0 + Math.Exp(-x)));
-		public float SigmoidDerivative(float x) => x * (1 - x);
+		public dynamic ReLU(dynamic x) => Math.Max(0, x);
+		public dynamic ReLUDerivative(dynamic x) => x > 0 ? 1 : 0;
+		public dynamic Sigmoid(dynamic x) => (1.0 / (1.0 + Math.Exp(-x)));
+		public dynamic SigmoidDerivative(dynamic x) => x * (1 - x);
 
 	}
+
+	public delegate dynamic FN(dynamic number);
 }
