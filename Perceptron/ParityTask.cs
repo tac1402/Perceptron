@@ -10,14 +10,14 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 4;
+		int N2 = 256;
 
 		//16-256*12-1
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		//NeironNetSAR net = new NeironNetSAR(10, 300, 1, N1 * N2);
-		NeironNetA net = new NeironNetA(10, 1000, 1, N1 * N2);
+		PerceptronSAAR net = new PerceptronSAAR(16, 300, 1, N1 * N2);
+		//NeironNetA net = new NeironNetA(10, 1000, 1, N1 * N2);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];

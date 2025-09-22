@@ -45,7 +45,7 @@
     <Compile Include="Graph.cs" />
     <Compile Include="InformationGainCalculator.cs" />
     <Compile Include="NeironNetBT.cs" />
-    <Compile Include="NeironNetSAR.cs" />
+    <Compile Include="PerceptronSAAR.cs" />
     <Compile Include="NeironNetTree.cs" />
     <Compile Include="PerceptronAnalyze.cs" />
     <Compile Include="NeironNetA.cs" />

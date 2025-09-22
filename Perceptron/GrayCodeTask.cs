@@ -12,10 +12,11 @@ public class GrayCodeTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 256;
-		int L = 16;
+		int N2 = 4;
+		int L = 10;
 
-		NeironNetTree net = new NeironNetTree(L, 5000, L, N1 * N2);
+		//NeironNetTree net = new NeironNetTree(L, 5000, L, N1 * N2);
+		PerceptronSAAR net = new PerceptronSAAR(L, 300, L, N1 * N2);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];
