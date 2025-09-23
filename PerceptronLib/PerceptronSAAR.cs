@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Sergej Jakovlev
 
 
+using PerceptronLib;
 using System;
 using System.Collections.Generic;
 
@@ -38,7 +39,7 @@ namespace Tac.Perceptron
 		public Dictionary<int, float[]> WeightAR; // Веса между A-R элементами
 
 		private sbyte[] ReactionError;
-		private Random rnd = new Random(12);
+		private Random rnd = new Random(20);
 
 		public PerceptronSAAR(int argSCount, int argACount, int argRCount, int argHCount)
 		{
@@ -189,12 +190,19 @@ namespace Tac.Perceptron
 					bool e = GetError(index);
 					if (e == true)
 					{
-						if (learnedSA)
+						LearnedStimulAR(index);
+
+						RActivation(index);
+						bool e2 = GetError(index);
+						if (e2 == true)
 						{
-							LearnedStimulSA(index);
+							if (learnedSA)
+							{
+								LearnedStimulSA(index);
+							}
 						}
 
-						LearnedStimulAR(index);
+
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 					}
 				}
@@ -203,30 +211,36 @@ namespace Tac.Perceptron
 				OldError = Error;
 
 				gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
-				stop = new int[RCount];
+
+				LRegion region = new LRegion();
+				//int rCount = region.Calc(Activations);
+				double rCount = region.MeanPairwiseDistance(Activations);
+
+
+				stop = 0;
 
 				for (int j = 0; j < ACount; j++)
 				{
+					bool isEmpty = true;
 					for (int i = 0; i < RCount; i++)
 					{
 						if (gainValue[j][i] > 0)
 						{
-							stop[i]++;
+							isEmpty = false;
+							break;
 						}
 					}
-				}
-
-				stopAvg = stop[0];
-				for (int i = 1; i < RCount; i++)
-				{
-					stopAvg = (stopAvg + stop[i]) / 2;
+					if (isEmpty == false)
+					{
+						stop++;
+					}
 				}
 
 				if (T == 1)
 				{
 					learnedSA = false;
 				}
-				else if (T == 3)
+				if (T == 1)
 				{ 
 					learnedSA= true;
 					T = 0;
@@ -234,7 +248,8 @@ namespace Tac.Perceptron
 				T++;
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms " + stopAvg.ToString("F0") + "\t" + learnedSA.ToString());
+				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms " + stop.ToString("F0") + "\t" + learnedSA.ToString()
+								+ "\t" + rCount.ToString("F2"));
 				if (Error == 0) { break; }
 			}
 		}
@@ -242,7 +257,6 @@ namespace Tac.Perceptron
 		int T = 0;
 
 		float[][] gainValue;
-		float stopAvg;
 
 		double aTime = 0;
 
@@ -255,6 +269,8 @@ namespace Tac.Perceptron
 			return Math.Max(logit, 0) - logit * target + (float)Math.Log(1 + Math.Exp(-Math.Abs(logit)));
 		}
 
+
+		float maxAField = 0;
 		public float[] Normalize(float[] AField)
 		{
 			// Находим максимальное по модулю значение
@@ -275,6 +291,11 @@ namespace Tac.Perceptron
 			for (int i = 0; i < AField.Length; i++)
 			{
 				normalized[i] = AField[i] / maxAbs;
+			}
+
+			if (maxAField < maxAbs)
+			{
+				maxAField = maxAbs;
 			}
 
 			return normalized;
@@ -376,13 +397,13 @@ namespace Tac.Perceptron
 		float p1 = 1.0f;
 		float p2 = 1.0f;
 		float p3 = 0.0001f;
-		float correct1 = 0.0003f;
-		float correct2 = 0.0003f;
-		float correct3 = 0.00001f;
-		int[] stop;
+		float correct1 = 1.0f; // rnd=12,  0.0003f;
+		float correct2 = 1.0f;
+		float correct3 = 0.01f;
+		int stop;
 
 		bool correct12 = true;
-		bool isAA = true;
+		bool isAA = false;
 		bool learnedSA = true;
 
 		private void LearnedStimulSA(int argStimulNumber)
@@ -439,7 +460,7 @@ namespace Tac.Perceptron
 								}
 							}
 						}
-						if (stopAvg < ACount * 0.1f && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
+						if (stop < ACount * 1.0f && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
 							for (int i = 0; i < SCount; i++)
 							{
