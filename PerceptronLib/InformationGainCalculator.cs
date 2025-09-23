@@ -32,9 +32,9 @@ public class InformationGainCalculator
 		totalEntropy = CalculateEntropy(positiveProbability);
 	}
 
-	public float[] CalculateInformationGain(Dictionary<int, float[]> activations, int argACount)
+	public float[][] CalculateInformationGain(Dictionary<int, float[]> activations, int argACount, int argRCount)
 	{
-		float[] informationGain = new float[argACount];
+		float[][] informationGain = new float[argACount][];
 
 		for (int i = 0; i < argACount; i++)
 		{
@@ -52,14 +52,19 @@ public class InformationGainCalculator
 				}
 			}
 
+			informationGain[i] = new float[argRCount];
+
 			// Вычисляем информационную значимость для этого нейрона
-			informationGain[i] = CalculateNeuronInformationGain(binaryActivation);
+			for (int r = 0; r < argRCount; r++)
+			{
+				informationGain[i][r] = CalculateNeuronInformationGain(binaryActivation, r);
+			}
 		}
 
 		return informationGain;
 	}
 
-	private float CalculateNeuronInformationGain(int[] binaryActivation)
+	private float CalculateNeuronInformationGain(int[] binaryActivation, int rIndex)
 	{
 		int count0 = 0, count1 = 0; // Количество примеров в каждом подмножестве
 		int positive0 = 0, positive1 = 0; // Количество положительных примеров в каждом подмножестве
@@ -69,12 +74,12 @@ public class InformationGainCalculator
 			if (binaryActivation[j] == 0)
 			{
 				count0++;
-				if (NecessaryReactions[j][0] == true) positive0++;
+				if (NecessaryReactions[j][rIndex] == true) positive0++;
 			}
 			else
 			{
 				count1++;
-				if (NecessaryReactions[j][0] == true) positive1++;
+				if (NecessaryReactions[j][rIndex] == true) positive1++;
 			}
 		}
 
