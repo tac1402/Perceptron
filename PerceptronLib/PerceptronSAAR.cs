@@ -13,21 +13,22 @@ namespace Tac.Perceptron
 	/// </summary>
 	public class PerceptronSAAR
 	{
+		private int SCount; // Количество сенсоров
+		private int ACount; // Количество ассоциаций
+		private int RCount; // Количество реакций
+		private int HCount; // Количество примеров
+
 		public BitBlock SensorsField; /* Сенсорное поле */
-		//public int[] AssociationsField; /* Ассоциативное поле */
 		public BitBlock ReactionsOutput; /* Реагирующие поле */
 
 		public float[] AField;
 		public float[] AFieldNorm;
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 
-		public Dictionary<int, float[]> WeightAA;
+		public Dictionary<int, int[]> WeightAA;
+		public Dictionary<int, List<int>> IndexAA;
 		private int[] Threshold;
-
-		private int SCount; // Количество сенсоров
-		private int ACount; // Количество ассоциаций
-		private int RCount; // Количество реакций
-		private int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
+		private int AACount; // Количество внутрених связей
 
 
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
@@ -58,9 +59,6 @@ namespace Tac.Perceptron
 				Activations.Add(i, new float[ACount]);
 			}
 			gainValue = new float[ACount];
-			gainNorm = new float[ACount];
-			gainNormAvg = new float[ACount];
-			gainNormCount = new int[ACount];
 
 			LearnedStimuls = new Dictionary<int, BitBlock>();
 			NecessaryReactions = new Dictionary<int, BitBlock>();
@@ -77,10 +75,13 @@ namespace Tac.Perceptron
 				WeightAR[i] = new float[RCount];
 			}
 
-			WeightAA = new Dictionary<int, float[]>(ACount);
+			AACount = ACount / 10;
+			WeightAA = new Dictionary<int, int[]>(ACount);
+			IndexAA = new Dictionary<int, List<int>>(ACount);
 			for (int i = 0; i < ACount; i++)
 			{
-				WeightAA[i] = new float[ACount];
+				WeightAA[i] = new int[ACount];
+				IndexAA[i] = new List<int>();
 			}
 			for (int i = 0; i < ACount; i++)
 			{
@@ -95,7 +96,7 @@ namespace Tac.Perceptron
 
 		private void InitAA(int argAId)
 		{
-			int sinapsCount = rnd.Next(2, ACount/10);
+			int sinapsCount = rnd.Next(2, AACount);
 
 			int sensorNumber = 0;
 			sbyte sensorType = 0;
@@ -105,7 +106,13 @@ namespace Tac.Perceptron
 				sensorNumber = rnd.Next(ACount);
 				if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 				WeightAA[argAId][sensorNumber] = sensorType;
+
+				if (IndexAA[argAId].Contains(sensorNumber) == false)
+				{
+					IndexAA[argAId].Add(sensorNumber);
+				}
 			}
+			if (sinapsCount != AACount) { IndexAA[argAId].Add(-1); }
 		}
 
 
@@ -190,33 +197,14 @@ namespace Tac.Perceptron
 					}
 				}
 				gainValue = gain.CalculateInformationGain(Activations, ACount);
-				gainNorm = Normalize(gainValue);
 				stop = 0;
-				string gainTxt = "";
 				for (int j = 0; j < ACount; j++)
 				{
-					if (gainNorm[j] > 0)
+					if (gainValue[j] > 0)
 					{
 						stop++;
-						gainNormCount[j] ++;
-					}
-					else
-					{
-						gainNormCount[j] = 0;
-					}
-
-					if (gainNormCount[j] == 1)
-					{
-						gainNormAvg[j] = gainNorm[j];
-					}
-					else if (gainNormCount[j] > 1)
-					{
-						gainNormAvg[j] = (gainNormAvg[j] + gainNorm[j]) / 2;
 					}
 				}
-				gainTxt += "\n";
-
-				//ClearGain();
 
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
@@ -226,13 +214,11 @@ namespace Tac.Perceptron
 		}
 
 		float[] gainValue;
-		float[] gainNorm;
-		float[] gainNormAvg;
-		int[] gainNormCount;
 		int clearCount = 0;
 
 		double aTime = 0;
 
+		/*
 		private void ClearGain()
 		{
 			clearCount = 0;
@@ -247,16 +233,14 @@ namespace Tac.Perceptron
 					clearCount++;
 				}
 			}
-		}
+		}*/
 
 
 		/// <summary>
-		/// Вычисляем бинарную кросс-энтропию
-		/// BinaryCrossEntropy
+		/// Вычисляем бинарную кросс-энтропию (BinaryCrossEntropy)
 		/// </summary>
 		public static float BCE(float logit, float target)
 		{
-			// Стабильная реализация бинарной кросс-энтропии с логитами
 			return Math.Max(logit, 0) - logit * target + (float)Math.Log(1 + Math.Exp(-Math.Abs(logit)));
 		}
 
@@ -292,7 +276,6 @@ namespace Tac.Perceptron
 			SensorsField = LearnedStimuls[argStimulNumber];
 
 			AField = new float[ACount];
-			//float[] Summa = new float[ACount];
 			for (int j = 0; j < ACount; j++)
 			{
 				for (int i = 0; i < SCount; i++)
@@ -305,14 +288,17 @@ namespace Tac.Perceptron
 			}
 
 			float[] AFieldTmp = new float[ACount];
-
 			for (int i = 0; i < ACount; i++)
 			{
-				for (int j = 0; j < ACount; j++)
+				for (int j = 0; j < AACount; j++)
 				{
-					if (AField[j] > Threshold[i])
+					int index = IndexAA[i][j];
+
+					if (index == -1) break;
+
+					if (AField[index] > Threshold[i])
 					{
-						AFieldTmp[i] += WeightAA[i][j];
+						AFieldTmp[i] += WeightAA[i][index];
 					}
 				}
 			}
@@ -325,8 +311,6 @@ namespace Tac.Perceptron
 			Activations[argStimulNumber] = AField;
 
 			AFieldNorm = Normalize(AField);
-
-			int a = 1;
 		}
 
 
@@ -379,8 +363,8 @@ namespace Tac.Perceptron
 		float p1 = 1.0f;
 		float p2 = 1.0f;
 		float p3 = 0.00001f;
-		float correct1 = 0.0001f;
-		float correct2 = 0.0001f;
+		float correct1 = 0.00001f;
+		float correct2 = 0.00001f;
 		float correct3 = 0.000001f;
 		int stop = 0;
 
@@ -390,18 +374,21 @@ namespace Tac.Perceptron
 			{
 				if (AField[j] > 0)
 				{
-					if (Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
+					for (int r = 0; r < RCount; r++)
 					{
-						for (int i = 0; i < SCount; i++)
+						if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
-							if (SensorsField[i] == true)
+							for (int i = 0; i < SCount; i++)
 							{
-								float p = (float)rnd.NextDouble();
-								float entropy = BCE(AFieldNorm[j], -1);
-
-								if (p < p1 * entropy)
+								if (SensorsField[i] == true)
 								{
-									WeightSA[i][j] -= correct1 * AFieldNorm[j];
+									float p = (float)rnd.NextDouble();
+									float entropy = BCE(AFieldNorm[j], -1);
+
+									if (p < p1 * entropy)
+									{
+										WeightSA[i][j] -= correct1 * AFieldNorm[j];
+									}
 								}
 							}
 						}
@@ -409,32 +396,35 @@ namespace Tac.Perceptron
 				}
 				else
 				{
-					if (Math.Sign(WeightAR[j][0]) == Math.Sign(ReactionError[0]))
+					for (int r = 0; r < RCount; r++)
 					{
-						for (int i = 0; i < SCount; i++)
+						if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 						{
-							if (SensorsField[i] == true)
+							for (int i = 0; i < SCount; i++)
 							{
-								float p = (float)rnd.NextDouble();
-								float entropy = BCE(AFieldNorm[j], 1);
-
-								if (p < p2 * entropy)
+								if (SensorsField[i] == true)
 								{
-									WeightSA[i][j] += correct2 * AFieldNorm[j];
+									float p = (float)rnd.NextDouble();
+									float entropy = BCE(AFieldNorm[j], 1);
+
+									if (p < p2 * entropy)
+									{
+										WeightSA[i][j] += correct2 * AFieldNorm[j];
+									}
 								}
 							}
 						}
-					}
-					if (stop < ACount *0.5f  && Math.Sign(WeightAR[j][0]) != Math.Sign(ReactionError[0]))
-					{
-						for (int i = 0; i < SCount; i++)
+						if (stop < ACount * 0.1f && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
-							if (SensorsField[i] == true)
+							for (int i = 0; i < SCount; i++)
 							{
-								float p = (float)rnd.NextDouble();
-								if (p < p3)
+								if (SensorsField[i] == true)
 								{
-									WeightSA[i][j] += correct3;
+									float p = (float)rnd.NextDouble();
+									if (p < p3)
+									{
+										WeightSA[i][j] += correct3;
+									}
 								}
 							}
 						}
