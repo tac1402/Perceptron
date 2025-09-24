@@ -16,13 +16,13 @@ public class GrayCodeTask
 		int L = 10;
 
 		//NeironNetTree net = new NeironNetTree(L, 5000, L, N1 * N2);
-		PerceptronSAAR net = new PerceptronSAAR(L, 300, L, N1 * N2);
+		PerceptronDL net = new PerceptronDL(L, 300, L, N1 * N2 - 1);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];
 
 		//List<string> o = new List<string>();
-		for (int i = 0; i < N1 * N2; i++)
+		for (int i = 1; i < N1 * N2; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
 
@@ -31,7 +31,7 @@ public class GrayCodeTask
 
 			//o.Add(output[i].ToString(16));
 
-			net.JoinStimul(i, input[i], output[i]);
+			net.JoinStimul(i - 1, input[i], output[i]);
 		}
 
 		/*o.Sort();
