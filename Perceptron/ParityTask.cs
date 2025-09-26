@@ -10,14 +10,21 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 256;
+		int N2 = 16;
 
 		//16-256*12-1
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		PerceptronDL net = new PerceptronDL(16, 300, 1, N1 * N2);
-		//NeironNetA net = new NeironNetA(10, 1000, 1, N1 * N2);
+		//PerceptronDL net = new PerceptronDL(12, 300, 1, N1 * N2);
+		//NeironNetA net = new NeironNetA(12, 1000, 1, N1 * N2);
+		NeironNetTree net = new NeironNetTree(12, 1600, 1, N1 * N2);
+
+		net.IsAnalyze = true;
+		//net.SinapsXCount = 32;
+		//net.SinapsYCount = 25;
+		net.sinapsType = NeironNetTree.SinapsType.Full;
+		
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];

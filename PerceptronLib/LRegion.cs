@@ -34,6 +34,53 @@ namespace PerceptronLib
 			return regions.Count;
 		}
 
+		// Функция для вычисления минимального попарного расстояния (Хэмминг)
+		public double MinPairwiseDistance(Dictionary<int, float[]> activations)
+		{
+			var keys = activations.Keys.ToList();
+			int n = keys.Count;
+			if (n < 2) return 0.0;
+
+			int minDistance = int.MaxValue;
+			for (int i = 0; i < n; i++)
+			{
+				for (int j = i + 1; j < n; j++)
+				{
+					float[] vec1 = activations[keys[i]];
+					float[] vec2 = activations[keys[j]];
+
+					if (IsEmpty(vec1) == false && IsEmpty(vec2) == false)
+					{
+						int distance = HammingDistance(vec1, vec2);
+						if (distance < minDistance)
+						{
+							minDistance = distance;
+						}
+					}
+				}
+			}
+
+			return minDistance;
+		}
+
+		private bool IsEmpty(float[] vec)
+		{
+			bool ret = false;
+			int k = 0;
+			for (int i = 0; i < vec.Length; i++)
+			{
+				if (vec[i] == 0)
+				{ 
+					k++;
+				}
+			}
+			if (k == vec.Length)
+			{ 
+				ret = true;
+			}
+			return ret;
+		}
+
 		// Функция для вычисления среднего попарного расстояния (Хэмминг)
 		public double MeanPairwiseDistance(Dictionary<int, float[]> activations)
 		{

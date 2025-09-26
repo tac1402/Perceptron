@@ -12,8 +12,8 @@ public class ParityNetwork : Module<Tensor, Tensor>
 
 	public ParityNetwork(int input_size) : base("ParityNetwork")
 	{
-		fc1 = Linear(input_size, 100);
-		fc2 = Linear(100, 1);
+		fc1 = Linear(input_size, 300);
+		fc2 = Linear(300, 1);
 		relu = ReLU();
 		sigmoid = Sigmoid();
 

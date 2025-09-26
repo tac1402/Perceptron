@@ -35,23 +35,19 @@ namespace Tac.Perceptron
 		/// <param name="argMode">0 - обучение, 1 - экзамен</param>
 		private void SActivationLB(int argStimulNumber, int argSaveStimulNumber)
 		{
-			for (int i = 0; i < ACount; i++)
-			{
-				AssociationsField[i] = 0;
-			}
-
 			// Кинем на сенсоры обучающий пример
 			SensorsField = LearnedStimuls[argStimulNumber];
 
 			DateTime begin = DateTime.Now;
 
+			AField = new float[ACount];
 			for (int i = 0; i < SCount; i++)
 			{
 				if (SensorsField[i] == true)
 				{
 					for (int j = 0; j < ACount; j++)
 					{
-						AssociationsField[j] += WeightSA[i][j];
+						AField[j] += WeightSA[i][j];
 					}
 				}
 			}
@@ -61,16 +57,10 @@ namespace Tac.Perceptron
 			// Запомним как на этот пример реагировали A - элементы
 			for (int j = 0; j < ACount; j++)
 			{
-				if (AssociationsField[j] > 0)
+				if (AField[j] > 0)
 				{
 					AHConnections[argSaveStimulNumber].Add(j);
 				}
-			}
-
-			// Check
-			if (AHConnections[argSaveStimulNumber].Count < AHMinimum)
-			{
-				AHMinimum = AHConnections[argSaveStimulNumber].Count;
 			}
 		}
 
@@ -130,9 +120,6 @@ namespace Tac.Perceptron
 
 		public override void Learned()
 		{
-			AHMinimum = ACount;
-			AHAvg = 0;
-			AHMaximum = 0;
 
 			for (int i = 0; i < ACount; i++)
 			{
@@ -170,8 +157,6 @@ namespace Tac.Perceptron
 							if (saActivate == false) 
 							{ 
 								SActivationLB(stimulNumber, i);
-								if (i % 10000 == 0)
-									Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 							}
 							// Активируем R-элементы, т.е. рассчитываем выходы
 							RActivation(i);

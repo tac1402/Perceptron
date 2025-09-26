@@ -13,7 +13,7 @@ namespace MLP
 		public void Run()
 		{
 			// Генерация данных
-			int num_inputs = 10;
+			int num_inputs = 21;
 			long num_samples = (long)Math.Pow(2, num_inputs);
 
 			// Создание индексов
@@ -34,13 +34,14 @@ namespace MLP
 			var train_dataset = new ParityDataset(X_train, y_train);
 
 			// Создание загрузчика данных
-			int batch_size = 1;
-			var train_loader = new DataLoader(train_dataset, batch_size/*, shuffle: true*/);
+			int batch_size = 32;
+			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: true);
 
 			// Создание модели, функции потерь и оптимизатора
 			var model = new ParityNetwork(num_inputs);
-			var criterion = BCELoss();
-			var optimizer = new Adam(model.parameters(), 0.001);
+			//var criterion = BCELoss();
+			var criterion = MSELoss();
+			var optimizer = new Adam(model.parameters(), 0.0001);
 
 			// Обучение модели
 			int num_epochs = 100000;

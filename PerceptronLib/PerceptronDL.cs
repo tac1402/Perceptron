@@ -121,19 +121,22 @@ namespace Tac.Perceptron
 			int OldError = 0;
 			int Error = 0;
 			int Error2 = 0;
-
+			int Error3 = 0;
+			int Error4 = 0;
+			double rCount2 = 0;
 
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
 			{
 				Error = 0;
 				Error2 = 0;
+				Error3 = 0;
+				Error4 = 0;
 
 				DateTime begin = DateTime.Now;
 				aTime = 0;
 
 				indexL = Shuffle(indexL);
-				float p = (float)rnd.NextDouble();
 
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
@@ -152,10 +155,48 @@ namespace Tac.Perceptron
 						RActivation(index);
 						bool e2 = GetError(index);
 
-						if (e2 == true || p > 0.999f)
+						if (e2 == true)
 						{
-							LearnedStimulSA(index);
+							//float pLimit = Probability(stop, ACount);
+							//float pLimitR = Probability(stop, ACount * 0.5f);
+							//float p = (float)rnd.NextDouble();
+
+							if (rCount2 < ACount - 5)
+							{
+								RandomChange();
+							}
+
+							if (rCount2 < ACount - 5)
+							{
+								LearnedStimulSA();
+							}
+
+							LearnedStimulAR(index);
+
 							Error2++;
+
+							if (rCount2 < ACount - 5)
+							{
+								AActivation(index);
+							}
+
+							RActivation(index);
+							bool e3 = GetError(index);
+							if (e3 == true)
+							{
+								LearnedStimulAR(index);
+								RActivation(index);
+
+								Error3++;
+
+								bool e4 = GetError(index);
+								if (e4 == true)
+								{ 
+									Error4++;
+								}
+
+							}
+
 						}
 
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
@@ -167,13 +208,11 @@ namespace Tac.Perceptron
 
 				gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
 
-				//LRegion region = new LRegion();
-				//int rCount = region.Calc(Activations);
-				//double rCount = region.MeanPairwiseDistance(Activations);
-
+				LRegion region = new LRegion();
+				int rCount = region.Calc(Activations);
+				rCount2 = region.MinPairwiseDistance(Activations);
 
 				stop = 0;
-
 				for (int j = 0; j < ACount; j++)
 				{
 					bool isEmpty = true;
@@ -193,7 +232,10 @@ namespace Tac.Perceptron
 
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() + "\tAN: " + stop.ToString("F0") 
+				Console.WriteLine(n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() + "-" + Error3.ToString()
+								 + "-" + Error4.ToString()
+								+ "\tR: " + rCount.ToString("F0") + "/" + rCount2.ToString("F0")
+								+ "\tAN: " + stop.ToString("F0") 
 								+ "\t" + maxAField.ToString("F4") + "\t" + t.ToString() + " ms ");
 
 				if (Error == 0) { break; }
@@ -204,6 +246,17 @@ namespace Tac.Perceptron
 
 		double aTime = 0;
 
+		/// <summary>
+		/// decayFactor > 1.0 — вероятность убывает быстрее.
+		/// decayFactor < 1.0 — вероятность убывает медленнее.
+		/// </summary>
+		public float Probability(float current, float max, double decayFactor = 1.0)
+		{
+			if (current >= max) return 0.0f;
+
+			float normalized = (max - current) / max;
+			return normalized;
+		}
 
 		/// <summary>
 		/// Вычисляем бинарную кросс-энтропию (BinaryCrossEntropy)
@@ -315,12 +368,12 @@ namespace Tac.Perceptron
 		}
 
 
-		float p1 = 0.07f;
-		float p2 = 0.07f;
-		float p3 = 0.0001f;
-		float correct1 = 0.0001f; 
-		float correct2 = 0.0001f;
-		float correct3 = 0.01f;
+		float p1 = 1.0f;
+		float p2 = 1.0f;
+		float p3 = 0.001f;
+		float correct1 = 1.0f; 
+		float correct2 = 1.0f;
+		float correct3 = 0.1f;
 
 		/* rnd20
 		float p1 = 1.0f;
@@ -335,7 +388,33 @@ namespace Tac.Perceptron
 
 		bool correct12 = true;
 
-		private void LearnedStimulSA(int argStimulNumber)
+
+		private void RandomChange()
+		{
+			for (int r = 0; r < RCount; r++)
+			{
+				for (int j = 0; j < ACount; j++)
+				{
+					if (AField[j] <= 0)
+					{
+						for (int i = 0; i < SCount; i++)
+						{
+							if (SensorsField[i] == true)
+							{
+								float p = (float)rnd.NextDouble();
+								if (p < p3)
+								{
+									WeightSA[i][j] += correct3;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+		private void LearnedStimulSA()
 		{
 			for (int j = 0; j < ACount; j++)
 			{
@@ -389,7 +468,7 @@ namespace Tac.Perceptron
 								}
 							}
 						}
-						if (Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
+						/*if (stop < ACount * 0.5f && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
 							for (int i = 0; i < SCount; i++)
 							{
@@ -402,7 +481,7 @@ namespace Tac.Perceptron
 									}
 								}
 							}
-						}
+						}*/
 					}
 				}
 

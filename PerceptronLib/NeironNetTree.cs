@@ -1,6 +1,7 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
+using PerceptronLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,7 +22,6 @@ namespace Tac.Perceptron
 	public class NeironNetTree
 	{
 		public BitBlock SensorsField; /* Сенсорное поле */
-		public int[] AssociationsField; /* Ассоциативное поле */
 		public BitBlock ReactionsField; /* Реагирующие поле */
 
 		protected int SCount; // Количество сенсоров
@@ -31,6 +31,9 @@ namespace Tac.Perceptron
 
 
 		public Dictionary<int, List<int>> AHConnections; // Как реагируют A-элементы на каждый стимул из обучающей выборки
+
+		public float[] AField;
+		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
@@ -46,9 +49,6 @@ namespace Tac.Perceptron
 		public int RndNumber = 10;
 		protected Random rnd;
 
-		protected int AHMinimum = 0;
-		protected int AHAvg = 0;
-		protected int AHMaximum = 0;
 		protected double aTime = 0;
 
 		private bool isSR = false;
@@ -80,7 +80,10 @@ namespace Tac.Perceptron
 				AHConnections[i] = new List<int>();
 			}
 
-			AssociationsField = new int[ACount];
+			for (int i = 0; i < HCount; i++)
+			{
+				Activations.Add(i, new float[ACount]);
+			}
 
 			ReactionsField = new BitBlock(RCount);
 
@@ -132,8 +135,8 @@ namespace Tac.Perceptron
 
 			if (sinapsType == SinapsType.Full)
 			{
-				SinapsXCount = SCount / 2;
-				SinapsYCount = SCount / 2;
+				SinapsXCount = SCount;
+				SinapsYCount = SCount;
 			}
 			else if (sinapsType == SinapsType.Sinaps2x2)
 			{
@@ -163,13 +166,23 @@ namespace Tac.Perceptron
 			}
 			else
 			{
-				var square = GetRandomSquare();
+				//var square = GetRandomSquare();
 				for (int j = 0; j < sinapsCount; j++)
 				{
-					//sensorNumber = rnd.Next(SCount);
-					sensorNumber = GetRandomPointInSquare(square);
+					sensorNumber = rnd.Next(SCount);
 
-					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
+					if (j < SinapsXCount)
+					{
+						sensorType = 1;
+					}
+					else
+					{
+						sensorType = -1;
+					}
+
+					//sensorNumber = GetRandomPointInSquare(square);
+
+					//if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
 					//if (j < SinapsXCount) sensorType = 1; else sensorType = -1;
 
 					WeightSA[sensorNumber][argAId] = sensorType;
@@ -250,7 +263,7 @@ namespace Tac.Perceptron
 		}
 
 
-		public int MaxTreeCount = 1;
+		public int MaxTreeCount = 2;
 		public int batchCount = 0;
 
 		List<int> AElement = new List<int>();
@@ -302,7 +315,7 @@ namespace Tac.Perceptron
 			Console.WriteLine("AElement = " + AElement.Count.ToString());
 			graph = id3.graphP;
 
-			if (argBatchNumber == MaxTreeCount)
+			if (argBatchNumber + 1 == MaxTreeCount)
 			{
 				Dictionary<int, string> mask = new Dictionary<int, string>();
 				for (int i = 0; i < ACount; i++)
@@ -319,7 +332,7 @@ namespace Tac.Perceptron
 		}
 
 		public int SANumber = 0;
-		public int SASelectCount = 1;
+		public int SASelectCount = 0;
 
 		public void SaveSA(string argFileName, List<int> argActive)
 		{
@@ -383,10 +396,6 @@ namespace Tac.Perceptron
 		/// </summary>
 		public virtual void Learned()
 		{
-			AHMinimum = ACount;
-			AHAvg = 0;
-			AHMaximum = 0;
-
 			if (isLoaded == false)
 			{
 				for (int i = 0; i < ACount; i++)
@@ -416,11 +425,7 @@ namespace Tac.Perceptron
 					{
 						// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
 						SActivation(i);
-
-						if (i % 10000 == 0)
-							Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 					}
-					Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 					Console.WriteLine("\t" + aTime.ToString() + " ms");
 				}
 				if (n >= 2)
@@ -445,7 +450,7 @@ namespace Tac.Perceptron
 					if (oldError == Error) { stopCount++; }	else { stopCount = 0; }
 					oldError = Error;
 
-					if (Error == 0 || stopCount >= stopError) { break; }
+					if (Error == 0) { break; }
 				}
 				if (n == 0)
 				{
@@ -453,6 +458,7 @@ namespace Tac.Perceptron
 					{
 						if (SASelectCount == 0)
 						{
+							batchCount = ACount/2;
 							Analyze();
 						}
 						else
@@ -490,9 +496,6 @@ namespace Tac.Perceptron
 						{
 							// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
 							SActivation(i);
-
-							if (i % 10000 == 0)
-								Console.WriteLine("AHMin-Avg-Max = " + AHMinimum.ToString() + "-" + AHAvg.ToString() + "-" + AHMaximum.ToString());
 						}
 
 					}
@@ -503,8 +506,41 @@ namespace Tac.Perceptron
 				}
 			}
 
+			CalcInfo();
+
 			graph.Save("tree_");
 		}
+
+		private void CalcInfo()
+		{
+			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
+			float[][] gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
+
+			LRegion region = new LRegion();
+			int rCount = region.Calc(Activations);
+			double rCount2 = region.MinPairwiseDistance(Activations);
+
+			int stop = 0;
+			for (int j = 0; j < ACount; j++)
+			{
+				bool isEmpty = true;
+				for (int i = 0; i < RCount; i++)
+				{
+					if (gainValue[j] != null && gainValue[j][i] > 0)
+					{
+						isEmpty = false;
+						break;
+					}
+				}
+				if (isEmpty == false)
+				{
+					stop++;
+				}
+			}
+			Console.WriteLine("R: " + rCount.ToString("F0") + "/" + rCount2.ToString("F0") + "\tAN: " + stop.ToString("F0"));
+		}
+
+
 
 		private void Analyze()
 		{
@@ -589,11 +625,6 @@ namespace Tac.Perceptron
 		protected void SActivation(int argStimulNumber, int argMode = 0)
 		{
 
-			for (int i = 0; i < ACount; i++)
-			{
-				AssociationsField[i] = 0;
-			}
-
 			// Кинем на сенсоры обучающий пример
 			if (argMode == 0)
 			{
@@ -606,13 +637,14 @@ namespace Tac.Perceptron
 
 			DateTime begin = DateTime.Now;
 
+			AField = new float[ACount];
 			for (int i = 0; i < SCount; i++)
 			{
 				if (SensorsField[i] == true)
 				{
 					for (int j = 0; j < ACount; j++)
 					{
-						AssociationsField[j] += WeightSA[i][j];
+						AField[j] += WeightSA[i][j];
 					}
 				}
 			}
@@ -622,30 +654,14 @@ namespace Tac.Perceptron
 			// Запомним как на этот пример реагировали A - элементы
 			for (int j = 0; j < ACount; j++)
 			{
-				if (AssociationsField[j] > 0)
+				if (AField[j] > 0)
 				{
 					AHConnections[argStimulNumber].Add(j);
 				}
 			}
 
-			// Check
-			if (AHConnections[argStimulNumber].Count < AHMinimum)
-			{
-				AHMinimum = AHConnections[argStimulNumber].Count;
-			}
-			if (AHConnections[argStimulNumber].Count > AHMaximum)
-			{
-				AHMaximum = AHConnections[argStimulNumber].Count;
-			}
-			if (AHAvg == 0)
-			{
-				AHAvg += AHConnections[argStimulNumber].Count;
-			}
-			else
-			{
-				AHAvg += AHConnections[argStimulNumber].Count;
-				AHAvg /= 2;
-			}
+			Activations[argStimulNumber] = AField;
+
 		}
 
 

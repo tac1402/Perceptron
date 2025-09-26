@@ -40,6 +40,7 @@ public class InformationGainCalculator
 		{
 			// Бинаризуем активации
 			int[] binaryActivation = new int[activations.Count];
+			int k = 0;
 			for (int j = 0; j < binaryActivation.Length; j++)
 			{
 				if (activations[j][i] > 0)
@@ -49,8 +50,11 @@ public class InformationGainCalculator
 				else
 				{
 					binaryActivation[j] = 0;
+					k++;
 				}
 			}
+			if (k == activations.Count) { continue; }
+
 
 			informationGain[i] = new float[argRCount];
 
