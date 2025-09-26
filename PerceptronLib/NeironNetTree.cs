@@ -516,9 +516,9 @@ namespace Tac.Perceptron
 			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
 			float[][] gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
 
-			LRegion region = new LRegion();
+			LRegion region = new LRegion(NecessaryReactions);
 			int rCount = region.Calc(Activations);
-			double rCount2 = region.MinPairwiseDistance(Activations);
+			region.NeighborhoodPurity(Activations);
 
 			int stop = 0;
 			for (int j = 0; j < ACount; j++)
@@ -537,7 +537,9 @@ namespace Tac.Perceptron
 					stop++;
 				}
 			}
-			Console.WriteLine("R: " + rCount.ToString("F0") + "/" + rCount2.ToString("F0") + "\tAN: " + stop.ToString("F0"));
+			Console.WriteLine("R: " + rCount.ToString("F0") + "/" + region.avgPairwise.ToString("F0") 
+					+ "\tP: " + region.minPurity.ToString("F4")+ "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")
+					+ "\tAN: " + stop.ToString("F0"));
 		}
 
 

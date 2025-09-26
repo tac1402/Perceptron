@@ -161,12 +161,12 @@ namespace Tac.Perceptron
 							//float pLimitR = Probability(stop, ACount * 0.5f);
 							//float p = (float)rnd.NextDouble();
 
-							if (rCount2 < ACount - 5)
+							//if (p < pLimitR)
 							{
 								RandomChange();
 							}
 
-							if (rCount2 < ACount - 5)
+							//if (p < pLimit)
 							{
 								LearnedStimulSA();
 							}
@@ -175,7 +175,7 @@ namespace Tac.Perceptron
 
 							Error2++;
 
-							if (rCount2 < ACount - 5)
+							//if (p < pLimit)
 							{
 								AActivation(index);
 							}
@@ -208,9 +208,9 @@ namespace Tac.Perceptron
 
 				gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
 
-				LRegion region = new LRegion();
+				LRegion region = new LRegion(NecessaryReactions);
 				int rCount = region.Calc(Activations);
-				rCount2 = region.MinPairwiseDistance(Activations);
+				region.NeighborhoodPurity(Activations);
 
 				stop = 0;
 				for (int j = 0; j < ACount; j++)
@@ -218,7 +218,7 @@ namespace Tac.Perceptron
 					bool isEmpty = true;
 					for (int i = 0; i < RCount; i++)
 					{
-						if (gainValue[j][i] > 0)
+						if (gainValue[j] != null && gainValue[j][i] > 0)
 						{
 							isEmpty = false;
 							break;
@@ -234,7 +234,8 @@ namespace Tac.Perceptron
 				double t = (DateTime.Now - begin).TotalMilliseconds;
 				Console.WriteLine(n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() + "-" + Error3.ToString()
 								 + "-" + Error4.ToString()
-								+ "\tR: " + rCount.ToString("F0") + "/" + rCount2.ToString("F0")
+								+ "\tR: " + rCount.ToString("F0") + "/" + region.avgPairwise.ToString("F0")
+								+ "\tP: " + region.minPurity.ToString("F4") + "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")
 								+ "\tAN: " + stop.ToString("F0") 
 								+ "\t" + maxAField.ToString("F4") + "\t" + t.ToString() + " ms ");
 
@@ -370,10 +371,10 @@ namespace Tac.Perceptron
 
 		float p1 = 1.0f;
 		float p2 = 1.0f;
-		float p3 = 0.001f;
+		float p3 = 0.0001f;
 		float correct1 = 1.0f; 
 		float correct2 = 1.0f;
-		float correct3 = 0.1f;
+		float correct3 = 0.001f;
 
 		/* rnd20
 		float p1 = 1.0f;
@@ -433,9 +434,9 @@ namespace Tac.Perceptron
 									if (SensorsField[i] == true)
 									{
 										float p = (float)rnd.NextDouble();
-										float entropy = BCE(AFieldNorm[j], -1);
+										//float entropy = BCE(AFieldNorm[j], -1);
 
-										if (p < p1 * entropy)
+										if (p < p1 /** entropy*/)
 										{
 											w[i] -= correct1 * AFieldNorm[j];
 										}
@@ -458,9 +459,9 @@ namespace Tac.Perceptron
 									if (SensorsField[i] == true)
 									{
 										float p = (float)rnd.NextDouble();
-										float entropy = BCE(AFieldNorm[j], 1);
+										//float entropy = BCE(AFieldNorm[j], 1);
 
-										if (p < p2 * entropy)
+										if (p < p2 /** entropy*/)
 										{
 											w[i] += correct2 * AFieldNorm[j];
 										}
