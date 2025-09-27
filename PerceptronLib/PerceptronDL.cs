@@ -33,7 +33,9 @@ namespace Tac.Perceptron
 		public Dictionary<int, float[]> WeightAR; // Веса между A-R элементами
 
 		private sbyte[] ReactionError;
-		private Random rnd = new Random(25);
+		private Random rnd = new Random(23);
+
+		private NeuronSpecialization spec;
 
 		public PerceptronDL(int argSCount, int argACount, int argRCount, int argHCount)
 		{
@@ -111,6 +113,7 @@ namespace Tac.Perceptron
 		public void Learned()
 		{
 			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
+			spec = new NeuronSpecialization(SCount, ACount, RCount, rnd, NecessaryReactions);
 
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
@@ -163,12 +166,12 @@ namespace Tac.Perceptron
 
 							//if (p < pLimitR)
 							{
-								RandomChange();
+								RandomChange(index);
 							}
 
 							//if (p < pLimit)
 							{
-								LearnedStimulSA();
+								LearnedStimulSA(index);
 							}
 
 							LearnedStimulAR(index);
@@ -211,6 +214,9 @@ namespace Tac.Perceptron
 				LRegion region = new LRegion(NecessaryReactions);
 				int rCount = region.Calc(Activations);
 				region.NeighborhoodPurity(Activations);
+
+				spec.AnalyzePurity(Activations);
+				spec.UpdateSpec(Activations);
 
 				stop = 0;
 				for (int j = 0; j < ACount; j++)
@@ -371,7 +377,7 @@ namespace Tac.Perceptron
 
 		float p1 = 1.0f;
 		float p2 = 1.0f;
-		float p3 = 0.0001f;
+		float p3 = 0.005f;
 		float correct1 = 1.0f; 
 		float correct2 = 1.0f;
 		float correct3 = 0.001f;
@@ -390,7 +396,7 @@ namespace Tac.Perceptron
 		bool correct12 = true;
 
 
-		private void RandomChange()
+		private void RandomChange(int argStimulNumber)
 		{
 			for (int r = 0; r < RCount; r++)
 			{
@@ -398,12 +404,19 @@ namespace Tac.Perceptron
 				{
 					if (AField[j] <= 0)
 					{
+						float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+
+						int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
+						float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
+						float fp = purityFactor ;
+						//fp = 1;
+
 						for (int i = 0; i < SCount; i++)
 						{
 							if (SensorsField[i] == true)
 							{
 								float p = (float)rnd.NextDouble();
-								if (p < p3)
+								if (p < p3 * fp)
 								{
 									WeightSA[i][j] += correct3;
 								}
@@ -415,7 +428,7 @@ namespace Tac.Perceptron
 		}
 
 
-		private void LearnedStimulSA()
+		private void LearnedStimulSA(int argStimulNumber)
 		{
 			for (int j = 0; j < ACount; j++)
 			{
@@ -429,6 +442,13 @@ namespace Tac.Perceptron
 						{
 							if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 							{
+								float purityFactor = spec.GetPurityFactor(spec.spec[j], -1);
+
+								int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
+								float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
+								float fp = purityFactor;
+								//fp = 1;
+
 								for (int i = 0; i < SCount; i++)
 								{
 									if (SensorsField[i] == true)
@@ -436,7 +456,7 @@ namespace Tac.Perceptron
 										float p = (float)rnd.NextDouble();
 										//float entropy = BCE(AFieldNorm[j], -1);
 
-										if (p < p1 /** entropy*/)
+										if (p < p1 * fp)
 										{
 											w[i] -= correct1 * AFieldNorm[j];
 										}
@@ -454,6 +474,13 @@ namespace Tac.Perceptron
 						{
 							if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 							{
+								float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+
+								int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
+								float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
+								float fp = purityFactor;
+								//fp = 1;
+
 								for (int i = 0; i < SCount; i++)
 								{
 									if (SensorsField[i] == true)
@@ -461,7 +488,7 @@ namespace Tac.Perceptron
 										float p = (float)rnd.NextDouble();
 										//float entropy = BCE(AFieldNorm[j], 1);
 
-										if (p < p2 /** entropy*/)
+										if (p < p2 * fp)
 										{
 											w[i] += correct2 * AFieldNorm[j];
 										}

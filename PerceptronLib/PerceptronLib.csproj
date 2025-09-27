@@ -45,7 +45,9 @@
     <Compile Include="Graph.cs" />
     <Compile Include="InformationGainCalculator.cs" />
     <Compile Include="LRegion.cs" />
+    <Compile Include="NeighborhoodAnalyzer.cs" />
     <Compile Include="NeironNetBT.cs" />
+    <Compile Include="NeuronSpecialization.cs" />
     <Compile Include="PerceptronDL.cs" />
     <Compile Include="NeironNetTree.cs" />
     <Compile Include="PerceptronAnalyze.cs" />

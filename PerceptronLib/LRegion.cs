@@ -11,25 +11,28 @@ namespace PerceptronLib
 	{
 		private Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
-		private int[] reactions;
+		public int[] reactions;
 
 		public LRegion(Dictionary<int, BitBlock> argNecessaryReactions)
 		{
 			NecessaryReactions = argNecessaryReactions;
 
-			Dictionary<string, int> r = new Dictionary<string, int>();
-			reactions = new int[argNecessaryReactions.Count];
-			int rCount = 0;
-			for (int i = 0; i < NecessaryReactions.Count; i++)
+			if (NecessaryReactions != null)
 			{
-				string key = NecessaryReactions[i].ToString();
-
-				if (r.ContainsKey(key) == false)
+				Dictionary<string, int> r = new Dictionary<string, int>();
+				reactions = new int[argNecessaryReactions.Count];
+				int rCount = 0;
+				for (int i = 0; i < NecessaryReactions.Count; i++)
 				{
-					r.Add(key, rCount);
-					rCount++;
+					string key = NecessaryReactions[i].ToString();
+
+					if (r.ContainsKey(key) == false)
+					{
+						r.Add(key, rCount);
+						rCount++;
+					}
+					reactions[i] = r[key];
 				}
-				reactions[i] = r[key];
 			}
 			int a = 1;
 		}
@@ -62,7 +65,7 @@ namespace PerceptronLib
 
 
 		// Расстояние Хэмминга для бинарных векторов
-		int HammingDistance(float[] a, float[] b)
+		public static int HammingDistance(float[] a, float[] b)
 		{
 			if (a.Length != b.Length)
 				throw new ArgumentException("Vectors must have the same length");
