@@ -141,6 +141,8 @@ namespace Tac.Perceptron
 
 				indexL = Shuffle(indexL);
 
+				if (n == 15) ff = 1;
+
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
 				{
@@ -215,8 +217,8 @@ namespace Tac.Perceptron
 				int rCount = region.Calc(Activations);
 				region.NeighborhoodPurity(Activations);
 
-				spec.AnalyzePurity(Activations);
-				spec.UpdateSpec(Activations);
+				//spec.AnalyzePurity(Activations);
+				//spec.UpdateSpec(Activations);
 
 				stop = 0;
 				for (int j = 0; j < ACount; j++)
@@ -395,6 +397,7 @@ namespace Tac.Perceptron
 
 		bool correct12 = true;
 
+		private float ff = 0;
 
 		private void RandomChange(int argStimulNumber)
 		{
@@ -404,12 +407,11 @@ namespace Tac.Perceptron
 				{
 					if (AField[j] <= 0)
 					{
-						float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+						//float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+						float fp = 0.001f;
 
-						int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
-						float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
-						float fp = purityFactor ;
-						//fp = 1;
+						if (ff == 1) fp = 1;
+
 
 						for (int i = 0; i < SCount; i++)
 						{
@@ -442,12 +444,10 @@ namespace Tac.Perceptron
 						{
 							if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 							{
-								float purityFactor = spec.GetPurityFactor(spec.spec[j], -1);
+								//float purityFactor = spec.GetPurityFactor(spec.spec[j], -1);
+								//float fp = purityFactor;
 
-								int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
-								float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
-								float fp = purityFactor;
-								//fp = 1;
+								//if (ff == 1) fp = 1;
 
 								for (int i = 0; i < SCount; i++)
 								{
@@ -456,7 +456,7 @@ namespace Tac.Perceptron
 										float p = (float)rnd.NextDouble();
 										//float entropy = BCE(AFieldNorm[j], -1);
 
-										if (p < p1 * fp)
+										if (p < p1 * ff)
 										{
 											w[i] -= correct1 * AFieldNorm[j];
 										}
@@ -474,12 +474,10 @@ namespace Tac.Perceptron
 						{
 							if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 							{
-								float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+								//float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
+								//float fp = purityFactor;
 
-								int v = 0; if (NecessaryReactions[argStimulNumber][r]) v = 1;
-								float specializationFactor = spec.GetSpecializationFactor(spec.spec[j], r, v);
-								float fp = purityFactor;
-								//fp = 1;
+								//if (ff == 1) fp = 1;
 
 								for (int i = 0; i < SCount; i++)
 								{
@@ -488,7 +486,7 @@ namespace Tac.Perceptron
 										float p = (float)rnd.NextDouble();
 										//float entropy = BCE(AFieldNorm[j], 1);
 
-										if (p < p2 * fp)
+										if (p < p2 * ff)
 										{
 											w[i] += correct2 * AFieldNorm[j];
 										}
@@ -496,20 +494,6 @@ namespace Tac.Perceptron
 								}
 							}
 						}
-						/*if (stop < ACount * 0.5f && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
-						{
-							for (int i = 0; i < SCount; i++)
-							{
-								if (SensorsField[i] == true)
-								{
-									float p = (float)rnd.NextDouble();
-									if (p < p3)
-									{
-										w[i] += correct3;
-									}
-								}
-							}
-						}*/
 					}
 				}
 
