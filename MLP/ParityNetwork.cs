@@ -10,10 +10,12 @@ public class ParityNetwork : Module<Tensor, Tensor>
 	private readonly ReLU relu;
 	private readonly Sigmoid sigmoid;
 
+	public int ACount = 300;
+
 	public ParityNetwork(int input_size) : base("ParityNetwork")
 	{
-		fc1 = Linear(input_size, 300);
-		fc2 = Linear(300, 1);
+		fc1 = Linear(input_size, ACount);
+		fc2 = Linear(ACount, 1);
 		relu = ReLU();
 		sigmoid = Sigmoid();
 

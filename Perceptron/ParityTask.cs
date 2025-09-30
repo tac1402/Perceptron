@@ -10,14 +10,15 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 4;
+		int N2 = 256;
+		int N3 = 4;
 
 		//16-256*12-1
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		PerceptronDL net = new PerceptronDL(10, 300, 1, N1 * N2);
-		//NeironNetA net = new NeironNetA(12, 1000, 1, N1 * N2);
+		//PerceptronDL net = new PerceptronDL(16, 400, 1, N1 * N2);
+		NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
 		/*NeironNetTree net = new NeironNetTree(12, 1600, 1, N1 * N2);
 
 		net.IsAnalyze = true;
@@ -26,10 +27,10 @@ public class ParityTask
 		net.sinapsType = NeironNetTree.SinapsType.Full;
 		*/
 
-		BitBlock[] input = new BitBlock[N1 * N2];
-		BitBlock[] output = new BitBlock[N1 * N2];
+		BitBlock[] input = new BitBlock[N1 * N2 * N3];
+		BitBlock[] output = new BitBlock[N1 * N2 * N3];
 
-		for (int i = 0; i < N1 * N2; i++)
+		for (int i = 0; i < N1 * N2 * N3; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
 			output[i] = new BitBlock(1, new int[] { IsParity(input[i]) } );

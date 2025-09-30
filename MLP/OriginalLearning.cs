@@ -12,8 +12,10 @@ namespace MLP
 
 		public void Run()
 		{
+			DateTime beginFull = DateTime.Now;
+
 			// Генерация данных
-			int num_inputs = 21;
+			int num_inputs = 20;
 			long num_samples = (long)Math.Pow(2, num_inputs);
 
 			// Создание индексов
@@ -35,7 +37,7 @@ namespace MLP
 
 			// Создание загрузчика данных
 			int batch_size = 32;
-			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: true);
+			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: false);
 
 			// Создание модели, функции потерь и оптимизатора
 			var model = new ParityNetwork(num_inputs);
@@ -81,7 +83,9 @@ namespace MLP
 				}
 
 				// Вывод статистики
-				Console.WriteLine($"epoch={epoch}, train_loss={train_loss}, accuracy={num_samples - correct}");
+				string output = $"{epoch} - {num_samples - correct} \tloss={train_loss}";
+				Console.WriteLine(output);
+				File.AppendAllText("Error_" + num_inputs.ToString() + "x" + model.ACount.ToString() + ".txt", output + "\n");
 
 				// Прерывание обучения при достижении 100% точности
 				if (correct == num_samples)
@@ -89,6 +93,12 @@ namespace MLP
 					break;
 				}
 			}
+
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
+
+			File.AppendAllText("Error_" + num_inputs.ToString() + "x" + model.ACount.ToString() + ".txt", "\t" + tFull.ToString() + " ms" + "\n");
+			Console.WriteLine("\t" + tFull.ToString() + " ms");
+
 		}
 
 	}

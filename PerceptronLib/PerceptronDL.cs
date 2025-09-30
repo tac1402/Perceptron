@@ -5,6 +5,7 @@
 using PerceptronLib;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Tac.Perceptron
 {
@@ -33,9 +34,11 @@ namespace Tac.Perceptron
 		public Dictionary<int, float[]> WeightAR; // Веса между A-R элементами
 
 		private sbyte[] ReactionError;
-		private Random rnd = new Random(23);
+		private Random rnd = new Random(24);
 
-		private NeuronSpecialization spec;
+		//private NeuronSpecialization spec;
+		private LRegion region;
+		//private PerceptronStorage storage;
 
 		public PerceptronDL(int argSCount, int argACount, int argRCount, int argHCount)
 		{
@@ -43,6 +46,8 @@ namespace Tac.Perceptron
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
+
+			//storage = new PerceptronStorage(ACount, HCount);
 
 			SensorsField = new BitBlock(SCount);
 
@@ -107,13 +112,15 @@ namespace Tac.Perceptron
 			return list;
 		}
 
+		int OldError = 0;
+
 		/// <summary>
 		/// Когда все примеры добавлены, вызывается чтобы перцептрон их выучил
 		/// </summary>
 		public void Learned()
 		{
 			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
-			spec = new NeuronSpecialization(SCount, ACount, RCount, rnd, NecessaryReactions);
+			//spec = new NeuronSpecialization(SCount, ACount, RCount, rnd, NecessaryReactions);
 
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
@@ -121,27 +128,19 @@ namespace Tac.Perceptron
 				indexL[i] = i;
 			}
 
-			int OldError = 0;
 			int Error = 0;
 			int Error2 = 0;
-			int Error3 = 0;
-			int Error4 = 0;
 			double rCount2 = 0;
 
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
 			{
+				DateTime begin = DateTime.Now;
+
 				Error = 0;
 				Error2 = 0;
-				Error3 = 0;
-				Error4 = 0;
-
-				DateTime begin = DateTime.Now;
-				aTime = 0;
 
 				indexL = Shuffle(indexL);
-
-				if (n == 15) ff = 1;
 
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
@@ -162,46 +161,11 @@ namespace Tac.Perceptron
 
 						if (e2 == true)
 						{
-							//float pLimit = Probability(stop, ACount);
-							//float pLimitR = Probability(stop, ACount * 0.5f);
-							//float p = (float)rnd.NextDouble();
-
-							//if (p < pLimitR)
-							{
-								RandomChange(index);
-							}
-
-							//if (p < pLimit)
-							{
-								LearnedStimulSA(index);
-							}
-
+							RandomChange(index);
+							LearnedStimulSA(index);
 							LearnedStimulAR(index);
 
 							Error2++;
-
-							//if (p < pLimit)
-							{
-								AActivation(index);
-							}
-
-							RActivation(index);
-							bool e3 = GetError(index);
-							if (e3 == true)
-							{
-								LearnedStimulAR(index);
-								RActivation(index);
-
-								Error3++;
-
-								bool e4 = GetError(index);
-								if (e4 == true)
-								{ 
-									Error4++;
-								}
-
-							}
-
 						}
 
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
@@ -213,12 +177,45 @@ namespace Tac.Perceptron
 
 				gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
 
-				LRegion region = new LRegion(NecessaryReactions);
-				int rCount = region.Calc(Activations);
-				region.NeighborhoodPurity(Activations);
+				//region = new LRegion(NecessaryReactions);
+				//int rCount = region.Calc(Activations);
+				//region.NeighborhoodPurity(Activations);
 
-				//spec.AnalyzePurity(Activations);
-				//spec.UpdateSpec(Activations);
+				/*
+				if (oldNeighborsByPoint != null)
+				{
+					for (int i = 0; i < HCount; i++)
+					{
+						bool isImproved = region.IsImproved(oldNeighborsByPoint, region.neighborsByPoint, i);
+
+						if (NecessaryReactions[i][0] == true)
+						{
+							if (isImproved)
+							{
+								int a = 1;
+							}
+							else
+							{
+								storage.Load(ref WeightSA, i);
+							}
+						}
+						else
+						{
+							if (isImproved)
+							{
+								storage.Load(ref WeightSA, i);
+							}
+							else
+							{
+								int a = 1;
+							}
+						}
+					}
+					storage.Clear();
+					oldPurity = region.avgPurity;
+				}
+				oldNeighborsByPoint = region.CopyNeighborsByPoint();
+				*/
 
 				stop = 0;
 				for (int j = 0; j < ACount; j++)
@@ -238,14 +235,16 @@ namespace Tac.Perceptron
 					}
 				}
 
+				/*+ "\tR: " + rCount.ToString("F0") + "/" + region.avgPairwise.ToString("F0")
+				+ "\tP: " + region.minPurity.ToString("F4") + "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")*/
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() + "-" + Error3.ToString()
-								 + "-" + Error4.ToString()
-								+ "\tR: " + rCount.ToString("F0") + "/" + region.avgPairwise.ToString("F0")
-								+ "\tP: " + region.minPurity.ToString("F4") + "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")
-								+ "\tAN: " + stop.ToString("F0") 
-								+ "\t" + maxAField.ToString("F4") + "\t" + t.ToString() + " ms ");
+				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()
+								+ "\tAN: " + stop.ToString("F0")
+								+ "\t" + t.ToString() + " ms ";
+
+				Console.WriteLine(output);
+				File.AppendAllText("Error.txt", output + "\n");
 
 				if (Error == 0) { break; }
 			}
@@ -253,19 +252,8 @@ namespace Tac.Perceptron
 
 		float[][] gainValue;
 
-		double aTime = 0;
+		//List<(int index, int distance)>[] oldNeighborsByPoint;
 
-		/// <summary>
-		/// decayFactor > 1.0 — вероятность убывает быстрее.
-		/// decayFactor < 1.0 — вероятность убывает медленнее.
-		/// </summary>
-		public float Probability(float current, float max, double decayFactor = 1.0)
-		{
-			if (current >= max) return 0.0f;
-
-			float normalized = (max - current) / max;
-			return normalized;
-		}
 
 		/// <summary>
 		/// Вычисляем бинарную кросс-энтропию (BinaryCrossEntropy)
@@ -379,10 +367,10 @@ namespace Tac.Perceptron
 
 		float p1 = 1.0f;
 		float p2 = 1.0f;
-		float p3 = 0.005f;
+		float p3 = 0.0001f;
 		float correct1 = 1.0f; 
 		float correct2 = 1.0f;
-		float correct3 = 0.001f;
+		float correct3 = 0.01f;
 
 		/* rnd20
 		float p1 = 1.0f;
@@ -397,31 +385,26 @@ namespace Tac.Perceptron
 
 		bool correct12 = true;
 
-		private float ff = 0;
-
 		private void RandomChange(int argStimulNumber)
 		{
+			float d = p3;
+			if (OldError != 0) d = p3 * ( (float)OldError / (float)HCount);
+
 			for (int r = 0; r < RCount; r++)
 			{
 				for (int j = 0; j < ACount; j++)
 				{
 					if (AField[j] <= 0)
 					{
-						//float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
-						float fp = 0.001f;
-
-						if (ff == 1) fp = 1;
-
 
 						for (int i = 0; i < SCount; i++)
 						{
-							if (SensorsField[i] == true)
+							float p = (float)rnd.NextDouble();
+							if (p < d)
 							{
-								float p = (float)rnd.NextDouble();
-								if (p < p3 * fp)
-								{
-									WeightSA[i][j] += correct3;
-								}
+								WeightSA[i][j] += correct3;
+
+								//storage.Add(argStimulNumber, i, j, correct3);
 							}
 						}
 					}
@@ -444,22 +427,15 @@ namespace Tac.Perceptron
 						{
 							if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 							{
-								//float purityFactor = spec.GetPurityFactor(spec.spec[j], -1);
-								//float fp = purityFactor;
-
-								//if (ff == 1) fp = 1;
 
 								for (int i = 0; i < SCount; i++)
 								{
-									if (SensorsField[i] == true)
-									{
-										float p = (float)rnd.NextDouble();
-										//float entropy = BCE(AFieldNorm[j], -1);
+									float p = (float)rnd.NextDouble();
+									//float entropy = BCE(AFieldNorm[j], -1);
 
-										if (p < p1 * ff)
-										{
-											w[i] -= correct1 * AFieldNorm[j];
-										}
+									if (p < p1)
+									{
+										w[i] -= correct1 * AFieldNorm[j];
 									}
 								}
 							}
@@ -474,22 +450,14 @@ namespace Tac.Perceptron
 						{
 							if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 							{
-								//float purityFactor = spec.GetPurityFactor(spec.spec[j], 1);
-								//float fp = purityFactor;
-
-								//if (ff == 1) fp = 1;
-
 								for (int i = 0; i < SCount; i++)
 								{
-									if (SensorsField[i] == true)
-									{
-										float p = (float)rnd.NextDouble();
-										//float entropy = BCE(AFieldNorm[j], 1);
+									float p = (float)rnd.NextDouble();
+									//float entropy = BCE(AFieldNorm[j], 1);
 
-										if (p < p2 * ff)
-										{
-											w[i] += correct2 * AFieldNorm[j];
-										}
+									if (p < p2)
+									{
+										w[i] += correct2 * AFieldNorm[j];
 									}
 								}
 							}
@@ -500,6 +468,7 @@ namespace Tac.Perceptron
 				for (int i = 0; i < SCount; i++)
 				{
 					WeightSA[i][j] += w[i];
+					//storage.Add(argStimulNumber, i, j, w[i]);
 				}
 			}
 		}

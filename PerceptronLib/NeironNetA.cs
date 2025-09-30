@@ -4,7 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+using System.IO;
 
 namespace Tac.Perceptron
 {
@@ -126,6 +126,8 @@ namespace Tac.Perceptron
 		/// </summary>
 		public void Learned()
 		{
+			DateTime beginFull = DateTime.Now;
+
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
 			{
@@ -149,10 +151,16 @@ namespace Tac.Perceptron
 					}
 				}
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
-				Console.WriteLine("\t" + aTime.ToString() + " ms");
+				string output = n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms";
+				
+				Console.WriteLine(output);
+				File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", output + "\n");
 				if (Error == 0) { break; }
 			}
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
+
+			File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", "\t" + tFull.ToString() + " ms" + "\n");
+			Console.WriteLine("\t" + tFull.ToString() + " ms");
 		}
 
 		double aTime = 0;
