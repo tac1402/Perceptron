@@ -294,7 +294,7 @@ namespace Tac.Perceptron
 			if (allSamplesPositives(samplesClass) == true) { return -1; }
 			if (allSamplesNegatives(samplesClass) == true) { return -1; }
 			if (attributes.Length == 0) { return -1; }
-			//if (Level > 100) { return -1; }
+			if (Level > 100) { return -1; }
 
 			total = samples.Count;
 			int totalPositives = countTotalPositives(samplesClass);

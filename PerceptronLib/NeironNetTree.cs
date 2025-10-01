@@ -26,6 +26,7 @@ namespace Tac.Perceptron
 
 		protected int SCount; // Количество сенсоров
 		public int ACount; // Количество ассоциаций
+		protected int StartACount; // Количество ассоциаций
 		protected int RCount; // Количество реакций
 		protected int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
 
@@ -60,6 +61,7 @@ namespace Tac.Perceptron
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
+			StartACount = argACount;
 
 			isSR = argIsSR;
 			if (argIsSR == true) { ACount += SCount * 2; }
@@ -263,7 +265,7 @@ namespace Tac.Perceptron
 		}
 
 
-		public int MaxTreeCount = 2;
+		public int MaxTreeCount = 1;
 		public int batchCount = 0;
 
 		List<int> AElement = new List<int>();
@@ -312,22 +314,46 @@ namespace Tac.Perceptron
 				}
 			}
 
-			Console.WriteLine("AElement = " + AElement.Count.ToString());
+			string output = "AElement = " + AElement.Count.ToString();
+
+			Console.WriteLine(output);
+			File.AppendAllText("Error_" + SCount.ToString() + "x" + StartACount.ToString() + ".txt", output + "\n");
+
+			Console.WriteLine();
 			graph = id3.graphP;
 
 			if (argBatchNumber + 1 == MaxTreeCount)
 			{
 				Dictionary<int, string> mask = new Dictionary<int, string>();
+
+				Dictionary<int, int[]> oldWeightSA = new Dictionary<int, int[]>();
 				for (int i = 0; i < ACount; i++)
 				{
-					if (AElement.Contains(i) == false)
+					for (int j = 0; j < SCount; j++)
 					{
-						for (int j = 0; j < SCount; j++)
+						if (oldWeightSA.ContainsKey(j) == false)
 						{
-							WeightSA[j][i] = 0;
+							oldWeightSA.Add(j, new int[ACount]);
 						}
+						oldWeightSA[j][i] = WeightSA[j][i];
 					}
 				}
+
+				ACount = AElement.Count;
+				WeightSA = new Dictionary<int, int[]>();
+				for (int i = 0; i < ACount; i++)
+				{
+					for (int j = 0; j < SCount; j++)
+					{
+						if (WeightSA.ContainsKey(j) == false)
+						{
+							WeightSA.Add(j, new int[ACount]);
+						}
+						WeightSA[j][i] = oldWeightSA[j][AElement[i]];
+					}
+				}
+
+				int a = 1;
 			}
 		}
 
@@ -396,6 +422,8 @@ namespace Tac.Perceptron
 		/// </summary>
 		public virtual void Learned()
 		{
+			DateTime beginFull = DateTime.Now;
+
 			if (isLoaded == false)
 			{
 				for (int i = 0; i < ACount; i++)
@@ -445,7 +473,11 @@ namespace Tac.Perceptron
 					}
 
 					double t = (DateTime.Now - begin).TotalMilliseconds;
-					Console.WriteLine(n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms");
+
+					string output = n.ToString() + " - " + Error.ToString() + " - " + t.ToString() + " ms";
+
+					Console.WriteLine(output);
+					File.AppendAllText("Error_" + SCount.ToString() + "x" + StartACount.ToString() + ".txt", output + "\n");
 
 					if (oldError == Error) { stopCount++; }	else { stopCount = 0; }
 					oldError = Error;
@@ -458,8 +490,15 @@ namespace Tac.Perceptron
 					{
 						if (SASelectCount == 0)
 						{
-							batchCount = ACount/2;
+							batchCount = ACount / MaxTreeCount;
+							DateTime beginA = DateTime.Now;
 							Analyze();
+							double t = (DateTime.Now - beginA).TotalMilliseconds;
+
+							string output = "\tAnalyzeTime = " + t.ToString() + " ms ";
+
+							Console.WriteLine(output);
+							File.AppendAllText("Error_" + SCount.ToString() + "x" + StartACount.ToString() + ".txt", output + "\n");
 						}
 						else
 						{
@@ -506,9 +545,16 @@ namespace Tac.Perceptron
 				}
 			}
 
-			CalcInfo();
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
 
-			graph.Save("tree_");
+			string outputF = "\tFullTime = " + tFull.ToString() + " ms ";
+
+			Console.WriteLine(outputF);
+			File.AppendAllText("Error_" + SCount.ToString() + "x" + StartACount.ToString() + ".txt", outputF + "\n");
+
+			graph.Save("tree_" + SCount.ToString() + "x" + StartACount.ToString());
+
+			CalcInfo();
 		}
 
 		private void CalcInfo()
@@ -518,7 +564,7 @@ namespace Tac.Perceptron
 
 			LRegion region = new LRegion(NecessaryReactions);
 			int rCount = region.Calc(Activations);
-			region.NeighborhoodPurity(Activations);
+			region.NeighborhoodPurity(Activations, HCount / 2);
 
 			int stop = 0;
 			for (int j = 0; j < ACount; j++)
@@ -537,9 +583,12 @@ namespace Tac.Perceptron
 					stop++;
 				}
 			}
-			Console.WriteLine("R: " + rCount.ToString("F0") + "/" + region.avgPairwise.ToString("F0") 
-					+ "\tP: " + region.minPurity.ToString("F4")+ "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")
-					+ "\tAN: " + stop.ToString("F0"));
+			string output = "R: " + rCount.ToString("F0")
+					+ "\tP: " + region.minPurity.ToString("F4") + "-" + region.avgPurity.ToString("F4") + "-" + region.maxPurity.ToString("F4")
+					+ "\tAN: " + stop.ToString("F0");
+
+			Console.WriteLine(output);
+			File.AppendAllText("Error_" + SCount.ToString() + "x" + StartACount.ToString() + ".txt", output + "\n");
 		}
 
 

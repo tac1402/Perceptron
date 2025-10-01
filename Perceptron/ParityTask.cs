@@ -17,9 +17,9 @@ public class ParityTask
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		//PerceptronDL net = new PerceptronDL(16, 400, 1, N1 * N2);
-		NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
-		/*NeironNetTree net = new NeironNetTree(12, 1600, 1, N1 * N2);
+		PerceptronDL net = new PerceptronDL(18, 800, 1, N1 * N2 * N3);
+		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
+		/*NeironNetTree net = new NeironNetTree(18, 5000, 1, N1 * N2 * N3);
 
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 32;

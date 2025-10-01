@@ -119,8 +119,9 @@ namespace Tac.Perceptron
 		/// </summary>
 		public void Learned()
 		{
+			DateTime beginFull = DateTime.Now;
+
 			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
-			//spec = new NeuronSpecialization(SCount, ACount, RCount, rnd, NecessaryReactions);
 
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
@@ -244,10 +245,18 @@ namespace Tac.Perceptron
 								+ "\t" + t.ToString() + " ms ";
 
 				Console.WriteLine(output);
-				File.AppendAllText("Error.txt", output + "\n");
+				File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", output + "\n");
 
 				if (Error == 0) { break; }
 			}
+
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
+
+			string outputF = "\tFullTime = " + tFull.ToString() + " ms ";
+
+			Console.WriteLine(outputF);
+			File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputF + "\n");
+
 		}
 
 		float[][] gainValue;
