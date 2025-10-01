@@ -1,8 +1,6 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
-
-using PerceptronLib;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -38,6 +36,7 @@ namespace Tac.Perceptron
 
 		//private LRegion region;
 
+		private PerceptronAA AA;
 		public PerceptronDL(int argSCount, int argACount, int argRCount, int argHCount)
 		{
 			ACount = argACount;
@@ -76,6 +75,10 @@ namespace Tac.Perceptron
 			{
 				WeightAR[i] = new float[RCount];
 			}
+
+
+			AA = new PerceptronAA();
+
 		}
 
 		/// <summary>
@@ -117,8 +120,6 @@ namespace Tac.Perceptron
 		{
 			DateTime beginFull = DateTime.Now;
 
-			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
-
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
 			{
@@ -129,7 +130,7 @@ namespace Tac.Perceptron
 
 			int Error = 0;
 			int Error2 = 0;
-			//double rCount2 = 0;
+			AA.SetWeights(SCount, ACount, WeightSA);
 
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
@@ -140,6 +141,7 @@ namespace Tac.Perceptron
 				Error2 = 0;
 
 				indexL = Shuffle(indexL);
+
 
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
@@ -163,6 +165,8 @@ namespace Tac.Perceptron
 							RandomChange(index);
 							LearnedStimulSA(index);
 							LearnedStimulAR(index);
+
+							AA.SetWeights(SCount, ACount, WeightSA);
 
 							Error2++;
 						}
@@ -306,7 +310,7 @@ namespace Tac.Perceptron
 			// Кинем на сенсоры обучающий пример
 			SensorsField = LearnedStimuls[argStimulNumber];
 
-			AField = new float[ACount];
+			/*AField = new float[ACount];
 			for (int j = 0; j < ACount; j++)
 			{
 				for (int i = 0; i < SCount; i++)
@@ -316,7 +320,9 @@ namespace Tac.Perceptron
 						AField[j] += WeightSA[i][j] * SensorsField.DataByte[i];
 					}
 				}
-			}
+			}*/
+
+			AField = AA.AActivation(SCount, ACount, argStimulNumber, SensorsField.DataByte);
 
 			//Activations[argStimulNumber] = AField;
 
@@ -388,12 +394,12 @@ namespace Tac.Perceptron
 
 		//int stop;
 
-		bool correct12 = true;
+		//bool correct12 = true;
 
 		private void RandomChange(int argStimulNumber)
 		{
 			float d = p3;
-			if (OldError != 0) d = p3 * ( (float)OldError / (float)HCount);
+			if (OldError != 0) d = p3 * ((float)OldError / (float)HCount);
 
 			for (int r = 0; r < RCount; r++)
 			{
@@ -417,26 +423,20 @@ namespace Tac.Perceptron
 
 		private void LearnedStimulSA(int argStimulNumber)
 		{
+
 			for (int j = 0; j < ACount; j++)
 			{
 				float[] w = new float[SCount];
 
 				if (AField[j] > 0)
 				{
-					//if (correct12)
+					for (int r = 0; r < RCount; r++)
 					{
-						for (int r = 0; r < RCount; r++)
+						if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
-							if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
+							for (int i = 0; i < SCount; i++)
 							{
-								for (int i = 0; i < SCount; i++)
-								{
-									//float p = (float)rnd.NextDouble();
-									//if (p < p1)
-									{
-										w[i] -= AFieldNorm[j];
-									}
-								}
+								w[i] -= AFieldNorm[j];
 							}
 						}
 					}
@@ -445,18 +445,11 @@ namespace Tac.Perceptron
 				{
 					for (int r = 0; r < RCount; r++)
 					{
-						//if (correct12)
+						if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 						{
-							if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
+							for (int i = 0; i < SCount; i++)
 							{
-								for (int i = 0; i < SCount; i++)
-								{
-									//float p = (float)rnd.NextDouble();
-									//if (p < p2)
-									{
-										w[i] += AFieldNorm[j];
-									}
-								}
+								w[i] += AFieldNorm[j];
 							}
 						}
 					}
@@ -477,7 +470,7 @@ namespace Tac.Perceptron
 				{
 					if (AField[i] > 0)
 					{
-						WeightAR[i][j] = WeightAR[i][j] +  ReactionError[j];
+						WeightAR[i][j] = WeightAR[i][j] + ReactionError[j];
 					}
 				}
 			}

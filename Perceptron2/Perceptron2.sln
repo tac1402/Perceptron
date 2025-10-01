@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36310.24 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Perceptron2", "Perceptron2.csproj", "{2C2B3BEF-D558-4B83-A0D5-7ECCB78FC93D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Perceptron2Lib", "..\Perceptron2Lib\Perceptron2Lib.csproj", "{373272D7-0B79-4661-8318-0357BFC87235}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C2B3BEF-D558-4B83-A0D5-7ECCB78FC93D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C2B3BEF-D558-4B83-A0D5-7ECCB78FC93D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C2B3BEF-D558-4B83-A0D5-7ECCB78FC93D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C2B3BEF-D558-4B83-A0D5-7ECCB78FC93D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{373272D7-0B79-4661-8318-0357BFC87235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{373272D7-0B79-4661-8318-0357BFC87235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{373272D7-0B79-4661-8318-0357BFC87235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{373272D7-0B79-4661-8318-0357BFC87235}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {56E89F94-92DB-4575-9FC8-8324F13A57F1}
+	EndGlobalSection
+EndGlobal

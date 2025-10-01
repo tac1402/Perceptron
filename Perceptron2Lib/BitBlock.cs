@@ -35,7 +35,7 @@ namespace Tac.Perceptron
 
 		public bool this[int number]
 		{
-			get 
+			get
 			{
 				int block = number / 32;
 				int bit = number % 32;
@@ -60,7 +60,7 @@ namespace Tac.Perceptron
 			{
 				if (this[i] == true)
 					s += "1";
-				else 
+				else
 					s += "0";
 			}
 			return s;

@@ -10,14 +10,14 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 256;
-		int N3 = 8;
+		int N2 = 1;
+		int N3 = 1;
 
 		//16-256*12-1
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		PerceptronDL net = new PerceptronDL(19, 1100, 1, N1 * N2 * N3);
+		PerceptronDL net = new PerceptronDL(8, 100, 1, N1 * N2 * N3);
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
 		/*NeironNetTree net = new NeironNetTree(18, 5000, 1, N1 * N2 * N3);
 
@@ -33,7 +33,7 @@ public class ParityTask
 		for (int i = 0; i < N1 * N2 * N3; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
-			output[i] = new BitBlock(1, new int[] { IsParity(input[i]) } );
+			output[i] = new BitBlock(1, new int[] { IsParity(input[i]) });
 
 			net.JoinStimul(i, input[i], output[i]);
 		}
