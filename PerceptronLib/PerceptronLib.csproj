@@ -43,14 +43,12 @@
   <ItemGroup>
     <Compile Include="BitBlock.cs" />
     <Compile Include="Graph.cs" />
-    <Compile Include="InformationGainCalculator.cs" />
+    <Compile Include="Gain.cs" />
     <Compile Include="LRegion.cs" />
-    <Compile Include="NeighborhoodAnalyzer.cs" />
     <Compile Include="NeironNetBT.cs" />
-    <Compile Include="NeuronSpecialization.cs" />
     <Compile Include="PerceptronDL.cs" />
     <Compile Include="NeironNetTree.cs" />
-    <Compile Include="PerceptronAnalyze.cs" />
+    <Compile Include="PerceptronID3.cs" />
     <Compile Include="NeironNetA.cs" />
     <Compile Include="NeironNetA2.cs" />
     <Compile Include="NeironNetB.cs" />

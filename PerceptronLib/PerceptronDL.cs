@@ -117,7 +117,7 @@ namespace Tac.Perceptron
 		{
 			DateTime beginFull = DateTime.Now;
 
-			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
+			Gain gain = new Gain(NecessaryReactions);
 
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
@@ -311,10 +311,7 @@ namespace Tac.Perceptron
 			{
 				for (int i = 0; i < SCount; i++)
 				{
-					//if (SensorsField[i] == true)
-					{
-						AField[j] += WeightSA[i][j] * SensorsField.DataByte[i];
-					}
+					AField[j] += WeightSA[i][j] * SensorsField.DataByte[i];
 				}
 			}
 
@@ -370,25 +367,8 @@ namespace Tac.Perceptron
 		}
 
 
-		//float p1 = 1.0f;
-		//float p2 = 1.0f;
 		float p3 = 0.0001f;
-		//float correct1 = 1.0f; 
-		//float correct2 = 1.0f;
 		float correct3 = 0.01f;
-
-		/* rnd20
-		float p1 = 1.0f;
-		float p2 = 1.0f;
-		float p3 = 0.0001f;
-		float correct1 = 1.0f; 
-		float correct2 = 1.0f;
-		float correct3 = 0.01f;
-		*/
-
-		//int stop;
-
-		bool correct12 = true;
 
 		private void RandomChange(int argStimulNumber)
 		{
@@ -423,20 +403,13 @@ namespace Tac.Perceptron
 
 				if (AField[j] > 0)
 				{
-					//if (correct12)
+					for (int r = 0; r < RCount; r++)
 					{
-						for (int r = 0; r < RCount; r++)
+						if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
 						{
-							if (ReactionError[r] != 0 && Math.Sign(WeightAR[j][r]) != Math.Sign(ReactionError[r]))
+							for (int i = 0; i < SCount; i++)
 							{
-								for (int i = 0; i < SCount; i++)
-								{
-									//float p = (float)rnd.NextDouble();
-									//if (p < p1)
-									{
-										w[i] -= AFieldNorm[j];
-									}
-								}
+								w[i] -= AFieldNorm[j];
 							}
 						}
 					}
@@ -445,18 +418,11 @@ namespace Tac.Perceptron
 				{
 					for (int r = 0; r < RCount; r++)
 					{
-						//if (correct12)
+						if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
 						{
-							if (Math.Sign(WeightAR[j][r]) == Math.Sign(ReactionError[r]))
+							for (int i = 0; i < SCount; i++)
 							{
-								for (int i = 0; i < SCount; i++)
-								{
-									//float p = (float)rnd.NextDouble();
-									//if (p < p2)
-									{
-										w[i] += AFieldNorm[j];
-									}
-								}
+								w[i] += AFieldNorm[j];
 							}
 						}
 					}

@@ -278,12 +278,12 @@ namespace Tac.Perceptron
 			id3.Analyze(ACount, HCount, AHConnections, NecessaryReactions, rNumber, From, Till);
 		}
 
-		PerceptronAnalyze id3;
+		PerceptronID3 id3;
 		int rNumber;
 
 		public void Analyze(int argRNumber, int argBatchNumber)
 		{
-			id3 = new PerceptronAnalyze();
+			id3 = new PerceptronID3();
 
 			From = argBatchNumber * batchCount;
 			Till = batchCount + argBatchNumber * batchCount;
@@ -559,7 +559,7 @@ namespace Tac.Perceptron
 
 		private void CalcInfo()
 		{
-			InformationGainCalculator gain = new InformationGainCalculator(NecessaryReactions);
+			Gain gain = new Gain(NecessaryReactions);
 			float[][] gainValue = gain.CalculateInformationGain(Activations, ACount, RCount);
 
 			LRegion region = new LRegion(NecessaryReactions);
