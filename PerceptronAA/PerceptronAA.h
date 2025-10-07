@@ -6,7 +6,8 @@
 #define PERCEPTRONAA_API __declspec(dllimport)
 #endif
 
-extern "C" {
+extern "C" 
+{
     // Handle types
     typedef void* PerceptronAAHandle;
 

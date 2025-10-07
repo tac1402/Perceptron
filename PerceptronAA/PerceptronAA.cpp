@@ -363,5 +363,4 @@ extern "C"
             static_cast<PerceptronAAImpl*>(handle)->LearnedStimulAR(reactionError, aField);
         }
     }
-
 }

@@ -10,7 +10,7 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 8;
+		int N2 = 16;
 		int N3 = 1;
 
 		//16-256*12-1
@@ -18,7 +18,7 @@ public class ParityTask
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
 		
-		PerceptronTLNL net = new PerceptronTLNL(11, 500, 1, N1 * N2 * N3);
+		PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3);
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
 		/*NeironNetTree net = new NeironNetTree(18, 5000, 1, N1 * N2 * N3);
 

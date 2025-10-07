@@ -64,7 +64,7 @@ namespace Tac.Perceptron
 		}
 
 
-		
+		/*
 		private const float HammingThreshold = 0.000001f; // 1e-6
 
 		/// <summary>
@@ -82,7 +82,7 @@ namespace Tac.Perceptron
 					distance++;
 			}
 			return distance;
-		}
+		}*/
 
 
 		public float avgPairwise = 0; // среднее попарное расстояние (Хэмминг)
@@ -142,7 +142,8 @@ namespace Tac.Perceptron
 			{
 				for (int j = i + 1; j < nSamples; j++)
 				{
-					int distance = HammingDistance(activations[i], activations[j]);
+					int distance = Hamming.Calculate(activations[i], activations[j]);
+
 					neighborsByPoint[i].Add((j, distance));
 					neighborsByPoint[j].Add((i, distance));
 

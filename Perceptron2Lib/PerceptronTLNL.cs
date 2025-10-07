@@ -27,6 +27,7 @@ namespace Tac.Perceptron
 
 		private float[] AThreshold;
 
+
 		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
@@ -38,6 +39,8 @@ namespace Tac.Perceptron
 
 		private Random rnd = new Random(24);
 		private PerceptronAB AB;
+
+		private FastPurity FPurity;
 
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 		private Gain gain;
@@ -64,8 +67,6 @@ namespace Tac.Perceptron
 			ExaminStimuls = new Dictionary<int, BitBlock>();
 			ExaminReactions = new Dictionary<int, BitBlock>();
 
-
-
 			AB = new PerceptronAB(SCount, ACount, RCount);
 		}
 
@@ -81,10 +82,10 @@ namespace Tac.Perceptron
 		}
 
 
-		float cc = 0.000001f;
+		float cc = 0.000000001f;
 		private void ChangeRThreshold()
 		{
-			for (int i = 0; i < ACount; i++)
+			/*for (int i = 0; i < ACount; i++)
 			{
 				if (AField[i] > AThreshold[i])
 				{
@@ -94,7 +95,7 @@ namespace Tac.Perceptron
 				{
 					AThreshold[i] -= cc;
 				}
-			}
+			}*/
 		}
 
 		/// <summary>
@@ -186,6 +187,7 @@ namespace Tac.Perceptron
 			DateTime beginFull = DateTime.Now;
 
 			InitAnalyze();
+			FPurity = new FastPurity(SCount, ACount, RCount, NecessaryReactions);
 
 			int[] indexL = new int[HCount];
 			for (int i = 0; i < HCount; i++)
@@ -215,6 +217,8 @@ namespace Tac.Perceptron
 				Error2 = 0;
 
 				indexL = Shuffle(indexL);
+
+				FPurity.Clear();
 
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
 				for (int i = 0; i < HCount; i++)
@@ -249,7 +253,6 @@ namespace Tac.Perceptron
 
 							Error2++;
 						}
-
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 					}
 					else
@@ -259,13 +262,15 @@ namespace Tac.Perceptron
 
 				}
 
+				FPurity.Calc();
 
 				OldError = Error;
-
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
 				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()
 								+ "\t" + t.ToString() + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0");
+
+				output += "\tP: " + FPurity.Min.ToString("F4") + "-" + FPurity.Avg.ToString("F4") + "-" + FPurity.Max.ToString("F4");
 
 				Console.WriteLine(output);
 				File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", output + "\n");
@@ -286,6 +291,7 @@ namespace Tac.Perceptron
 			File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputF + "\n");
 
 		}
+
 
 		private void Analyze()
 		{
@@ -316,8 +322,12 @@ namespace Tac.Perceptron
 			string outputA = "\tAN: " + activeNeiron.ToString("F0") + "\tR: " + regionCount.ToString("F0") + "/" + purity.avgPairwise.ToString("F0")
 				+ "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
 
+			string outputA2 = "\t" + activeNeiron.ToString("F0") + "\t" + purity.avgPairwise.ToString("F2")
+				+ "\t " + purity.minPurity.ToString("F4") + "\t" + purity.avgPurity.ToString("F4") + "\t" + purity.maxPurity.ToString("F4")
+				+ "\t" + FPurity.Avg.ToString("F4");
+
 			Console.WriteLine(outputA);
-			File.AppendAllText("Purity_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputA + "\n");
+			File.AppendAllText("Purity_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputA2 + "\n");
 
 		}
 
@@ -400,6 +410,8 @@ namespace Tac.Perceptron
 
 			AField = AB.AActivation(SensorsField.DataFloat);
 
+			FPurity.Add(argStimulNumber, AField, AThreshold);
+
 			Activations[argStimulNumber] = AField;
 
 			AFieldNorm = Normalize(AField);
@@ -463,9 +475,12 @@ namespace Tac.Perceptron
 		//float p3 = 0.000001f;		// MNIST
 		//float correct3 = 0.001f;	// MNIST
 
-		float p3 = 0.01f;
-		float correct3 = 0.0001f;
+		float p3 = 0.002f;
+		float correct3 = 0.00001f;
 
+		// 57 it
+		//float p3 = 0.0002f;
+		//float correct3 = 0.001f;
 
 		private void RandomChange(int argStimulNumber)
 		{
