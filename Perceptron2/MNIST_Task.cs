@@ -13,7 +13,7 @@ public class MNIST_Task
 		int L = 441;
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		PerceptronTLNL net = new PerceptronTLNL(L, 15000, 10, N1);
+		PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1);
 
 		string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
 		string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");

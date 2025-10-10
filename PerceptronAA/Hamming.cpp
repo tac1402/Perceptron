@@ -1,3 +1,6 @@
+// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
+
 #include "pch.h"
 
 #include "Hamming.h"

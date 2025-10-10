@@ -1,12 +1,16 @@
+// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
+
+
 #include "pch.h"
 
-#include "PerceptronAA.h"
+#include "PerceptronF.h"
 #include <immintrin.h>
 #include <vector>
 #include <cstring>
 #include <memory>
 
-class PerceptronAAImpl 
+class PerceptronF 
 {
 private:
     float* SAWeights;
@@ -16,7 +20,7 @@ private:
     int RCount;
 
 public:
-    PerceptronAAImpl(int argSCount, int argACount, int argRCount) : SCount(argSCount), ACount(argACount), RCount(argRCount) 
+    PerceptronF(int argSCount, int argACount, int argRCount) : SCount(argSCount), ACount(argACount), RCount(argRCount) 
     {
         SAWeights = static_cast<float*>(_mm_malloc(SCount * ACount * sizeof(float), 32));
         std::memset(SAWeights, 0, SCount * ACount * sizeof(float));
@@ -25,7 +29,7 @@ public:
         std::memset(ARWeights, 0, RCount * ACount * sizeof(float));
     }
 
-    ~PerceptronAAImpl() 
+    ~PerceptronF() 
     {
         _mm_free(SAWeights);
         _mm_free(ARWeights);
@@ -115,9 +119,12 @@ private:
         }
     }
 
-    inline void RActivationAvx2(float* RField, const float* AField) 
+    inline void RActivationAvx2(float* RField, const float* AField, float threshold = 0.0f) 
     {
         int j = 0;
+
+        // Создаем AVX вектор с пороговым значением
+        const __m256 threshold_vec = _mm256_set1_ps(threshold);
 
         // Обрабатываем по 2 столбца R за раз
         for (; j <= RCount - 2; j += 2) 
@@ -138,7 +145,7 @@ private:
                 __m256 aVector = _mm256_load_ps(AField + i);
 
                 // Создаем маску для AField > 0
-                __m256 mask = _mm256_cmp_ps(aVector, _mm256_setzero_ps(), _CMP_GT_OQ);
+                __m256 mask = _mm256_cmp_ps(aVector, threshold_vec, _CMP_GT_OQ);
 
                 // Загружаем веса для текущего j и j+1
                 __m256 w0 = _mm256_load_ps(weightsRowJ + i);
@@ -168,7 +175,7 @@ private:
             // Скалярная обработка оставшихся элементов AField
             for (; i < ACount; i++) 
             {
-                if (AField[i] > 0) 
+                if (AField[i] > threshold)
                 {
                     result0 += weightsRowJ[i];
                     result1 += weightsRowJ1[i];
@@ -188,7 +195,7 @@ private:
 
             for (int i = 0; i < ACount; i++) 
             {
-                if (AField[i] > 0) 
+                if (AField[i] > threshold)
                 {
                     sum += weightsRow[i];
                 }
@@ -295,11 +302,11 @@ private:
 // C wrapper functions
 extern "C" 
 {
-    PERCEPTRONAA_API PerceptronAAHandle CreatePerceptronAA(int sCount, int aCount, int rCount) 
+    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount) 
     {
         try 
         {
-            return new PerceptronAAImpl(sCount, aCount, rCount);
+            return new PerceptronF(sCount, aCount, rCount);
         }
         catch (...) 
         {
@@ -307,60 +314,60 @@ extern "C"
         }
     }
 
-    PERCEPTRONAA_API void DisposePerceptronAA(PerceptronAAHandle handle) 
+    PERCEPTRONF_API void DisposePerceptronF(PerceptronFHandle handle) 
     {
         if (handle) 
         {
-            delete static_cast<PerceptronAAImpl*>(handle);
+            delete static_cast<PerceptronF*>(handle);
         }
     }
 
-    PERCEPTRONAA_API void SA(PerceptronAAHandle handle, int sIndex, int aIndex, float value) 
+    PERCEPTRONF_API void SAf(PerceptronFHandle handle, int sIndex, int aIndex, float value) 
     {
         if (handle) 
         {
-            static_cast<PerceptronAAImpl*>(handle)->SA(sIndex, aIndex, value);
+            static_cast<PerceptronF*>(handle)->SA(sIndex, aIndex, value);
         }
     }
 
-    PERCEPTRONAA_API void AR(PerceptronAAHandle handle, int aIndex, int rIndex, float value)
+    PERCEPTRONF_API void ARf(PerceptronFHandle handle, int aIndex, int rIndex, float value)
     {
         if (handle)
         {
-            static_cast<PerceptronAAImpl*>(handle)->AR(aIndex, rIndex, value);
+            static_cast<PerceptronF*>(handle)->AR(aIndex, rIndex, value);
         }
     }
 
-    PERCEPTRONAA_API float AR_(PerceptronAAHandle handle, int aIndex, int rIndex)
+    PERCEPTRONF_API float AR_f(PerceptronFHandle handle, int aIndex, int rIndex)
     {
         if (handle)
         {
-            return static_cast<PerceptronAAImpl*>(handle)->AR_(aIndex, rIndex);
+            return static_cast<PerceptronF*>(handle)->AR_(aIndex, rIndex);
         }
     }
 
 
-    PERCEPTRONAA_API void AActivation(PerceptronAAHandle handle, const float* sField, float* aField) 
+    PERCEPTRONF_API void AActivation_f(PerceptronFHandle handle, const float* sField, float* aField) 
     {
         if (handle && sField && aField) 
         {
-            static_cast<PerceptronAAImpl*>(handle)->AActivation(sField, aField);
+            static_cast<PerceptronF*>(handle)->AActivation(sField, aField);
         }
     }
 
-    PERCEPTRONAA_API void RActivation(PerceptronAAHandle handle, const float* aField, float* rField) 
+    PERCEPTRONF_API void RActivation_f(PerceptronFHandle handle, const float* aField, float* rField) 
     {
         if (handle && aField && rField) 
         {
-            static_cast<PerceptronAAImpl*>(handle)->RActivation(aField, rField);
+            static_cast<PerceptronF*>(handle)->RActivation(aField, rField);
         }
     }
 
-    PERCEPTRONAA_API void LearnedStimulAR(PerceptronAAHandle handle, const float* reactionError, const float* aField) 
+    PERCEPTRONF_API void LearnedStimulARf(PerceptronFHandle handle, const float* reactionError, const float* aField) 
     {
         if (handle && reactionError && aField) 
         {
-            static_cast<PerceptronAAImpl*>(handle)->LearnedStimulAR(reactionError, aField);
+            static_cast<PerceptronF*>(handle)->LearnedStimulAR(reactionError, aField);
         }
     }
 }

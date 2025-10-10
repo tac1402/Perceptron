@@ -1,0 +1,12 @@
+p3 = 5E-06; c3 = 5E-07
+Error = 0 - 44
+Error = 1 - 21
+Error = 2 - 91
+Error = 3 - 93
+Error = 4 - 69
+Error = 5 - 88
+Error = 6 - 43
+Error = 7 - 79
+Error = 8 - 121
+Error = 9 - 119
+Error=624

@@ -82,19 +82,29 @@ namespace Tac.Perceptron
 		public void Calc()
 		{
 			Empty = 0;
+			int[] REmpty = new int[ACount];
 			for (int i = 0; i < ACount; i++)
 			{
 				if (RATotal[i] != 0)
 				{
 					for (int j = 0; j < RCount; j++)
 					{
-						if (RASpec0[j][i] > RASpec1[j][i])
+						/*if (RASpec0[j][i] > RASpec1[j][i])
 						{
 							RAPurity[i] += (float)RASpec0[j][i] / (float)RATotal[i];
 						}
 						else
 						{
 							RAPurity[i] += (float)RASpec1[j][i] / (float)RATotal[i];
+						}*/
+
+						if (RASpec0[j][i] != 0)
+						{
+							RAPurity[i] += (float)RASpec1[j][i] / (float)RASpec0[j][i];
+						}
+						else
+						{
+							REmpty[i]++;
 						}
 					}
 				}
@@ -106,9 +116,9 @@ namespace Tac.Perceptron
 			}
 
 			// Усредняем по всем R
-			for (int i = 0; i < RCount; i++)
+			for (int i = 0; i < ACount; i++)
 			{
-				RAPurity[i] = RAPurity[i] / (float)RCount;
+				RAPurity[i] = RAPurity[i] / ((float)RCount - REmpty[i]);
 			}
 
 			IEnumerable<float> purity = RAPurity.Where(x => x != 0);

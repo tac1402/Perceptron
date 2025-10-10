@@ -4,44 +4,44 @@
 using System;
 using System.Runtime.InteropServices;
 
-public class PerceptronAB : IDisposable
+public class PerceptronAA : IDisposable
 {
 	private IntPtr _handle;
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern IntPtr CreatePerceptronAA(int sCount, int aCount, int rCount);
+	private static extern IntPtr CreatePerceptronF(int sCount, int aCount, int rCount);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void DisposePerceptronAA(IntPtr handle);
+	private static extern void DisposePerceptronF(IntPtr handle);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void SA(IntPtr handle, int sIndex, int aIndex, float value);
+	private static extern void SAf(IntPtr handle, int sIndex, int aIndex, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void AR(IntPtr handle, int aIndex, int rIndex, float value);
+	private static extern void ARf(IntPtr handle, int aIndex, int rIndex, float value);
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern float AR_(IntPtr handle, int aIndex, int rIndex);
+	private static extern float AR_f(IntPtr handle, int aIndex, int rIndex);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void AActivation(IntPtr handle, float[] sField, float[] aField);
+	private static extern void AActivation_f(IntPtr handle, float[] sField, float[] aField);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void RActivation(IntPtr handle, float[] aField, float[] rField);
+	private static extern void RActivation_f(IntPtr handle, float[] aField, float[] rField, float threshold = 0.0f);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void LearnedStimulAR(IntPtr handle, float[] reactionError, float[] aField);
+	private static extern void LearnedStimulARf(IntPtr handle, float[] reactionError, float[] aField);
 
 	private int SCount;
 	private int ACount;
 	private int RCount;
 
-	public PerceptronAB(int argSCount, int argACount, int argRCount)
+	public PerceptronAA(int argSCount, int argACount, int argRCount)
 	{
 		SCount = argSCount;
 		ACount = argACount;
 		RCount = argRCount;
 
-		_handle = CreatePerceptronAA(SCount, ACount, RCount);
+		_handle = CreatePerceptronF(SCount, ACount, RCount);
 		if (_handle == IntPtr.Zero)
 			throw new Exception("Failed to create PerceptronAA instance");
 	}
@@ -50,7 +50,7 @@ public class PerceptronAB : IDisposable
 	{
 		if (_handle != IntPtr.Zero)
 		{
-			DisposePerceptronAA(_handle);
+			DisposePerceptronF(_handle);
 			_handle = IntPtr.Zero;
 		}
 		GC.SuppressFinalize(this);
@@ -58,39 +58,39 @@ public class PerceptronAB : IDisposable
 
 	public void SA(int sIndex, int aIndex, float value)
 	{
-		SA(_handle, sIndex, aIndex, value);
+		SAf(_handle, sIndex, aIndex, value);
 	}
 
 	public void AR(int aIndex, int rIndex, float value)
 	{
-		AR(_handle, aIndex, rIndex, value);
+		ARf(_handle, aIndex, rIndex, value);
 	}
 	public float AR_(int aIndex, int rIndex)
 	{
-		return AR_(_handle, aIndex, rIndex);
+		return AR_f(_handle, aIndex, rIndex);
 	}
 
 
 	public float[] AActivation(float[] sField)
 	{
 		float[] aField = new float[ACount];
-		AActivation(_handle, sField, aField);
+		AActivation_f(_handle, sField, aField);
 		return aField;
 	}
 
-	public float[] RActivation(float[] aField)
+	public float[] RActivation(float[] aField, float threshold = 0.0f)
 	{
 		float[] rField = new float[RCount];
-		RActivation(_handle, aField, rField);
+		RActivation_f(_handle, aField, rField, threshold);
 		return rField;
 	}
 
 	public void LearnedStimulAR(float[] reactionError, float[] aField)
 	{
-		LearnedStimulAR(_handle, reactionError, aField);
+		LearnedStimulARf(_handle, reactionError, aField);
 	}
 
-	~PerceptronAB()
+	~PerceptronAA()
 	{
 		Dispose();
 	}

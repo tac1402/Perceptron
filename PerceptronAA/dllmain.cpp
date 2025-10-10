@@ -1,4 +1,6 @@
-﻿// dllmain.cpp : Определяет точку входа для приложения DLL.
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
+
 #include "pch.h"
 
 BOOL APIENTRY DllMain( HMODULE hModule,

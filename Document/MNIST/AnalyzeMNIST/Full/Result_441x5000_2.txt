@@ -1,0 +1,15 @@
+float p3 = 0.000005f;
+float correct3 = 0.0000005f;
+
+
+Error = 0 - 47
+Error = 1 - 23
+Error = 2 - 85
+Error = 3 - 109
+Error = 4 - 76
+Error = 5 - 74
+Error = 6 - 49
+Error = 7 - 87
+Error = 8 - 141
+Error = 9 - 133
+Error=664

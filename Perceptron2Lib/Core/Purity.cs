@@ -9,6 +9,7 @@ namespace Tac.Perceptron
 		private Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
 		public int[] reactions;
+		public int[] reactions2;
 
 		//private Hamming Hamming = new Hamming();
 
@@ -32,6 +33,17 @@ namespace Tac.Perceptron
 					}
 					reactions[i] = r[key];
 				}
+			}
+		}
+
+		public void SelectReaction(List<int> select)
+		{
+			reactions2 = new int[select.Count];
+			int j = 0;
+			foreach (int i in select)
+			{ 
+				reactions2[j] = reactions[i];
+				j++;
 			}
 		}
 
@@ -90,12 +102,14 @@ namespace Tac.Perceptron
 		public float minPurity = 0;
 		public float maxPurity = 0;
 
+		public PurityDistribution Distribution = new PurityDistribution();
+
 		public List<(int index, int distance)>[] neighborsByPoint;
 
 		/// <summary>
 		/// Анализ линейной разделимости на основе "чистоты окрестностей"
 		/// </summary>
-		public void NeighborhoodPurity(Dictionary<int, float[]> activations, int k = 512)
+		public void NeighborhoodPurity(Dictionary<int, float[]> activations, int k = 512, int ClassesCount = 2)
 		{
 			int nSamples = activations.Count;
 
@@ -110,7 +124,7 @@ namespace Tac.Perceptron
 				var kNearest = neighborsByPoint[i].Take(k).ToList();
 
 				// Определяем "чистоту" окрестности
-				int sameClassCount = kNearest.Count(neighbor => reactions[neighbor.index] == reactions[i]);
+				int sameClassCount = kNearest.Count(neighbor => reactions2[neighbor.index] == reactions2[i]);
 				float purity = (float)sameClassCount / k;
 				purityScores[i] = purity;
 			}
@@ -118,6 +132,11 @@ namespace Tac.Perceptron
 			avgPurity = purityScores.Average();
 			minPurity = purityScores.Min();
 			maxPurity = purityScores.Max();
+
+			if (ClassesCount > 2)
+			{
+				Distribution = CalculatePurityDistribution(purityScores, ClassesCount);
+			}
 		}
 
 		/// <summary>
@@ -164,5 +183,114 @@ namespace Tac.Perceptron
 			return neighborsByPoint;
 		}
 
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// Рассчитывает распределение purity scores с конвертацией в бинарный эквивалент
+		/// </summary>
+		public static PurityDistribution CalculatePurityDistribution(float[] purityScores, int numClasses)
+		{
+			// Конвертируем все значения в бинарный эквивалент
+			var binaryScores = purityScores.Select(p => PurityToBinary(p, numClasses)).ToArray();
+			var sortedBinaryScores = binaryScores.OrderBy(p => p).ToArray();
+			int n = sortedBinaryScores.Length;
+
+			return new PurityDistribution
+			{
+				// Перцентили конвертированных значений
+				Percentile10 = GetPercentile(sortedBinaryScores, 0.10f),
+				Percentile25 = GetPercentile(sortedBinaryScores, 0.25f),
+				Percentile50 = GetPercentile(sortedBinaryScores, 0.50f),
+				Percentile75 = GetPercentile(sortedBinaryScores, 0.75f),
+				Percentile90 = GetPercentile(sortedBinaryScores, 0.90f),
+
+				// Основные статистики
+				Mean = binaryScores.Average(),
+				StdDev = CalculateStdDev(binaryScores)
+			};
+		}
+
+
+		/// <summary>
+		/// Преобразует purity из N-классовой задачи в эквивалентное значение для 2 классов
+		/// </summary>
+		/// <param name="purityN">Измеренная чистота для N классов</param>
+		/// <param name="numClasses">Количество классов в исходной задаче (N)</param>
+		/// <returns>Эквивалентное значение purity для 2 классов</returns>
+		public static float PurityToBinary(float purityN, int numClasses)
+		{
+			if (numClasses < 2)
+				throw new ArgumentException("Number of classes must be at least 2", nameof(numClasses));
+
+			if (purityN < 0f || purityN > 1f)
+				throw new ArgumentException("Purity must be between 0 and 1", nameof(purityN));
+
+			// Случайный уровень для N классов
+			float baselineN = 1f / numClasses;
+
+			// Случайный уровень для 2 классов
+			float baseline2 = 0.5f;
+
+			// Если измеренное значение равно случайному уровню, возвращаем 0.5
+			if (Math.Abs(purityN - baselineN) < float.Epsilon)
+				return baseline2;
+
+			// Нормализованная чистота (сколько процентов от максимума сверх случайного уровня)
+			float normalizedPurity = (purityN - baselineN) / (1f - baselineN);
+
+			// Преобразуем в эквивалент для 2 классов
+			float purity2 = baseline2 + normalizedPurity * (1f - baseline2);
+
+			// Обеспечиваем границы [0, 1]
+			return Math.Max(0f, Math.Min(1f, purity2));
+		}
+
+		private static float GetPercentile(float[] sortedData, float percentile)
+		{
+			int index = (int)Math.Ceiling(percentile * sortedData.Length) - 1;
+			index = Math.Max(0, Math.Min(index, sortedData.Length - 1));
+			return sortedData[index];
+		}
+
+		private static float CalculateStdDev(float[] values)
+		{
+			float avg = values.Average();
+			float sumSq = values.Sum(v => (v - avg) * (v - avg));
+			return (float)Math.Sqrt(sumSq / values.Length);
+		}
+
+
 	}
+
+	public class PurityDistribution
+	{
+		public float Percentile10; // 10% самых проблемных точек
+		public float Percentile25; // 25% самых проблемных точек
+		public float Percentile50; // Медиана
+		public float Percentile75; // 25% лучших точек
+		public float Percentile90; // 10% лучших точек
+		public float Mean; // Среднее
+		public float StdDev; // Стандартное отклонение
+
+		public string InfoA
+		{
+			get 
+			{
+				return "\tP: " + Mean.ToString("F4") + " ± " + StdDev.ToString("F4")
+					+ "\t10:" + Percentile10.ToString("F4") + "\t25:" + Percentile25.ToString("F4") + "\t50:" + Percentile50.ToString("F4")
+					+ "\t75:" + Percentile75.ToString("F4") + "\t90:" + Percentile90.ToString("F4");
+			}
+		}
+		public string InfoB
+		{
+			get
+			{
+				return "\t" + Mean.ToString("F4") + "\t" + StdDev.ToString("F4")
+					+ "\t" + Percentile10.ToString("F4") + "\t" + Percentile25.ToString("F4") + "\t" + Percentile50.ToString("F4")
+					+ "\t" + Percentile75.ToString("F4") + "\t" + Percentile90.ToString("F4");
+			}
+		}
+
+	}
+
 }

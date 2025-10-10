@@ -9,10 +9,12 @@ namespace Tac.Perceptron
 	public class BitBlock
 	{
 		public BitVector32[] Data;
-
-		public float[] DataFloat;
+		public float[] DataF;
+		public sbyte[] DataB;
 
 		public int Count { get { return Data.Length * 32; } }
+
+
 
 		public BitBlock(int argCount)
 		{
@@ -66,13 +68,21 @@ namespace Tac.Perceptron
 			return s;
 		}
 
-		public void ToByte()
+		public void To()
 		{
-			DataFloat = new float[Count];
+			DataF = new float[Count];
+			DataB = new sbyte[Count];
 			for (int i = 0; i < Count; i++)
 			{
 				if (this[i] == true)
-					DataFloat[i] = 1;
+				{
+					DataF[i] = 1;
+					DataB[i] = 1;
+				}
+				else
+				{
+					DataB[i] = -1;
+				}
 			}
 		}
 
