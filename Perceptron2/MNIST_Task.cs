@@ -14,7 +14,7 @@ public class MNIST_Task : MNISTLib
 		int L = 768;
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, false);
+		PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1, false);
 
 		Load();
 

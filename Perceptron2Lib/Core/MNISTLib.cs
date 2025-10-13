@@ -1,6 +1,8 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
+using System.Data;
+
 namespace Tac.Experiment
 {
 	public class MNISTLib
@@ -43,6 +45,12 @@ namespace Tac.Experiment
 				for (int i = 0; i < 28 * 28; i++)
 				{
 					argSet[n][i] = r.ReadByte();
+					argSet[n][i] /= 255f;
+					if (argSet[n][i] != 0)
+					{
+						int a = 1;
+					}
+
 				}
 			}
 		}
