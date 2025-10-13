@@ -9,7 +9,7 @@ public class PerceptronAA : IDisposable
 	private IntPtr _handle;
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern IntPtr CreatePerceptronF(int sCount, int aCount, int rCount);
+	private static extern IntPtr CreatePerceptronF(int sCount, int aCount, int rCount, float th);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void DisposePerceptronF(IntPtr handle);
@@ -31,17 +31,22 @@ public class PerceptronAA : IDisposable
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void LearnedStimulARf(IntPtr handle, float[] reactionError, float[] aField);
 
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void LearnedStimulSAf(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
+
 	private int SCount;
 	private int ACount;
 	private int RCount;
+	private float th;
 
-	public PerceptronAA(int argSCount, int argACount, int argRCount)
+	public PerceptronAA(int argSCount, int argACount, int argRCount, float argTh)
 	{
 		SCount = argSCount;
 		ACount = argACount;
 		RCount = argRCount;
+		th = argTh;
 
-		_handle = CreatePerceptronF(SCount, ACount, RCount);
+		_handle = CreatePerceptronF(SCount, ACount, RCount, argTh);
 		if (_handle == IntPtr.Zero)
 			throw new Exception("Failed to create PerceptronAA instance");
 	}
@@ -88,6 +93,11 @@ public class PerceptronAA : IDisposable
 	public void LearnedStimulAR(float[] reactionError, float[] aField)
 	{
 		LearnedStimulARf(_handle, reactionError, aField);
+	}
+
+	public void LearnedStimulSA(float[] reactionError, float[] aField, float[] aFieldNorm)
+	{
+		LearnedStimulSAf(_handle, reactionError, aField, aFieldNorm);
 	}
 
 	~PerceptronAA()

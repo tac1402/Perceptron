@@ -15,7 +15,7 @@ extern "C"
     typedef void* PerceptronFHandle;
 
     // Creation and destruction
-    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount);
+    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount, float th);
     PERCEPTRONF_API void DisposePerceptronF(PerceptronFHandle handle);
 
     // Operations
@@ -27,5 +27,6 @@ extern "C"
 
     PERCEPTRONF_API void RActivation_f(PerceptronFHandle handle, const float* aField, float* rField);
     PERCEPTRONF_API void LearnedStimulARf(PerceptronFHandle handle, const float* reactionError, const float* aField);
+    PERCEPTRONF_API void LearnedStimulSAf(PerceptronFHandle handle, const float* reactionError, const float* aField, const float* aFieldNorm);
 }
 

@@ -15,7 +15,7 @@ public class MNIST_Task
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
 		//PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1);
-		nn.MLP net = new nn.MLP(L, 1000, 10, N1);
+		nn.MLP net = new nn.MLP(L, 1000, 10, N1, 500);
 
 
 		string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");

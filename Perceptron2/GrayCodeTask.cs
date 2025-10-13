@@ -21,7 +21,6 @@ public class GrayCodeTask
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];
 
-		//List<string> o = new List<string>();
 		for (int i = 1; i < N1 * N2; i++)
 		{
 			input[i] = new BitBlock(1, new int[] { i });
@@ -29,18 +28,8 @@ public class GrayCodeTask
 			int c = GrayCode(input[i]);
 			output[i] = new BitBlock(1, new int[] { c });
 
-			//o.Add(output[i].ToString(16));
-
 			net.JoinStimul(i - 1, input[i], output[i]);
 		}
-
-		/*o.Sort();
-		string oo = "";
-		for (int i = 0; i < o.Count; i++)
-		{
-			oo += o[i] + "\n";
-		}
-		File.WriteAllText("output.txt", oo);*/
 
 		net.Learned();
 	}

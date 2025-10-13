@@ -16,6 +16,7 @@ namespace Tac.Perceptron
 	{
 		private int SCount; // Количество сенсоров
 		private int ACount; // Количество ассоциаций
+		private int A2Count; // Количество ассоциаций
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров
 
@@ -26,9 +27,10 @@ namespace Tac.Perceptron
 		public Dictionary<int, BitBlock> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
 
 
-		public MLP(int argSCount, int argACount, int argRCount, int argHCount)
+		public MLP(int argSCount, int argACount, int argRCount, int argHCount, int argA2Count)
 		{
 			ACount = argACount;
+			A2Count = argA2Count;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
@@ -76,15 +78,15 @@ namespace Tac.Perceptron
 			var train_dataset = new ParityDataset(x_train, y_train);
 
 			// Создание загрузчика данных
-			int batch_size = 32;
+			int batch_size = 64;
 			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: false);
 
 			// Создание модели, функции потерь и оптимизатора
-			model = new MNIST_Network(SCount, ACount, RCount);
+			model = new MNIST_Network(SCount, ACount, RCount, A2Count);
 
 			//var criterion = BCELoss();
 			var criterion = MSELoss();
-			var optimizer = new Adam(model.parameters(), 0.0001);
+			var optimizer = new Adam(model.parameters(), 0.1);
 
 			// Обучение модели
 			int num_epochs = 100000;

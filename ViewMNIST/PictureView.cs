@@ -25,21 +25,21 @@ namespace ViewMNIST
 		public void ReadL()
 		{
 			//FashionMNIST
-			ReadPicture("train-images-idx3-ubyte", 60000);
-			ReadLabels("train-labels-idx1-ubyte", 60000);
+			//ReadPicture("train-images-idx3-ubyte", 60000);
+			//ReadLabels("train-labels-idx1-ubyte", 60000);
 			//MNIST
-			//ReadPicture("train-images.idx3-ubyte", 60000);
-			//ReadLabels("train-labels.idx1-ubyte", 60000);
+			ReadPicture("train-images.idx3-ubyte", 60000);
+			ReadLabels("train-labels.idx1-ubyte", 60000);
 		}
 
 		public void ReadE()
 		{
 			//FashionMNIST
-			ReadPicture("t10k-images-idx3-ubyte", 10000);
-			ReadLabels("t10k-labels-idx1-ubyte", 10000);
+			//ReadPicture("t10k-images-idx3-ubyte", 10000);
+			//ReadLabels("t10k-labels-idx1-ubyte", 10000);
 			//MNIST
-			//ReadPicture("t10k-images.idx3-ubyte", 10000);
-			//ReadLabels("t10k-labels.idx1-ubyte", 10000);
+			ReadPicture("t10k-images.idx3-ubyte", 10000);
+			ReadLabels("t10k-labels.idx1-ubyte", 10000);
 		}
 
 		byte[,] tmpPicture = new byte[60000,28 * 28];

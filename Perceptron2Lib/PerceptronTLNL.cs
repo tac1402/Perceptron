@@ -19,7 +19,7 @@ namespace Tac.Perceptron
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров
 
-		public BitBlock SensorsField; /* Сенсорное поле */
+		public float[] SensorsField; /* Сенсорное поле */
 		public sbyte[] ReactionsOutput; /* Реагирующие поле */
 
 		public float[] AField;
@@ -28,10 +28,12 @@ namespace Tac.Perceptron
 		private float[] AThreshold;
 
 
-		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
+		//public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
+		public Dictionary<int, float[]> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
-		public Dictionary<int, BitBlock> ExaminStimuls; // Стимулы для экзамена
+		//public Dictionary<int, BitBlock> ExaminStimuls; // Стимулы для экзамена
+		public Dictionary<int, float[]> ExaminStimuls; // Стимулы для экзамена
 		public Dictionary<int, BitBlock> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
 
 		private float[] ReactionError;
@@ -46,14 +48,19 @@ namespace Tac.Perceptron
 		//private Gain gain;
 		private Purity purity;
 
-		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount)
+		private bool isSR = false;
+
+		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, bool argIsSR = false)
 		{
 			ACount = argACount;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
 
-			SensorsField = new BitBlock(SCount);
+			isSR = argIsSR;
+			if (argIsSR == true) { ACount += SCount; }
+
+			SensorsField = new float[SCount];
 
 			ReactionsOutput = new sbyte[RCount];
 			ReactionError = new float[RCount];
@@ -61,17 +68,30 @@ namespace Tac.Perceptron
 			AField = new float[ACount];
 			AThreshold = new float[ACount];
 
-			LearnedStimuls = new Dictionary<int, BitBlock>();
+			LearnedStimuls = new Dictionary<int, float[]>();
 			NecessaryReactions = new Dictionary<int, BitBlock>();
 
-			ExaminStimuls = new Dictionary<int, BitBlock>();
+			ExaminStimuls = new Dictionary<int, float[]>();
 			ExaminReactions = new Dictionary<int, BitBlock>();
 
-			AB = new PerceptronAA(SCount, ACount, RCount);
+			AB = new PerceptronAA(SCount, ACount, RCount, th);
+		}
+
+		protected void InitSA(int argAId)
+		{
+			if (isSR == true)
+			{
+				if (argAId < SCount)
+				{
+					//WeightSA[argAId][argAId] = 1;
+					AB.SA(argAId, argAId, 1);
+					return;
+				}
+			}
 		}
 
 
-		int PCount = 1000;
+			int PCount = 1000;
 		private void InitAnalyze()
 		{
 			for (int i = 0; i < PCount; i++)
@@ -100,13 +120,34 @@ namespace Tac.Perceptron
 			}*/
 		}
 
+		public void JoinStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		{
+			//TODO конвертировать  BitBlock в float[]
+			// Запомним обучающий стимул
+			//LearnedStimuls.Add(argStimulNumber, argPerception);
+
+			// Запомним какая реакция должна быть на этот пример
+			NecessaryReactions.Add(argStimulNumber, argReaction);
+		}
+
+		
+		/*public void JoinEStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		{
+			// Запомним обучающий стимул
+			ExaminStimuls.Add(argStimulNumber, argPerception);
+
+			// Запомним какая реакция должна быть на этот пример
+			ExaminReactions.Add(argStimulNumber, argReaction);
+		}*/
+
+
 		/// <summary>
 		/// Добавить на обработку новый пример из обучающей выборки
 		/// </summary>
 		/// <param name="argStimulNumber">Номер примера из обучающей выборки</param>
 		/// <param name="argPerception">Стимулы (входы) из примера обучающей выборки</param>
 		/// <param name="argReaction">Нужная реакция (выходы) из примера обучающей выборки</param>
-		public void JoinStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		public void JoinStimul(int argStimulNumber, float[] argPerception, BitBlock argReaction)
 		{
 			// Запомним обучающий стимул
 			LearnedStimuls.Add(argStimulNumber, argPerception);
@@ -115,7 +156,7 @@ namespace Tac.Perceptron
 			NecessaryReactions.Add(argStimulNumber, argReaction);
 		}
 
-		public void JoinEStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		public void JoinEStimul(int argStimulNumber, float[] argPerception, BitBlock argReaction)
 		{
 			// Запомним обучающий стимул
 			ExaminStimuls.Add(argStimulNumber, argPerception);
@@ -124,21 +165,21 @@ namespace Tac.Perceptron
 			ExaminReactions.Add(argStimulNumber, argReaction);
 		}
 
-
-		public void Examin(int argECount)
+		public (int, int) Examin(int argECount, bool log = true)
 		{
-			Console.WriteLine("Begin Examination");
+			//Console.WriteLine("Begin Examination");
 
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
+			int AllFastErrorCount = 0;
 
 			for (int n = 0; n < argECount; n++)
 			{
 
-				if (n % 100 == 0)
-					Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
+				//if (n % 100 == 0)
+				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
-				bool isError = ExaminOne(n);
+				(bool isError, bool isFastError) = ExaminOne(n);
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -149,22 +190,31 @@ namespace Tac.Perceptron
 					AllErrorCount++;
 					//Console.WriteLine("#"+n.ToString());
 				}
+				if (isFastError == true)
+				{
+					AllFastErrorCount++;
+				}
 			}
 
-			File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString() + ".txt",
-					"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') + "\n");
-
-			for (int i = 0; i < RCount; i++)
+			if (log == true)
 			{
-				Console.WriteLine("Error = " + i.ToString() + " - " + ErrorCount[i].ToString());
-				File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString()+ ".txt", 
-						"Error = " + i.ToString() + " - " + ErrorCount[i].ToString() + "\n");
+				File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString() + ".txt",
+						"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') +
+						"; th = " + th.ToString("F16").TrimEnd('0') + "\n");
+
+				for (int i = 0; i < RCount; i++)
+				{
+					Console.WriteLine("Error = " + i.ToString() + " - " + ErrorCount[i].ToString());
+					File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString() + ".txt",
+							"Error = " + i.ToString() + " - " + ErrorCount[i].ToString() + "\n");
+				}
+				Console.WriteLine("Error = " + AllErrorCount.ToString());
+				File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", "Error=" + AllErrorCount.ToString() + "\n");
 			}
-			Console.WriteLine("Error = " + AllErrorCount.ToString());
-			File.AppendAllText("Result_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", "Error=" + AllErrorCount.ToString() + "\n");
+			return (AllErrorCount, AllFastErrorCount);
 		}
 
-		public bool ExaminOne(int argNumber)
+		public (bool, bool) ExaminOne(int argNumber)
 		{
 			AActivation(argNumber, 1);
 
@@ -173,6 +223,8 @@ namespace Tac.Perceptron
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
 			bool isError = GetError(argNumber, 1);
 
+			bool isFastError = GetFastError(argNumber, 1);
+
 			/*
 			int[] e = new int[RCount + 1];
 			for (int i = 1; i < RCount + 1; i++)
@@ -180,7 +232,7 @@ namespace Tac.Perceptron
 				e[i] += ReactionError[i];
 			}*/
 
-			return isError;
+			return (isError, isFastError);
 		}
 
 
@@ -199,13 +251,21 @@ namespace Tac.Perceptron
 			{
 				indexL[i] = i;
 
-				LearnedStimuls[i].To();
+				//LearnedStimuls[i].To();
 				NecessaryReactions[i].To();
 			}
 			for (int i = 0; i < ExaminStimuls.Count; i++)
 			{
-				ExaminStimuls[i].To();
+				//ExaminStimuls[i].To();
 				ExaminReactions[i].To();
+			}
+
+			if (isSR == true)
+			{
+				for (int i = 0; i < SCount; i++)
+				{
+					InitSA(i);
+				}
 			}
 
 			int Error = 0;
@@ -276,9 +336,13 @@ namespace Tac.Perceptron
 
 				OldError = Error;
 
+
+				(int er, int fer) = Examin(9999, false);
+
 				double t = (DateTime.Now - begin).TotalMilliseconds;
 				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()
-								+ "\t" + t.ToString() + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0");
+								+ "\t" + t.ToString() + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
+								+ "\tE: " + er.ToString() + " / " + fer.ToString();
 
 				//output += "\tP: " + FPurity.Min.ToString("F4") + "-" + FPurity.Avg.ToString("F4") + "-" + FPurity.Max.ToString("F4");
 
@@ -289,6 +353,7 @@ namespace Tac.Perceptron
 				{
 					Analyze();
 				}
+
 
 				if (Error == 0) { break; }
 			}
@@ -341,7 +406,6 @@ namespace Tac.Perceptron
 			//Console.WriteLine(outputA + "\n" + purity.Distribution.InfoA);
 			//File.AppendAllText("Purity_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputA2 + "\n");
 			File.AppendAllText("PurityD_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", purity.Distribution.InfoB + "\n");
-
 		}
 
 
@@ -439,7 +503,7 @@ namespace Tac.Perceptron
 				}
 			}*/
 
-			AField = AB.AActivation(SensorsField.DataF);
+			AField = AB.AActivation(SensorsField);
 
 			//FPurity.Add(argStimulNumber, AField, AThreshold);
 
@@ -455,6 +519,7 @@ namespace Tac.Perceptron
 			AFieldNorm = Normalize(AField);
 		}
 
+		float[] RField;
 		private void RActivation(int argStimulNumber)
 		{
 			/*float[] RField = new float[RCount];
@@ -469,7 +534,7 @@ namespace Tac.Perceptron
 				}
 			}*/
 
-			float[] RField = AB.RActivation(AField, 0.0f);
+			RField = AB.RActivation(AField, 0.0f);
 
 			for (int i = 0; i < RCount; i++)
 			{
@@ -481,7 +546,51 @@ namespace Tac.Perceptron
 			}
 		}
 
-		float th = 0.000001f;
+		//float th = 0.0000001f;
+		float th = 0.0f;
+
+		private bool GetFastError(int argStimulNumber, int argMode = 0)
+		{
+			bool IsError = false;
+			int index = ArgMax(RField);
+
+			for (int i = 0; i < RCount; i++)
+			{
+				sbyte v = 0;
+				if (argMode == 0)
+				{
+					v = NecessaryReactions[argStimulNumber].DataB[i];
+				}
+				else if (argMode == 1)
+				{
+					v = ExaminReactions[argStimulNumber].DataB[i];
+				}
+
+				if (v == 1)
+				{
+					if (i != index)
+					{ 
+						IsError = true;
+					}
+					break;
+				}
+			}
+			return IsError;
+		}
+
+		public int ArgMax(float[] array)
+		{
+			if (array == null || array.Length == 0)
+				throw new ArgumentException("Array cannot be null or empty");
+
+			int maxIndex = 0;
+			for (int i = 1; i < array.Length; i++)
+			{
+				if (array[i] > array[maxIndex])
+					maxIndex = i;
+			}
+			return maxIndex;
+		}
 
 		private bool GetError(int argStimulNumber, int argMode = 0)
 		{
@@ -516,7 +625,7 @@ namespace Tac.Perceptron
 		//float correct3 = 0.001f;	// MNIST
 
 		float p3 = 0.000003f;
-		float correct3 = 0.000002f;
+		float correct3 = 0.00001f;
 
 		// 57 it
 		//float p3 = 0.0002f;
@@ -529,7 +638,10 @@ namespace Tac.Perceptron
 
 			for (int r = 0; r < RCount; r++)
 			{
-				for (int j = 0; j < ACount; j++)
+				int ABegin = 0;
+				if (isSR == true) { ABegin = SCount; }
+
+				for (int j = ABegin; j < ACount; j++)
 				{
 					if (AField[j] <= th)
 					{
@@ -550,7 +662,12 @@ namespace Tac.Perceptron
 
 		private void LearnedStimulSA(int argStimulNumber)
 		{
-			for (int j = 0; j < ACount; j++)
+			AB.LearnedStimulSA(ReactionError, AField, AFieldNorm);
+
+			/*int ABegin = 0;
+			if (isSR == true) { ABegin = SCount; }
+
+			for (int j = ABegin; j < ACount; j++)
 			{
 				float[] w = new float[SCount];
 
@@ -586,7 +703,7 @@ namespace Tac.Perceptron
 					//WeightSA[i][j] += w[i];
 					AB.SA(i, j, w[i]);
 				}
-			}
+			}*/
 		}
 
 

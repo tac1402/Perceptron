@@ -1,44 +1,36 @@
 ﻿
+using Tac.Experiment;
 using Tac.Perceptron;
 
 /// <summary>
 /// Пример решения задачи распознования рукописных цифр (MNIST) перцептроном Розенблатта
 /// </summary>
-public class MNIST_Task
+public class MNIST_Task : MNISTLib
 {
 	public void Run()
 	{
-		int N1 = 59999;
+		int N1 = 60000;
 		//int N1 = 10000;
-		int L = 441;
+		int L = 768;
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1);
+		PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, false);
 
-		string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
-		string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");
+		Load();
+
+		//string[] LearningSet = File.ReadAllLines("MNIST\\LearningSet.txt");
+		//string[] ExaminationSet = File.ReadAllLines("MNIST\\ExaminationSet.txt");
 		//string[] LearningSet = File.ReadAllLines("MNIST_Fashion\\LearningSetF.txt");
 		//string[] ExaminationSet = File.ReadAllLines("MNIST_Fashion\\ExaminationSetF.txt");
 
 
-		int E = 9999;
-		BitBlock[] inputE = new BitBlock[E];
+		int E = 10000;
 		BitBlock[] outputE = new BitBlock[E];
 		for (int i = 0; i < E; i++)
 		{
-			inputE[i] = new BitBlock(L);
 			outputE[i] = new BitBlock(10);
 
-			for (int j = 0; j < L; j++)
-			{
-				if (ExaminationSet[i].Substring(j + 2, 1) == "1")
-				{
-					inputE[i][j] = true;
-				}
-			}
-
-			int c = int.Parse(ExaminationSet[i].Substring(0, 1));
-
+			int c = (int)ExamLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
@@ -47,27 +39,15 @@ public class MNIST_Task
 				}
 			}
 
-			net.JoinEStimul(i, inputE[i], outputE[i]);
+			net.JoinEStimul(i, ExamSet[i], outputE[i]);
 		}
 
-		BitBlock[] input = new BitBlock[N1];
 		BitBlock[] output = new BitBlock[N1];
-
 		for (int i = 0; i < N1; i++)
 		{
-			input[i] = new BitBlock(L);
 			output[i] = new BitBlock(10);
 
-			for (int j = 0; j < L; j++)
-			{
-				if (LearningSet[i].Substring(j + 2, 1) == "1")
-				{
-					input[i][j] = true;
-				}
-			}
-
-			int c = int.Parse(LearningSet[i].Substring(0, 1));
-
+			int c = (int)TrainLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
@@ -76,7 +56,7 @@ public class MNIST_Task
 				}
 			}
 
-			net.JoinStimul(i, input[i], output[i]);
+			net.JoinStimul(i, TrainSet[i], output[i]);
 		}
 
 		net.Learned();
