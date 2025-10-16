@@ -18,7 +18,7 @@ public class ParityTask
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
 		
-		PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3);
+		PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3, 0);
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
 		/*NeironNetTree net = new NeironNetTree(18, 5000, 1, N1 * N2 * N3);
 

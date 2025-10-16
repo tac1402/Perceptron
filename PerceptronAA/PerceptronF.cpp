@@ -10,6 +10,8 @@
 #include <cstring>
 #include <memory>
 #include <cmath>
+#include <random>
+#include <fstream>
 
 class PerceptronF 
 {
@@ -22,9 +24,13 @@ private:
 
     float th;
 
+    // Random number generator
+    std::mt19937 rnd;
+    std::uniform_real_distribution<float> dist;
+
 public:
     PerceptronF(int argSCount, int argACount, int argRCount, float argTh) 
-        : SCount(argSCount), ACount(argACount), RCount(argRCount), th(argTh)
+        : SCount(argSCount), ACount(argACount), RCount(argRCount), th(argTh), rnd(24), dist(0.0f, 1.0f)
     {
         SAWeights = static_cast<float*>(_mm_malloc(SCount * ACount * sizeof(float), 32));
         std::memset(SAWeights, 0, SCount * ACount * sizeof(float));
@@ -74,6 +80,78 @@ public:
     void LearnedStimulSA(const float* ReactionError, const float* AField, const float* AFieldNorm)
     {
         LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm);
+    }
+
+    void RandomChange(float d, float c3, const float* AField)
+    {
+        RandomChangeAVX2(d, c3, AField);
+    }
+
+    // Функция для сохранения весов в бинарный файл
+    bool SaveWeights(const char* filename)
+    {
+        std::ofstream file(filename, std::ios::binary);
+        if (!file.is_open())
+        {
+            return false;
+        }
+
+        // Записываем размерности массивов
+        file.write(reinterpret_cast<const char*>(&SCount), sizeof(SCount));
+        file.write(reinterpret_cast<const char*>(&ACount), sizeof(ACount));
+        file.write(reinterpret_cast<const char*>(&RCount), sizeof(RCount));
+
+        // Записываем данные массивов
+        size_t sa_size = SCount * ACount;
+        size_t ar_size = RCount * ACount;
+
+        file.write(reinterpret_cast<const char*>(SAWeights), sa_size * sizeof(float));
+        file.write(reinterpret_cast<const char*>(ARWeights), ar_size * sizeof(float));
+
+        if (!file.good())
+        {
+            file.close();
+            return false;
+        }
+
+        file.close();
+        return true;
+    }
+
+    // Функция для загрузки весов из бинарного файла
+    bool LoadWeights(const char* filename)
+    {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) { return false; }
+
+        // Читаем размерности массивов из файла
+        int file_SCount, file_ACount, file_RCount;
+        file.read(reinterpret_cast<char*>(&file_SCount), sizeof(file_SCount));
+        file.read(reinterpret_cast<char*>(&file_ACount), sizeof(file_ACount));
+        file.read(reinterpret_cast<char*>(&file_RCount), sizeof(file_RCount));
+
+        // Проверяем совпадение размерностей
+        if (file_SCount != SCount || file_ACount != ACount || file_RCount != RCount)
+        {
+            file.close();
+            return false;
+        }
+
+        // Читаем данные массивов
+        size_t sa_size = SCount * ACount;
+        size_t ar_size = RCount * ACount;
+
+        file.read(reinterpret_cast<char*>(SAWeights), sa_size * sizeof(float));
+        file.read(reinterpret_cast<char*>(ARWeights), ar_size * sizeof(float));
+
+        if (!file.good())
+        {
+            file.close();
+            return false;
+        }
+
+        file.close();
+        return true;
     }
 
 
@@ -149,61 +227,6 @@ private:
             AField[j] = sum;
         }
     }
-
-
-    /*inline void AActivationAvx2_Old(float* AField, const float* SField)
-    {
-        int j = 0;
-        for (; j <= ACount - 8; j += 8) 
-        {
-            __m256 sum0 = _mm256_setzero_ps();
-            __m256 sum1 = _mm256_setzero_ps();
-
-            int i = 0;
-            for (; i <= SCount - 2; i += 2) 
-            {
-                __m256 w0 = _mm256_load_ps(SAWeights + (i + 0) * ACount + j);
-                __m256 w1 = _mm256_load_ps(SAWeights + (i + 1) * ACount + j);
-
-                __m256 s0 = _mm256_broadcast_ss(SField + i + 0);
-                __m256 s1 = _mm256_broadcast_ss(SField + i + 1);
-
-                sum0 = _mm256_fmadd_ps(w0, s0, sum0);
-                sum1 = _mm256_fmadd_ps(w1, s1, sum1);
-            }
-
-            __m256 finalSum = _mm256_add_ps(sum0, sum1);
-
-            for (; i < SCount; i++) 
-            {
-                __m256 sVector = _mm256_broadcast_ss(SField + i);
-                __m256 weightsRow = _mm256_load_ps(SAWeights + i * ACount + j);
-                finalSum = _mm256_fmadd_ps(weightsRow, sVector, finalSum);
-            }
-
-            if (j + 8 <= ACount) 
-            {
-                _mm256_store_ps(AField + j, finalSum);
-            }
-            else 
-            {
-                StoreVector(AField + j, finalSum, ACount - j);
-            }
-        }
-
-        for (; j < ACount; j++) 
-        {
-            float sum = 0.0f;
-            for (int i = 0; i < SCount; i++) 
-            {
-                sum += SAWeights[i * ACount + j] * SField[i];
-            }
-            AField[j] = sum;
-        }
-    }*/
-
-
-
 
     inline void RActivationAvx2(float* RField, const float* AField, float threshold = 0.0f) 
     {
@@ -375,6 +398,67 @@ private:
     }
 
 
+    inline void RandomChangeAVX2(float d, float c3, const float* AField)
+    {
+        // Создаем маску для условий AField[j] <= th
+        std::vector<float> conditionMask(ACount, 0.0f);
+        for (int j = 0; j < ACount; j++) 
+        {
+            conditionMask[j] = (AField[j] <= th) ? 1.0f : 0.0f;
+        }
+
+        // AVX2 константы
+        const __m256 dVec = _mm256_set1_ps(d);
+        const __m256 correct3Vec = _mm256_set1_ps(c3);
+
+        for (int r = 0; r < RCount; r++) 
+        {
+            for (int i = 0; i < SCount; i++) 
+            {
+                int j = 0;
+
+                // Векторизованная обработка по 8 элементов j
+                for (; j <= ACount - 8; j += 8) 
+                {
+                    // Загружаем маску условий для 8 элементов j
+                    __m256 conditionMaskVec = _mm256_loadu_ps(&conditionMask[j]);
+
+                    // Генерируем 8 случайных чисел
+                    float randoms[8];
+                    for (int k = 0; k < 8; k++) 
+                    {
+                        randoms[k] = dist(rnd);
+                    }
+                    __m256 randVec = _mm256_loadu_ps(randoms);
+
+                    // Создаем маску: случайное число < d И условие AField[j] <= th
+                    __m256 probMask = _mm256_cmp_ps(randVec, dVec, _CMP_LT_OQ);
+                    __m256 finalMask = _mm256_and_ps(probMask, conditionMaskVec);
+
+                    // Загружаем веса для текущего i и 8 элементов j
+                    // Веса расположены последовательно: SAWeights[i * ACount + j] до SAWeights[i * ACount + j+7]
+                    __m256 weights = _mm256_loadu_ps(&SAWeights[i * ACount + j]);
+
+                    // Добавляем коррекцию только где finalMask истинен
+                    __m256 correction = _mm256_and_ps(finalMask, correct3Vec);
+                    weights = _mm256_add_ps(weights, correction);
+
+                    // Сохраняем обратно
+                    _mm256_storeu_ps(&SAWeights[i * ACount + j], weights);
+                }
+
+                // Скалярная обработка хвоста
+                for (; j < ACount; j++) 
+                {
+                    if (conditionMask[j] != 0.0f && dist(rnd) < d) 
+                    {
+                        SAWeights[i * ACount + j] += c3;
+                    }
+                }
+            }
+        }
+    }
+
 
     inline void StoreVector(float* dest, __m256 data, int count) 
     {
@@ -449,8 +533,6 @@ private:
             }
         }
     }
-
-
 
 };
 
@@ -533,5 +615,23 @@ extern "C"
             static_cast<PerceptronF*>(handle)->LearnedStimulSA(reactionError, aField, aFieldNorm);
         }
     }
+
+    PERCEPTRONF_API void RandomChange(PerceptronFHandle handle, float d, float c3, const float* aField)
+    {
+        if (handle && aField)
+        {
+            static_cast<PerceptronF*>(handle)->RandomChange(d, c3, aField);
+        }
+    }
+
+    PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename)
+    {
+        return static_cast<PerceptronF*>(handle)->SaveWeights(filename);
+    }
+    PERCEPTRONF_API bool LoadWeights(PerceptronFHandle handle, const char* filename)
+    {
+        return static_cast<PerceptronF*>(handle)->LoadWeights(filename);
+    }
+
 
 }

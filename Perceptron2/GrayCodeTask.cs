@@ -16,7 +16,7 @@ public class GrayCodeTask
 		int L = 16;
 
 		//NeironNetTree net = new NeironNetTree(L, 5000, L, N1 * N2);
-		PerceptronTLNL net = new PerceptronTLNL(L, 1500, L, N1 * N2 - 1);
+		PerceptronTLNL net = new PerceptronTLNL(L, 1500, L, N1 * N2 - 1, 0);
 
 		BitBlock[] input = new BitBlock[N1 * N2];
 		BitBlock[] output = new BitBlock[N1 * N2];

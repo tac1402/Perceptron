@@ -34,6 +34,16 @@ public class PerceptronAA : IDisposable
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void LearnedStimulSAf(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
 
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void RandomChange(IntPtr handle, float d, float c3, float[] aField);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern bool SaveWeights(IntPtr handle, string filename);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern bool LoadWeights(IntPtr handle, string filename);
+
+
 	private int SCount;
 	private int ACount;
 	private int RCount;
@@ -99,6 +109,22 @@ public class PerceptronAA : IDisposable
 	{
 		LearnedStimulSAf(_handle, reactionError, aField, aFieldNorm);
 	}
+
+	public void RandomChange(float d, float c3, float[] aField)
+	{
+		RandomChange(_handle, d, c3, aField);
+	}
+
+	public bool SaveWeights(string filename)
+	{
+		return SaveWeights(_handle, filename);
+	}
+
+	public bool LoadWeights(string filename)
+	{
+		return LoadWeights(_handle, filename);
+	}
+
 
 	~PerceptronAA()
 	{

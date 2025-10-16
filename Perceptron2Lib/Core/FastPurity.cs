@@ -89,15 +89,6 @@ namespace Tac.Perceptron
 				{
 					for (int j = 0; j < RCount; j++)
 					{
-						/*if (RASpec0[j][i] > RASpec1[j][i])
-						{
-							RAPurity[i] += (float)RASpec0[j][i] / (float)RATotal[i];
-						}
-						else
-						{
-							RAPurity[i] += (float)RASpec1[j][i] / (float)RATotal[i];
-						}*/
-
 						if (RASpec0[j][i] != 0)
 						{
 							RAPurity[i] += (float)RASpec1[j][i] / (float)RASpec0[j][i];

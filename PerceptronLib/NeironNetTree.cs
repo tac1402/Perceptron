@@ -111,8 +111,9 @@ namespace Tac.Perceptron
 		public enum SinapsType
 		{ 
 			Custom = 1,
-			Sinaps2x2 = 2,
-			Random = 3,
+			Sinaps1x1 = 2,
+			Sinaps2x2 = 3,
+			Random = 4,
 			Full = 10
 		}
 
@@ -144,6 +145,11 @@ namespace Tac.Perceptron
 			{
 				SinapsXCount = 2;
 				SinapsYCount = 2;
+			}
+			else if (sinapsType == SinapsType.Sinaps1x1)
+			{
+				SinapsXCount = 1;
+				SinapsYCount = 1;
 			}
 
 			int sinapsCount = SinapsXCount + SinapsYCount;

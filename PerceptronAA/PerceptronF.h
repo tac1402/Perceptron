@@ -28,5 +28,9 @@ extern "C"
     PERCEPTRONF_API void RActivation_f(PerceptronFHandle handle, const float* aField, float* rField);
     PERCEPTRONF_API void LearnedStimulARf(PerceptronFHandle handle, const float* reactionError, const float* aField);
     PERCEPTRONF_API void LearnedStimulSAf(PerceptronFHandle handle, const float* reactionError, const float* aField, const float* aFieldNorm);
+    PERCEPTRONF_API void RandomChange(PerceptronFHandle handle, float d, float c3, const float* AField);
+
+    PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename);
+    PERCEPTRONF_API bool LoadWeights(PerceptronFHandle handle, const char* filename);
 }
 
