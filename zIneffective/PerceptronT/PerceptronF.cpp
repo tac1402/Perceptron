@@ -1,0 +1,712 @@
+// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
+
+
+#include "pch.h"
+
+#include "PerceptronF.h"
+#include <immintrin.h>
+#include <vector>
+#include <cstring>
+#include <memory>
+#include <cmath>
+#include <random>
+#include <fstream>
+#include <thread>
+
+class PerceptronF 
+{
+private:
+    float* SAWeights;
+    float* ARWeights;
+    int SCount;
+    int ACount;
+    int RCount;
+
+    float th;
+
+    // Random number generator
+    std::mt19937 rnd;
+    std::uniform_real_distribution<float> dist;
+
+public:
+    PerceptronF(int argSCount, int argACount, int argRCount, float argTh) 
+        : SCount(argSCount), ACount(argACount), RCount(argRCount), th(argTh), rnd(24), dist(0.0f, 1.0f)
+    {
+        SAWeights = static_cast<float*>(_mm_malloc(SCount * ACount * sizeof(float), 32));
+        std::memset(SAWeights, 0, SCount * ACount * sizeof(float));
+
+        ARWeights = static_cast<float*>(_mm_malloc(RCount * ACount * sizeof(float), 32));
+        std::memset(ARWeights, 0, RCount * ACount * sizeof(float));
+    }
+
+    ~PerceptronF() 
+    {
+        _mm_free(SAWeights);
+        _mm_free(ARWeights);
+    }
+
+    void SA(int SIndex, int AIndex, float value) 
+    {
+        SAWeights[SIndex * ACount + AIndex] += value;
+    }
+
+    void AR(int AIndex, int RIndex, float value)
+    {
+        ARWeights[RIndex * ACount + AIndex] += value;
+    }
+
+    float AR_(int AIndex, int RIndex)
+    {
+        return ARWeights[RIndex * ACount + AIndex];
+    }
+
+    void AActivation(const float* SField, float* AField) 
+    {
+        std::memset(AField, 0, ACount * sizeof(float));
+        //AActivationAvx2(AField, SField);
+        AActivationThreadedAVX2(AField, SField);
+    }
+
+    void RActivation(const float* AField, float* RField) 
+    {
+        std::memset(RField, 0, RCount * sizeof(float));
+        RActivationAvx2(RField, AField);
+    }
+
+    void LearnedStimulAR(const float* ReactionError, const float* AField) 
+    {
+        LearnedStimulARAvx2(ReactionError, AField);
+    }
+
+    void LearnedStimulSA(const float* ReactionError, const float* AField, const float* AFieldNorm)
+    {
+        LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm);
+    }
+
+    void RandomChange(float d, float c3, const float* AField)
+    {
+        RandomChangeAVX2(d, c3, AField);
+    }
+
+    // Функция для сохранения весов в бинарный файл
+    bool SaveWeights(const char* filename)
+    {
+        std::ofstream file(filename, std::ios::binary);
+        if (!file.is_open())
+        {
+            return false;
+        }
+
+        // Записываем размерности массивов
+        file.write(reinterpret_cast<const char*>(&SCount), sizeof(SCount));
+        file.write(reinterpret_cast<const char*>(&ACount), sizeof(ACount));
+        file.write(reinterpret_cast<const char*>(&RCount), sizeof(RCount));
+
+        // Записываем данные массивов
+        size_t sa_size = SCount * ACount;
+        size_t ar_size = RCount * ACount;
+
+        file.write(reinterpret_cast<const char*>(SAWeights), sa_size * sizeof(float));
+        file.write(reinterpret_cast<const char*>(ARWeights), ar_size * sizeof(float));
+
+        if (!file.good())
+        {
+            file.close();
+            return false;
+        }
+
+        file.close();
+        return true;
+    }
+
+    // Функция для загрузки весов из бинарного файла
+    bool LoadWeights(const char* filename)
+    {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) { return false; }
+
+        // Читаем размерности массивов из файла
+        int file_SCount, file_ACount, file_RCount;
+        file.read(reinterpret_cast<char*>(&file_SCount), sizeof(file_SCount));
+        file.read(reinterpret_cast<char*>(&file_ACount), sizeof(file_ACount));
+        file.read(reinterpret_cast<char*>(&file_RCount), sizeof(file_RCount));
+
+        // Проверяем совпадение размерностей
+        if (file_SCount != SCount || file_ACount != ACount || file_RCount != RCount)
+        {
+            file.close();
+            return false;
+        }
+
+        // Читаем данные массивов
+        size_t sa_size = SCount * ACount;
+        size_t ar_size = RCount * ACount;
+
+        file.read(reinterpret_cast<char*>(SAWeights), sa_size * sizeof(float));
+        file.read(reinterpret_cast<char*>(ARWeights), ar_size * sizeof(float));
+
+        if (!file.good())
+        {
+            file.close();
+            return false;
+        }
+
+        file.close();
+        return true;
+    }
+
+
+private:
+    inline void AActivationAvx2(float* AField, const float* SField)
+    { 
+        // Собираем индексы ненулевых элементов SField
+        std::vector<int> nonZeroIndices;
+        nonZeroIndices.reserve(SCount);
+        for (int i = 0; i < SCount; ++i)
+        {
+            if (SField[i] != 0.0f)
+            {
+                nonZeroIndices.push_back(i);
+            }
+        }
+        const int nonZeroCount = static_cast<int>(nonZeroIndices.size());
+
+        int j = 0;
+        for (; j <= ACount - 8; j += 8)
+        {
+            __m256 sum0 = _mm256_setzero_ps();
+            __m256 sum1 = _mm256_setzero_ps();
+
+            int idx = 0;
+            // Обрабатываем по два ненулевых элемента за итерацию
+            for (; idx <= nonZeroCount - 2; idx += 2)
+            {
+                const int i0 = nonZeroIndices[idx];
+                const int i1 = nonZeroIndices[idx + 1];
+
+                __m256 w0 = _mm256_load_ps(SAWeights + i0 * ACount + j);
+                __m256 w1 = _mm256_load_ps(SAWeights + i1 * ACount + j);
+
+                __m256 s0 = _mm256_broadcast_ss(SField + i0);
+                __m256 s1 = _mm256_broadcast_ss(SField + i1);
+
+                sum0 = _mm256_fmadd_ps(w0, s0, sum0);
+                sum1 = _mm256_fmadd_ps(w1, s1, sum1);
+            }
+
+            __m256 finalSum = _mm256_add_ps(sum0, sum1);
+
+            // Обрабатываем оставшиеся ненулевые элементы
+            for (; idx < nonZeroCount; ++idx)
+            {
+                const int i = nonZeroIndices[idx];
+                __m256 sVector = _mm256_broadcast_ss(SField + i);
+                __m256 weightsRow = _mm256_load_ps(SAWeights + i * ACount + j);
+                finalSum = _mm256_fmadd_ps(weightsRow, sVector, finalSum);
+            }
+
+            // Сохраняем результат для векторизованной части
+            if (j + 8 <= ACount)
+            {
+                _mm256_store_ps(AField + j, finalSum);
+            }
+            else
+            {
+                StoreVector(AField + j, finalSum, ACount - j);
+            }
+        }
+
+        // Скалярная обработка оставшихся j
+        for (; j < ACount; j++)
+        {
+            float sum = 0.0f;
+            for (int idx = 0; idx < nonZeroCount; idx++)
+            {
+                const int i = nonZeroIndices[idx];
+                sum += SAWeights[i * ACount + j] * SField[i];
+            }
+            AField[j] = sum;
+        }
+    }
+
+    inline void RActivationAvx2(float* RField, const float* AField, float threshold = 0.0f) 
+    {
+        int j = 0;
+
+        // Создаем AVX вектор с пороговым значением
+        const __m256 threshold_vec = _mm256_set1_ps(threshold);
+
+        // Обрабатываем по 2 столбца R за раз
+        for (; j <= RCount - 2; j += 2) 
+        {
+            __m256 sum0 = _mm256_setzero_ps(); // Для R[j]
+            __m256 sum1 = _mm256_setzero_ps(); // Для R[j+1]
+
+            int i = 0;
+
+            // Указатели на начала строк весов для j и j+1
+            float* weightsRowJ = ARWeights + j * ACount;
+            float* weightsRowJ1 = ARWeights + (j + 1) * ACount;
+
+            // Обрабатываем по 8 элементов AField за раз
+            for (; i <= ACount - 8; i += 8) 
+            {
+                // Загружаем 8 элементов AField
+                __m256 aVector = _mm256_load_ps(AField + i);
+
+                // Создаем маску для AField > 0
+                __m256 mask = _mm256_cmp_ps(aVector, threshold_vec, _CMP_GT_OQ);
+
+                // Загружаем веса для текущего j и j+1
+                __m256 w0 = _mm256_load_ps(weightsRowJ + i);
+                __m256 w1 = _mm256_load_ps(weightsRowJ1 + i);
+
+                // Применяем маску к весам (AND с маской)
+                __m256 maskedW0 = _mm256_and_ps(w0, mask);
+                __m256 maskedW1 = _mm256_and_ps(w1, mask);
+
+                // Суммируем
+                sum0 = _mm256_add_ps(sum0, maskedW0);
+                sum1 = _mm256_add_ps(sum1, maskedW1);
+            }
+
+            // Горизонтальное суммирование для sum0 (R[j])
+            __m128 sum0_128 = _mm_add_ps(_mm256_extractf128_ps(sum0, 1), _mm256_castps256_ps128(sum0));
+            sum0_128 = _mm_add_ps(sum0_128, _mm_movehl_ps(sum0_128, sum0_128));
+            sum0_128 = _mm_add_ss(sum0_128, _mm_movehdup_ps(sum0_128));
+            float result0 = _mm_cvtss_f32(sum0_128);
+
+            // Горизонтальное суммирование для sum1 (R[j+1])
+            __m128 sum1_128 = _mm_add_ps(_mm256_extractf128_ps(sum1, 1), _mm256_castps256_ps128(sum1));
+            sum1_128 = _mm_add_ps(sum1_128, _mm_movehl_ps(sum1_128, sum1_128));
+            sum1_128 = _mm_add_ss(sum1_128, _mm_movehdup_ps(sum1_128));
+            float result1 = _mm_cvtss_f32(sum1_128);
+
+            // Скалярная обработка оставшихся элементов AField
+            for (; i < ACount; i++) 
+            {
+                if (AField[i] > threshold)
+                {
+                    result0 += weightsRowJ[i];
+                    result1 += weightsRowJ1[i];
+                }
+            }
+
+            // Сохраняем результаты
+            RField[j] = result0;
+            RField[j + 1] = result1;
+        }
+
+        // Обрабатываем оставшийся столбец R (если RCount нечетное)
+        for (; j < RCount; j++) 
+        {
+            float sum = 0.0f;
+            float* weightsRow = ARWeights + j * ACount;
+
+            for (int i = 0; i < ACount; i++) 
+            {
+                if (AField[i] > threshold)
+                {
+                    sum += weightsRow[i];
+                }
+            }
+            RField[j] = sum;
+        }
+    }
+
+    inline void LearnedStimulARAvx2(const float* ReactionError, const float* AField) 
+    {
+        int j = 0;
+
+        // Обрабатываем по 2 столбца R за раз
+        for (; j <= RCount - 2; j += 2) 
+        {
+            float error0 = ReactionError[j];
+            float error1 = ReactionError[j + 1];
+
+            __m256 errorVec0 = _mm256_set1_ps(error0); // Вектор из 8 одинаковых error0
+            __m256 errorVec1 = _mm256_set1_ps(error1); // Вектор из 8 одинаковых error1
+
+            // Указатели на начала строк весов для j и j+1
+            float* weightsRow0 = ARWeights + j * ACount;
+            float* weightsRow1 = ARWeights + (j + 1) * ACount;
+
+            int i = 0;
+
+            // Обрабатываем по 8 элементов AField за раз
+            for (; i <= ACount - 8; i += 8) 
+            {
+                // Загружаем 8 элементов AField
+                __m256 aVector = _mm256_load_ps(AField + i);
+
+                // Создаем маску для AField > 0
+                __m256 mask = _mm256_cmp_ps(aVector, _mm256_setzero_ps(), _CMP_GT_OQ);
+
+                // Загружаем текущие веса для j и j+1
+                __m256 w0 = _mm256_load_ps(weightsRow0 + i);
+                __m256 w1 = _mm256_load_ps(weightsRow1 + i);
+
+                // Добавляем error к весам, где AField > 0
+                __m256 newW0 = _mm256_add_ps(w0, errorVec0);
+                __m256 newW1 = _mm256_add_ps(w1, errorVec1);
+
+                // Blend: где mask=true - берем newW, иначе оставляем старый w
+                __m256 result0 = _mm256_blendv_ps(w0, newW0, mask);
+                __m256 result1 = _mm256_blendv_ps(w1, newW1, mask);
+
+                // Сохраняем обновленные веса
+                _mm256_store_ps(weightsRow0 + i, result0);
+                _mm256_store_ps(weightsRow1 + i, result1);
+            }
+
+            // Скалярная обработка оставшихся элементов
+            for (; i < ACount; i++) 
+            {
+                if (AField[i] > 0) 
+                {
+                    weightsRow0[i] += error0;
+                    weightsRow1[i] += error1;
+                }
+            }
+        }
+
+        // Обрабатываем оставшийся столбец R (если RCount нечетное)
+        for (; j < RCount; j++) 
+        {
+            float error = ReactionError[j];
+            __m256 errorVec = _mm256_set1_ps(error);
+            float* weightsRow = ARWeights + j * ACount;
+
+            int i = 0;
+            for (; i <= ACount - 8; i += 8) 
+            {
+                __m256 aVector = _mm256_load_ps(AField + i);
+                __m256 mask = _mm256_cmp_ps(aVector, _mm256_setzero_ps(), _CMP_GT_OQ);
+                __m256 w = _mm256_load_ps(weightsRow + i);
+                __m256 newW = _mm256_add_ps(w, errorVec);
+                __m256 result = _mm256_blendv_ps(w, newW, mask);
+                _mm256_store_ps(weightsRow + i, result);
+            }
+
+            for (; i < ACount; i++) 
+            {
+                if (AField[i] > 0) 
+                {
+                    weightsRow[i] += error;
+                }
+            }
+        }
+    }
+
+
+    inline void RandomChangeAVX2(float d, float c3, const float* AField)
+    {
+        // Создаем маску для условий AField[j] <= th
+        std::vector<float> conditionMask(ACount, 0.0f);
+        for (int j = 0; j < ACount; j++) 
+        {
+            conditionMask[j] = (AField[j] <= th) ? 1.0f : 0.0f;
+        }
+
+        // AVX2 константы
+        const __m256 dVec = _mm256_set1_ps(d);
+        const __m256 correct3Vec = _mm256_set1_ps(c3);
+
+        for (int r = 0; r < RCount; r++) 
+        {
+            for (int i = 0; i < SCount; i++) 
+            {
+                int j = 0;
+
+                // Векторизованная обработка по 8 элементов j
+                for (; j <= ACount - 8; j += 8) 
+                {
+                    // Загружаем маску условий для 8 элементов j
+                    __m256 conditionMaskVec = _mm256_loadu_ps(&conditionMask[j]);
+
+                    // Генерируем 8 случайных чисел
+                    float randoms[8];
+                    for (int k = 0; k < 8; k++) 
+                    {
+                        randoms[k] = dist(rnd);
+                    }
+                    __m256 randVec = _mm256_loadu_ps(randoms);
+
+                    // Создаем маску: случайное число < d И условие AField[j] <= th
+                    __m256 probMask = _mm256_cmp_ps(randVec, dVec, _CMP_LT_OQ);
+                    __m256 finalMask = _mm256_and_ps(probMask, conditionMaskVec);
+
+                    // Загружаем веса для текущего i и 8 элементов j
+                    // Веса расположены последовательно: SAWeights[i * ACount + j] до SAWeights[i * ACount + j+7]
+                    __m256 weights = _mm256_loadu_ps(&SAWeights[i * ACount + j]);
+
+                    // Добавляем коррекцию только где finalMask истинен
+                    __m256 correction = _mm256_and_ps(finalMask, correct3Vec);
+                    weights = _mm256_add_ps(weights, correction);
+
+                    // Сохраняем обратно
+                    _mm256_storeu_ps(&SAWeights[i * ACount + j], weights);
+                }
+
+                // Скалярная обработка хвоста
+                for (; j < ACount; j++) 
+                {
+                    if (conditionMask[j] != 0.0f && dist(rnd) < d) 
+                    {
+                        SAWeights[i * ACount + j] += c3;
+                    }
+                }
+            }
+        }
+    }
+
+
+    inline void StoreVector(float* dest, __m256 data, int count) 
+    {
+        alignas(32) float temp[8];
+        _mm256_store_ps(temp, data);
+        std::memcpy(dest, temp, count * sizeof(float));
+    }
+
+    inline int sign(float x) {
+        return (x > 0.0f) ? 1 : (x < 0.0f) ? -1 : 0;
+    }
+
+    inline void LearnedStimulSAAvx2(const float* ReactionError, const float* AField, const float* AFieldNorm)
+    {
+        // Вычисляем обновления для каждого A-нейрона
+        std::vector<float> a_updates(ACount, 0.0f);
+
+        for (int j = 0; j < ACount; j++) 
+        {
+            float multiplier = (AField[j] > th) ? -AFieldNorm[j] : AFieldNorm[j];
+            int condition_count = 0;
+
+            // Ваша логика подсчета condition_count
+            if (AField[j] > th) 
+            {
+                for (int r = 0; r < RCount; r++) 
+                {
+                    if (ReactionError[r] != 0 && sign(ARWeights[r * ACount + j]) != sign(ReactionError[r])) 
+                    {
+                        condition_count++;
+                    }
+                }
+            }
+            else 
+            {
+                for (int r = 0; r < RCount; r++) 
+                {
+                    if (sign(ARWeights[r * ACount + j]) == sign(ReactionError[r])) 
+                    {
+                        condition_count++;
+                    }
+                }
+            }
+
+            a_updates[j] = multiplier * condition_count;
+        }
+
+        // Применяем обновления - ВЕКТОРИЗАЦИЯ ПО AIndex
+        for (int i = 0; i < SCount; i++) 
+        {
+            int j = 0;
+            for (; j <= ACount - 8; j += 8) 
+            {
+                // Загружаем 8 последовательных весов для фиксированного i
+                float* base_ptr = &SAWeights[i * ACount + j];
+                __m256 weights_vec = _mm256_loadu_ps(base_ptr);
+
+                // Загружаем 8 обновлений для A-нейронов
+                __m256 updates_vec = _mm256_loadu_ps(&a_updates[j]);
+
+                // Применяем обновления
+                weights_vec = _mm256_add_ps(weights_vec, updates_vec);
+
+                // Сохраняем обратно
+                _mm256_storeu_ps(base_ptr, weights_vec);
+            }
+
+            // Скалярный хвост по AIndex
+            for (; j < ACount; j++) 
+            {
+                SAWeights[i * ACount + j] += a_updates[j];
+            }
+        }
+    }
+
+
+    void AActivationThreadedAVX2(float* AField, const float* SField) 
+    {
+        int numThreads = 32;
+
+        std::vector<int> nonZeroIndices;
+        nonZeroIndices.reserve(SCount);
+        for (int i = 0; i < SCount; ++i) 
+        {
+            if (SField[i] != 0.0f) 
+            {
+                nonZeroIndices.push_back(i);
+            }
+        }
+        const int nonZeroCount = static_cast<int>(nonZeroIndices.size());
+
+        std::vector<std::thread> threads;
+        int chunkSize = (ACount + numThreads - 1) / numThreads;
+
+        // Выравниваем по 8 для AVX2
+        chunkSize = (chunkSize + 7) & ~7;
+
+        for (int t = 0; t < numThreads; ++t) 
+        {
+            int start = t * chunkSize;
+            int end = (start + chunkSize < ACount) ? (start + chunkSize) : ACount;
+            if (start >= ACount) break;
+
+            threads.emplace_back([=, &nonZeroIndices]() 
+                {
+                    processChunkAVX2(AField, SField, nonZeroIndices, start, end, nonZeroCount);
+                });
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+
+    void processChunkAVX2(float* AField, const float* SField,
+        const std::vector<int>& nonZeroIndices,
+        int start, int end, int nonZeroCount) 
+    {
+        int j = start;
+
+        // AVX2 обработка
+        for (; j <= end - 8; j += 8) 
+        {
+            __m256 sum = _mm256_setzero_ps();
+
+            for (int idx = 0; idx < nonZeroCount; ++idx) 
+            {
+                const int i = nonZeroIndices[idx];
+                __m256 weight = _mm256_load_ps(SAWeights + i * ACount + j);
+                __m256 s = _mm256_broadcast_ss(SField + i);
+                sum = _mm256_fmadd_ps(weight, s, sum);
+            }
+
+            _mm256_store_ps(AField + j, sum);
+        }
+
+        // Скалярная обработка остатка
+        for (; j < end; ++j) 
+        {
+            float sum = 0.0f;
+            for (int idx = 0; idx < nonZeroCount; ++idx) 
+            {
+                const int i = nonZeroIndices[idx];
+                sum += SAWeights[i * ACount + j] * SField[i];
+            }
+            AField[j] = sum;
+        }
+    }
+};
+
+// C wrapper functions
+extern "C" 
+{
+    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount, float th)
+    {
+        try 
+        {
+            return new PerceptronF(sCount, aCount, rCount, th);
+        }
+        catch (...) 
+        {
+            return nullptr;
+        }
+    }
+
+    PERCEPTRONF_API void DisposePerceptronF(PerceptronFHandle handle) 
+    {
+        if (handle) 
+        {
+            delete static_cast<PerceptronF*>(handle);
+        }
+    }
+
+    PERCEPTRONF_API void SAf(PerceptronFHandle handle, int sIndex, int aIndex, float value) 
+    {
+        if (handle) 
+        {
+            static_cast<PerceptronF*>(handle)->SA(sIndex, aIndex, value);
+        }
+    }
+
+    PERCEPTRONF_API void ARf(PerceptronFHandle handle, int aIndex, int rIndex, float value)
+    {
+        if (handle)
+        {
+            static_cast<PerceptronF*>(handle)->AR(aIndex, rIndex, value);
+        }
+    }
+
+    PERCEPTRONF_API float AR_f(PerceptronFHandle handle, int aIndex, int rIndex)
+    {
+        if (handle)
+        {
+            return static_cast<PerceptronF*>(handle)->AR_(aIndex, rIndex);
+        }
+    }
+
+
+    PERCEPTRONF_API void AActivation_f(PerceptronFHandle handle, const float* sField, float* aField) 
+    {
+        if (handle && sField && aField) 
+        {
+            static_cast<PerceptronF*>(handle)->AActivation(sField, aField);
+        }
+    }
+
+    PERCEPTRONF_API void RActivation_f(PerceptronFHandle handle, const float* aField, float* rField) 
+    {
+        if (handle && aField && rField) 
+        {
+            static_cast<PerceptronF*>(handle)->RActivation(aField, rField);
+        }
+    }
+
+    PERCEPTRONF_API void LearnedStimulARf(PerceptronFHandle handle, const float* reactionError, const float* aField) 
+    {
+        if (handle && reactionError && aField) 
+        {
+            static_cast<PerceptronF*>(handle)->LearnedStimulAR(reactionError, aField);
+        }
+    }
+
+    PERCEPTRONF_API void LearnedStimulSAf(PerceptronFHandle handle, const float* reactionError, const float* aField, const float* aFieldNorm)
+    {
+        if (handle && reactionError && aField && aFieldNorm)
+        {
+            static_cast<PerceptronF*>(handle)->LearnedStimulSA(reactionError, aField, aFieldNorm);
+        }
+    }
+
+    PERCEPTRONF_API void RandomChange(PerceptronFHandle handle, float d, float c3, const float* aField)
+    {
+        if (handle && aField)
+        {
+            static_cast<PerceptronF*>(handle)->RandomChange(d, c3, aField);
+        }
+    }
+
+    PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename)
+    {
+        return static_cast<PerceptronF*>(handle)->SaveWeights(filename);
+    }
+    PERCEPTRONF_API bool LoadWeights(PerceptronFHandle handle, const char* filename)
+    {
+        return static_cast<PerceptronF*>(handle)->LoadWeights(filename);
+    }
+
+
+}
