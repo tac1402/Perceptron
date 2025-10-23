@@ -9,33 +9,52 @@ public class PerceptronAA : IDisposable
 	private IntPtr _handle;
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern IntPtr CreatePerceptronF(int sCount, int aCount, int rCount, float th);
+	private static extern IntPtr CreatePerceptronF(int sCount, int aCount, int rCount, int a2Count);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void DisposePerceptronF(IntPtr handle);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void SAf(IntPtr handle, int sIndex, int aIndex, float value);
+	private static extern void SA(IntPtr handle, int sIndex, int aIndex, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void ARf(IntPtr handle, int aIndex, int rIndex, float value);
-	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern float AR_f(IntPtr handle, int aIndex, int rIndex);
+	private static extern void AA(IntPtr handle, int aIndex, int a2Index, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void AActivation_f(IntPtr handle, float[] sField, float[] aField);
+	private static extern void AR(IntPtr handle, int aIndex, int rIndex, float value);
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern float AR_(IntPtr handle, int aIndex, int rIndex);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void RActivation_f(IntPtr handle, float[] aField, float[] rField, float threshold = 0.0f);
+	private static extern void AActivation(IntPtr handle, float[] sField, float[] aField);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void LearnedStimulARf(IntPtr handle, float[] reactionError, float[] aField);
+	private static extern void A2Activation(IntPtr handle, float[] aField, float[] a2Field);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void LearnedStimulSAf(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
+	private static extern void RActivation(IntPtr handle, float[] aField, float[] rField);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void R2Activation(IntPtr handle, float[] a2Field, float[] rField);
+
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void LearnedStimulAR(IntPtr handle, float[] reactionError, float[] aField);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void LearnedStimulSA(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void LearnedStimul2SA(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void LearnedStimul2AA(IntPtr handle, float[] reactionError, float[] a2Field, float[] a2FieldNorm);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void RandomChange(IntPtr handle, float d, float c3, float[] aField);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void Random2Change(IntPtr handle, float d, float c3, float[] aField, float[] a2Field);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern bool SaveWeights(IntPtr handle, string filename);
@@ -46,17 +65,17 @@ public class PerceptronAA : IDisposable
 
 	private int SCount;
 	private int ACount;
+	private int A2Count;
 	private int RCount;
-	private float th;
 
-	public PerceptronAA(int argSCount, int argACount, int argRCount, float argTh)
+	public PerceptronAA(int argSCount, int argACount, int argRCount, int argA2Count = 0)
 	{
 		SCount = argSCount;
 		ACount = argACount;
+		A2Count = argA2Count;
 		RCount = argRCount;
-		th = argTh;
 
-		_handle = CreatePerceptronF(SCount, ACount, RCount, argTh);
+		_handle = CreatePerceptronF(SCount, ACount, RCount, argA2Count);
 		if (_handle == IntPtr.Zero)
 			throw new Exception("Failed to create PerceptronAA instance");
 	}
@@ -73,46 +92,76 @@ public class PerceptronAA : IDisposable
 
 	public void SA(int sIndex, int aIndex, float value)
 	{
-		SAf(_handle, sIndex, aIndex, value);
+		SA(_handle, sIndex, aIndex, value);
+	}
+	public void AA(int aIndex, int a2Index, float value)
+	{
+		AA(_handle, aIndex, a2Index, value);
 	}
 
 	public void AR(int aIndex, int rIndex, float value)
 	{
-		ARf(_handle, aIndex, rIndex, value);
+		AR(_handle, aIndex, rIndex, value);
 	}
 	public float AR_(int aIndex, int rIndex)
 	{
-		return AR_f(_handle, aIndex, rIndex);
+		return AR_(_handle, aIndex, rIndex);
 	}
 
 
 	public float[] AActivation(float[] sField)
 	{
 		float[] aField = new float[ACount];
-		AActivation_f(_handle, sField, aField);
+		AActivation(_handle, sField, aField);
 		return aField;
 	}
+	public float[] A2Activation(float[] aField)
+	{
+		float[] a2Field = new float[A2Count];
+		A2Activation(_handle, aField, a2Field);
+		return a2Field;
+	}
 
-	public float[] RActivation(float[] aField, float threshold = 0.0f)
+
+	public float[] RActivation(float[] aField)
 	{
 		float[] rField = new float[RCount];
-		RActivation_f(_handle, aField, rField, threshold);
+		RActivation(_handle, aField, rField);
+		return rField;
+	}
+	public float[] R2Activation(float[] a2Field)
+	{
+		float[] rField = new float[RCount];
+		R2Activation(_handle, a2Field, rField);
 		return rField;
 	}
 
+
 	public void LearnedStimulAR(float[] reactionError, float[] aField)
 	{
-		LearnedStimulARf(_handle, reactionError, aField);
+		LearnedStimulAR(_handle, reactionError, aField);
 	}
 
 	public void LearnedStimulSA(float[] reactionError, float[] aField, float[] aFieldNorm)
 	{
-		LearnedStimulSAf(_handle, reactionError, aField, aFieldNorm);
+		LearnedStimulSA(_handle, reactionError, aField, aFieldNorm);
+	}
+	public void LearnedStimul2SA(float[] reactionError, float[] aField, float[] aFieldNorm)
+	{
+		LearnedStimul2SA(_handle, reactionError, aField, aFieldNorm);
+	}
+	public void LearnedStimul2AA(float[] reactionError, float[] a2Field, float[] a2FieldNorm)
+	{
+		LearnedStimul2AA(_handle, reactionError, a2Field, a2FieldNorm);
 	}
 
 	public void RandomChange(float d, float c3, float[] aField)
 	{
 		RandomChange(_handle, d, c3, aField);
+	}
+	public void Random2Change(float d, float c3, float[] aField, float[] a2Field)
+	{
+		Random2Change(_handle, d, c3, aField, a2Field);
 	}
 
 	public bool SaveWeights(string filename)

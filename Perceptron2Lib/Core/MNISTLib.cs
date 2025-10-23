@@ -10,8 +10,11 @@ namespace Tac.Experiment
 		public float[][] TrainSet = new float[60000][];
 		public float[] TrainLabels = new float[60000];
 
-		public float[][] ExamSet = new float[60000][];
-		public float[] ExamLabels = new float[60000];
+		public float[][] ExamSet = new float[10000][];
+		public float[] ExamLabels = new float[10000];
+
+		public float[][] TrainSetXOR = new float[60000][];
+		public float[][] ExamSetXOR = new float[10000][];
 
 		private void Init()
 		{

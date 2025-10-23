@@ -315,7 +315,7 @@ extern "C"
         }
     }
 
-    PERCEPTROND_API void SA(PerceptronDHandle handle, int sIndex, int aIndex, double value)
+    PERCEPTROND_API void SAd(PerceptronDHandle handle, int sIndex, int aIndex, double value)
     {
         if (handle)
         {
@@ -323,7 +323,7 @@ extern "C"
         }
     }
 
-    PERCEPTROND_API void AR(PerceptronDHandle handle, int aIndex, int rIndex, double value)
+    PERCEPTROND_API void ARd(PerceptronDHandle handle, int aIndex, int rIndex, double value)
     {
         if (handle)
         {
@@ -331,7 +331,7 @@ extern "C"
         }
     }
 
-    PERCEPTROND_API double AR_(PerceptronDHandle handle, int aIndex, int rIndex)
+    PERCEPTROND_API double AR_d(PerceptronDHandle handle, int aIndex, int rIndex)
     {
         if (handle)
         {
@@ -340,7 +340,7 @@ extern "C"
     }
 
 
-    PERCEPTROND_API void AActivation(PerceptronDHandle handle, const double* sField, double* aField)
+    PERCEPTROND_API void AActivation_d(PerceptronDHandle handle, const double* sField, double* aField)
     {
         if (handle && sField && aField)
         {
@@ -348,7 +348,7 @@ extern "C"
         }
     }
 
-    PERCEPTROND_API void RActivation(PerceptronDHandle handle, const double* aField, double* rField)
+    PERCEPTROND_API void RActivation_d(PerceptronDHandle handle, const double* aField, double* rField)
     {
         if (handle && aField && rField)
         {
@@ -356,7 +356,7 @@ extern "C"
         }
     }
 
-    PERCEPTROND_API void LearnedStimulAR(PerceptronDHandle handle, const double* reactionError, const double* aField)
+    PERCEPTROND_API void LearnedStimulAR_d(PerceptronDHandle handle, const double* reactionError, const double* aField)
     {
         if (handle && reactionError && aField)
         {

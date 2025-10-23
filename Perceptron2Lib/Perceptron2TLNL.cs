@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Tac.Perceptron
 {
@@ -14,10 +12,11 @@ namespace Tac.Perceptron
 	/// Перцептрон TL&NL - Двухуровневое и нормализированное обучение
 	/// Perceptron TL&NL – Perceptron witch Two-Level & Normalization Learning
 	/// </summary>
-	public class PerceptronTLNL
+	public class Perceptron2TLNL
 	{
 		private int SCount; // Количество сенсоров
 		private int ACount; // Количество ассоциаций
+		private int A2Count; // Количество ассоциаций
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров
 		private int ECount; // Количество примеров
@@ -28,26 +27,22 @@ namespace Tac.Perceptron
 		public float[] AField;
 		public float[] AFieldNorm;
 
-		//public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
+		public float[] A2Field;
+		public float[] A2FieldNorm;
+
 		public Dictionary<int, float[]> LearnedStimuls; // Обучающие стимулы из обучающей выборки
 		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
-		//public Dictionary<int, BitBlock> ExaminStimuls; // Стимулы для экзамена
 		public Dictionary<int, float[]> ExaminStimuls; // Стимулы для экзамена
 		public Dictionary<int, BitBlock> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
 
 		public int[] ErrorLog;
-		public List<int> ExceptStimul = new List<int>();
-		public List<int> OnlyStimul = new List<int>();
 
 		private float[] ReactionError;
 		private int OldError = 0;
 
 		private Random rnd = new Random(24);
 		private PerceptronAA AB;
-		//private PerceptronC AC;
-		//private PerceptronT AT;
-		//private PerceptronL AL;
 
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 		//private Gain gain;
@@ -55,12 +50,14 @@ namespace Tac.Perceptron
 
 		private string Arh
 		{
-			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString(); }
+			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString() + "x" + A2Count.ToString(); }
 		}
 
-		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount)
+
+		public Perceptron2TLNL(int argSCount, int argACount, int argA2Count, int argRCount, int argHCount, int argECount)
 		{
 			ACount = argACount;
+			A2Count = argA2Count;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
@@ -72,6 +69,7 @@ namespace Tac.Perceptron
 			ReactionError = new float[RCount];
 
 			AField = new float[ACount];
+			A2Field = new float[A2Count];
 
 			ErrorLog = new int[HCount];
 
@@ -81,7 +79,7 @@ namespace Tac.Perceptron
 			ExaminStimuls = new Dictionary<int, float[]>();
 			ExaminReactions = new Dictionary<int, BitBlock>();
 
-			AB = new PerceptronAA(SCount, ACount, RCount);
+			AB = new PerceptronAA(SCount, ACount, RCount, A2Count);
 		}
 
 
@@ -109,7 +107,7 @@ namespace Tac.Perceptron
 			NecessaryReactions.Add(argStimulNumber, argReaction);
 		}
 
-		
+
 		/*public void JoinEStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
 		{
 			// Запомним обучающий стимул
@@ -144,52 +142,6 @@ namespace Tac.Perceptron
 			ExaminReactions.Add(argStimulNumber, argReaction);
 		}
 
-
-		public void ExaminAB(int argECount, PerceptronTLNL perceptronB)
-		{
-			int AllErrorCount = 0;
-			int AllFastErrorCount = 0;
-
-			for (int n = 0; n < argECount; n++)
-			{
-
-				//if (n % 100 == 0)
-				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
-
-				(bool isError, bool isFastError) = ExaminOne(n);
-
-				string output = "";
-				if (isError == true)
-				{
-					AllErrorCount++;
-
-					(bool isErrorB, bool isFastErrorB) = perceptronB.ExaminOne(n);
-
-					string outputA = "";
-					for (int i = 0; i < RCount; i++)
-					{
-						outputA += ReactionsOutput[i].ToString();
-					}
-					string outputB = "";
-					for (int i = 0; i < RCount; i++)
-					{
-						outputB += perceptronB.ReactionsOutput[i].ToString();
-					}
-
-					output += n.ToString() + ". " + ExaminReactions[n].ToString() + "\t" + outputA + "\t" + outputB;
-					output += "\n\t" + isErrorB.ToString() + "\t" + isFastErrorB.ToString();
-				}
-				if (isFastError == true)
-				{
-					AllFastErrorCount++;
-
-					output += "\t" + isFastError.ToString();
-				}
-
-				File.AppendAllText("Exam.txt", output);
-			}
-
-		}
 
 		bool logErrorType = false;
 		public (int, int) Examin(int argECount, bool log = true)
@@ -238,8 +190,7 @@ namespace Tac.Perceptron
 			if (log == true)
 			{
 				File.AppendAllText("Result_" + Arh + ".txt",
-						"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') +
-						"; th = " + th.ToString("F16").TrimEnd('0') + "\n");
+						"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') + "\n");
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -312,39 +263,24 @@ namespace Tac.Perceptron
 			string weightFileName = "weight" + Arh + ".bin";
 			if (File.Exists(weightFileName))
 			{
-				AB.LoadWeights(weightFileName);
+				//AB.LoadWeights(weightFileName);
 			}
 
-			int heCount = HCount - ExceptStimul.Count;
-			if (OnlyStimul.Count != 0)
-			{ 
-				heCount = OnlyStimul.Count;
-			}
-
-			int[] indexL = new int[heCount];
-			int r = 0;
-			foreach (var rr in NecessaryReactions)
+			int[] indexL = new int[HCount];
+			for (int i = 0; i < HCount; i++)
 			{
-				if (ExaminStimuls.Count != 0)
-				{
-					if (ExceptStimul.Contains(rr.Key)) { continue; }
-				}
-				if (OnlyStimul.Count != 0)
-				{
-					if (!OnlyStimul.Contains(rr.Key)) { continue; }
-				}
+				indexL[i] = i;
 
-				indexL[r] = rr.Key;
-
-				rr.Value.To();
-				r++;
+				//LearnedStimuls[i].To();
+				NecessaryReactions[i].To();
 			}
 			for (int i = 0; i < ExaminStimuls.Count; i++)
 			{
+				//ExaminStimuls[i].To();
 				ExaminReactions[i].To();
 			}
 
-			float k1 = 1.0f;
+			float k1 = 0.05f;
 
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
@@ -372,11 +308,9 @@ namespace Tac.Perceptron
 				purity.SelectReaction(PuritySamples);
 
 				// За каждую итерацию прокручиваем все примеры из обучающей выборки
-				for (int i = 0; i < heCount; i++)
+				for (int i = 0; i < HCount; i++)
 				{
 					int index = indexL[i];
-
-					//if (ExceptStimul.Contains(index)) { continue; }
 
 					beginA = DateTime.Now;
 					AActivation(index);
@@ -401,7 +335,7 @@ namespace Tac.Perceptron
 
 						bool e2 = GetError(index);
 
-						if (e2 == true /*&& k1 > 0.001f*/)
+						if (e2 == true)
 						{
 							beginRnd = DateTime.Now;
 							RandomChange(index, k1);
@@ -419,7 +353,7 @@ namespace Tac.Perceptron
 						}
 						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 
-						ErrorLog[index]++;
+						ErrorLog[i]++;
 					}
 				}
 
@@ -432,6 +366,7 @@ namespace Tac.Perceptron
 				OldError = Error;
 
 				int er = 0; int fer = 0;
+
 				if (Error < 1000)
 				{
 					(er, fer) = Examin(ECount, false);
@@ -447,18 +382,16 @@ namespace Tac.Perceptron
 				File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
 
 
-
 				if (n % 10 == 0 && n > 0)
 				{
-					AB.SaveWeights(weightFileName);
+					//AB.SaveWeights("weight" + SCount.ToString() + "x" + ACount.ToString() + ".bin");
 				}
 
 
 				if (Error == 0) { break; }
-				//if (Error < 3000) { break; }
 			}
 
-			AB.SaveWeights(weightFileName);
+			//AB.SaveWeights("weight" + SCount.ToString() + "x" + ACount.ToString() + ".bin");
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
 
@@ -548,29 +481,29 @@ namespace Tac.Perceptron
 
 		float sum;
 
-		private float[] Normalize(float[] AField)
+		private float[] Normalize(float[] argAField)
 		{
 			sum = 0;
 			float maxAbs = 0;
 			// Находим максимальное по модулю значение
-			for (int i = 0; i < AField.Length; i++)
+			for (int i = 0; i < argAField.Length; i++)
 			{
-				float absValue = Math.Abs(AField[i]);
+				float absValue = Math.Abs(argAField[i]);
 				if (absValue > maxAbs) maxAbs = absValue;
 
-				sum += AField[i];
+				sum += argAField[i];
 			}
 
 			// Если все значения нулевые, возвращаем исходный массив
 			if (maxAbs == 0)
-				return AField;
+				return argAField;
 
 			// Нормализуем значения
-			float[] normalized = new float[AField.Length];
+			float[] normalized = new float[argAField.Length];
 
-			for (int i = 0; i < AField.Length; i++)
+			for (int i = 0; i < argAField.Length; i++)
 			{
-				normalized[i] = AField[i] / maxAbs;
+				normalized[i] = argAField[i] / maxAbs;
 			}
 
 			return normalized;
@@ -593,21 +526,7 @@ namespace Tac.Perceptron
 				SensorsField = ExaminStimuls[argStimulNumber];
 			}
 
-			/*AField = new float[ACount];
-			for (int j = 0; j < ACount; j++)
-			{
-				for (int i = 0; i < SCount; i++)
-				{
-					//if (SensorsField[i] == true)
-					{
-						AField[j] += WeightSA[i][j] * SensorsField.DataByte[i];
-					}
-				}
-			}*/
-
 			AField = AB.AActivation(SensorsField);
-
-			//Activations[argStimulNumber] = AField;
 
 			if (PuritySamples.Contains(argStimulNumber))
 			{
@@ -615,39 +534,37 @@ namespace Tac.Perceptron
 				Activations[index] = AField;
 			}
 
-
 			AFieldNorm = Normalize(AField);
+
+			A2Activation(argStimulNumber);
 		}
+
+		private void A2Activation(int argStimulNumber, int argMode = 0)
+		{
+			A2Field = AB.A2Activation(AField);
+
+			/*if (PuritySamples.Contains(argStimulNumber))
+			{
+				int index = PuritySamples_[argStimulNumber];
+				Activations[index] = AField;
+			}*/
+
+			A2FieldNorm = Normalize(A2Field);
+		}
+
+
 
 		float[] RField;
 		private void RActivation(int argStimulNumber)
 		{
-			/*float[] RField = new float[RCount];
-			for (int j = 0; j < RCount; j++)
-			{
-				for (int i = 0; i < ACount; i++)
-				{
-					if (AField[i] > 0)
-					{
-						RField[j] += AL.AR_(i, j);
-					}
-				}
-			}*/
-
-			RField = AB.RActivation(AField);
+			RField = AB.R2Activation(A2Field);
 
 			for (int i = 0; i < RCount; i++)
 			{
-				if (RField[i] > th) { ReactionsOutput[i] = 1; }
-				else if (RField[i] < th * -1) { ReactionsOutput[i] = -1; }
-				else { ReactionsOutput[i] = 0; }
-				
-				//if (RField[i] <= -0.01f) { ReactionsOutput[i] = false; }
+				if (RField[i] > 0) { ReactionsOutput[i] = 1; }
+				else if (RField[i] <= 0) { ReactionsOutput[i] = -1; }
 			}
 		}
-
-		//float th = 0.0000001f;
-		float th = 0.0f;
 
 		private bool GetFastError(int argStimulNumber, int argMode = 0)
 		{
@@ -669,7 +586,7 @@ namespace Tac.Perceptron
 				if (v == 1)
 				{
 					if (i != index)
-					{ 
+					{
 						IsError = true;
 					}
 					break;
@@ -729,9 +646,9 @@ namespace Tac.Perceptron
 
 		public float K1(float k2)
 		{
-			float maxK1 = 1.0f;
+			float maxK1 = 0.05f;
 			float minK1 = 0.001f;
-			float threshold = 150f;
+			float threshold = 1500f;
 
 			if (k2 >= threshold)
 				return maxK1;
@@ -750,89 +667,20 @@ namespace Tac.Perceptron
 			//float p = (float)rnd.NextDouble();
 			//if (p < argK1)
 			{
-				AB.RandomChange(d, correct3, AField);
-
-				/*for (int r = 0; r < RCount; r++)
-				{
-					for (int j = 0; j < ACount; j++)
-					{
-						if (AField[j] <= th)
-						{
-							for (int i = 0; i < SCount; i++)
-							{
-								float p0 = (float)rnd.NextDouble();
-								if (p0 < d)
-								{
-									//WeightSA[i][j] += correct3;
-									AL.SA(i, j, correct3);
-								}
-							}
-						}
-					}
-				}*/
+				AB.Random2Change(d, correct3, AField, A2Field);
 			}
 		}
 
-
 		private void LearnedStimulSA(int argStimulNumber)
 		{
-			AB.LearnedStimulSA(ReactionError, AField, AFieldNorm);
+			//AB.LearnedStimul2SA(ReactionError, AField, AFieldNorm);
 
-			/*for (int j = 0; j < ACount; j++)
-			{
-				float[] w = new float[SCount];
-
-				if (AField[j] > th)
-				{
-					for (int r = 0; r < RCount; r++)
-					{
-						if (ReactionError[r] != 0 && Math.Sign(AL.AR_(j, r)) != Math.Sign(ReactionError[r]))
-						{
-							for (int i = 0; i < SCount; i++)
-							{
-								w[i] -= AFieldNorm[j];
-							}
-						}
-					}
-				}
-				else
-				{
-					for (int r = 0; r < RCount; r++)
-					{
-						if (Math.Sign(AL.AR_(j, r)) == Math.Sign(ReactionError[r]))
-						{
-							for (int i = 0; i < SCount; i++)
-							{
-								w[i] += AFieldNorm[j];
-							}
-						}
-					}
-				}
-
-				for (int i = 0; i < SCount; i++)
-				{
-					//WeightSA[i][j] += w[i];
-					AL.SA(i, j, w[i]);
-				}
-			}*/
+			AB.LearnedStimul2AA(ReactionError, A2Field, A2FieldNorm);
 		}
-
 
 		private void LearnedStimulAR(int argStimulNumber)
 		{
-			AB.LearnedStimulAR(ReactionError, AField);
-
-			/*for (int j = 0; j < RCount; j++)
-			{
-				for (int i = 0; i < ACount; i++)
-				{
-					if (AField[i] > 0)
-					{
-						//WeightAR[i][j] = WeightAR[i][j] + ReactionError[j];
-						AL.AR(i, j, ReactionError[j]);
-					}
-				}
-			}*/
+			AB.LearnedStimulAR(ReactionError, A2Field);
 		}
 	}
 }
