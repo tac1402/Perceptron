@@ -1,7 +1,6 @@
 ﻿
 using Tac.Experiment;
 using Tac.Perceptron;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 /// <summary>
 /// Пример решения задачи распознования рукописных цифр (MNIST) перцептроном Розенблатта
@@ -16,8 +15,8 @@ public class MNIST_Task : MNISTLib
 		int E = 10000;
 
 		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		PerceptronTLNL net = new PerceptronTLNL(L, 20000, 10, N1, E);
-		PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E);
+		PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, E, "A");
+		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 5000, 2000, 10, N1, E);
 
 		LoadF();
@@ -55,7 +54,7 @@ public class MNIST_Task : MNISTLib
 			}
 
 			net.JoinEStimul(i, ExamSet[i], outputE[i]);
-			netB.JoinEStimul(i, ExamSet[i], outputE[i]);
+			//netB.JoinEStimul(i, ExamSet[i], outputE[i]);
 		}
 
 		BitBlock[] output = new BitBlock[N1];
@@ -76,12 +75,14 @@ public class MNIST_Task : MNISTLib
 		}
 
 		net.ExceptStimul = topError;
-		netB.OnlyStimul = topError;
+		//netB.OnlyStimul = topError;
 
-		//net.Learned();
-		//net.Examin(E);
+		net.Learned();
+		net.Examin(E);
 
-		net.ExaminAB(E, netB);
+		//net.LoadWeights();
+		//netB.LoadWeights();
+		//net.ExaminAB(E, netB);
 
 
 		/*

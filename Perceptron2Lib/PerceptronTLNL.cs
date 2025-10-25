@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Tac.Perceptron
@@ -53,18 +52,21 @@ namespace Tac.Perceptron
 		//private Gain gain;
 		private Purity purity;
 
+		private string Name = "";
+
 		private string Arh
 		{
 			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString(); }
 		}
 
-		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount)
+		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount, string argName = "")
 		{
 			ACount = argACount;
 			SCount = argSCount;
 			RCount = argRCount;
 			HCount = argHCount;
 			ECount = argECount;
+			Name = argName;
 
 			SensorsField = new float[SCount];
 
@@ -149,6 +151,23 @@ namespace Tac.Perceptron
 		{
 			int AllErrorCount = 0;
 			int AllFastErrorCount = 0;
+			int NotSure = 0;
+			int SureB = 0;
+			int SureB2 = 0;
+			int s1 = 0;
+			int s2 = 0;
+			int s3 = 0;
+			int s4 = 0;
+
+			for (int i = 0; i < ExaminStimuls.Count; i++)
+			{
+				ExaminReactions[i].To();
+			}
+
+			errorType.Add("s1", 0);
+			errorType.Add("s2", 0);
+			errorType.Add("s3", 0);
+			errorType.Add("s4", 0);
 
 			for (int n = 0; n < argECount; n++)
 			{
@@ -156,40 +175,105 @@ namespace Tac.Perceptron
 				//if (n % 100 == 0)
 				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
+				int index = ArgMax(ExaminReactions[n].DataB);
+
 				(bool isError, bool isFastError) = ExaminOne(n);
+				int indexA = ArgMax(RField);
+				bool isSureA = IsSure(ReactionsOutput);
+
+				(bool isErrorB, bool isFastErrorB) = perceptronB.ExaminOne(n);
+				int indexB = ArgMax(perceptronB.RField);
+				bool isSureB = IsSure(perceptronB.ReactionsOutput);
 
 				string output = "";
-				if (isError == true)
+				if (isError)
 				{
 					AllErrorCount++;
-
-					(bool isErrorB, bool isFastErrorB) = perceptronB.ExaminOne(n);
-
-					string outputA = "";
-					for (int i = 0; i < RCount; i++)
-					{
-						outputA += ReactionsOutput[i].ToString();
-					}
-					string outputB = "";
-					for (int i = 0; i < RCount; i++)
-					{
-						outputB += perceptronB.ReactionsOutput[i].ToString();
-					}
-
-					output += n.ToString() + ". " + ExaminReactions[n].ToString() + "\t" + outputA + "\t" + outputB;
-					output += "\n\t" + isErrorB.ToString() + "\t" + isFastErrorB.ToString();
 				}
-				if (isFastError == true)
+				if (isFastError)
 				{
 					AllFastErrorCount++;
-
-					output += "\t" + isFastError.ToString();
+				}
+				string outputA = "";
+				for (int i = 0; i < RCount; i++)
+				{
+					if (ReactionsOutput[i] == 1) { outputA += "1"; } else { outputA += "0"; }
+				}
+				string outputB = "";
+				for (int i = 0; i < RCount; i++)
+				{
+					if (perceptronB.ReactionsOutput[i] == 1) { outputB += "1"; } else { outputB += "0"; }
 				}
 
-				File.AppendAllText("Exam.txt", output);
+
+				if (isSureA == false)
+				{
+					NotSure++;
+
+					if (isSureB == true)
+					{
+						if (isErrorB == true)
+						{
+							AddError(n, "s3", index, outputA, outputB, isError, isFastError, isErrorB, isFastErrorB);
+							s3++;
+						}
+					}
+					else
+					{
+						if (isFastErrorB == true)
+						{
+							AddError(n, "s4", index, outputA, outputB, isError, isFastError, isErrorB, isFastErrorB);
+							s4++;
+						}
+					}
+				}
+				else
+				{
+					if (isSureB == true && isError == false)
+					{
+						SureB++;
+					}
+
+					if (isError == true)
+					{
+						AddError(n, "s1", index, outputA, outputB, isError, isFastError, isErrorB, isFastErrorB);
+						s1++;
+					}
+				}
+
+			}
+			File.AppendAllText("Exam.txt", AllErrorCount.ToString() + "\t" + AllFastErrorCount.ToString() + "\t" + NotSure.ToString() + 
+				"\t" + SureB.ToString() + "\t" + SureB2.ToString() +
+				 "\t S: " + s1.ToString() + "\t" + s2.ToString() + "\t" + s3.ToString() + "\t" + s4.ToString() + "\n");
+			
+			foreach (var error in errorType)
+			{
+				File.AppendAllText("Exam.txt", error.Key + " = " + error.Value.ToString() + "\n");
 			}
 
+
 		}
+
+		Dictionary<string, int> errorType = new Dictionary<string, int>();
+
+		public void AddError(int n, string type, int index, string outputA, string outputB,
+			bool isError, bool isFastError, bool isErrorB, bool isFastErrorB)
+		{
+			string output = n.ToString() + "-" + type + ". " + index.ToString() + "\t" + ExaminReactions[n].ToString() + "\t" + outputA + "\t" + outputB;
+			output += "\n\t" + isError.ToString() + "\t" + isFastError.ToString();
+			output += "\n\t" + isErrorB.ToString() + "\t" + isFastErrorB.ToString();
+
+			if (isError && isFastError && isErrorB && isFastErrorB)
+			{
+				File.AppendAllText("ExamE.txt", output + "\n");
+			}
+			else
+			{
+				errorType[type]++;
+				File.AppendAllText("Exam.txt", output + "\n");
+			}
+		}
+
 
 		bool logErrorType = false;
 		public (int, int) Examin(int argECount, bool log = true)
@@ -238,8 +322,7 @@ namespace Tac.Perceptron
 			if (log == true)
 			{
 				File.AppendAllText("Result_" + Arh + ".txt",
-						"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') +
-						"; th = " + th.ToString("F16").TrimEnd('0') + "\n");
+						"p3 = " + p3.ToString("F16").TrimEnd('0') + "; c3 = " + correct3.ToString("F16").TrimEnd('0') + "\n");
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -300,6 +383,27 @@ namespace Tac.Perceptron
 		int Error = 0;
 		int Error2 = 0;
 
+		public string WeightFileName()
+		{
+			string weightFileName = "weight" + Arh;
+			if (Name != "")
+			{
+				weightFileName += "_" + Name;
+			}
+			weightFileName += ".bin";
+			return weightFileName;
+		}
+
+		public void LoadWeights()
+		{
+			string weightFileName = WeightFileName();
+
+			if (File.Exists(weightFileName))
+			{
+				AB.LoadWeights(weightFileName);
+			}
+		}
+
 		/// <summary>
 		/// Когда все примеры добавлены, вызывается чтобы перцептрон их выучил
 		/// </summary>
@@ -309,11 +413,9 @@ namespace Tac.Perceptron
 
 			InitAnalyze();
 
-			string weightFileName = "weight" + Arh + ".bin";
-			if (File.Exists(weightFileName))
-			{
-				AB.LoadWeights(weightFileName);
-			}
+			string weightFileName = WeightFileName();
+			LoadWeights();
+
 
 			int heCount = HCount - ExceptStimul.Count;
 			if (OnlyStimul.Count != 0)
@@ -609,7 +711,7 @@ namespace Tac.Perceptron
 
 			//Activations[argStimulNumber] = AField;
 
-			if (PuritySamples.Contains(argStimulNumber))
+			if (PuritySamples != null && PuritySamples.Contains(argStimulNumber))
 			{
 				int index = PuritySamples_[argStimulNumber];
 				Activations[index] = AField;
@@ -638,16 +740,11 @@ namespace Tac.Perceptron
 
 			for (int i = 0; i < RCount; i++)
 			{
-				if (RField[i] > th) { ReactionsOutput[i] = 1; }
-				else if (RField[i] < th * -1) { ReactionsOutput[i] = -1; }
+				if (RField[i] > 0) { ReactionsOutput[i] = 1; }
+				else if (RField[i] < 0) { ReactionsOutput[i] = -1; }
 				else { ReactionsOutput[i] = 0; }
-				
-				//if (RField[i] <= -0.01f) { ReactionsOutput[i] = false; }
 			}
 		}
-
-		//float th = 0.0000001f;
-		float th = 0.0f;
 
 		private bool GetFastError(int argStimulNumber, int argMode = 0)
 		{
@@ -676,6 +773,29 @@ namespace Tac.Perceptron
 				}
 			}
 			return IsError;
+		}
+
+		public bool IsSure(sbyte[] array)
+		{
+			int count = 0;
+			for (int i = 0; i < array.Length; i++)
+			{
+				if (array[i] > 0)
+				{
+					count++;
+				}
+			}
+			return count == 1;
+		}
+
+		public int ArgMax(sbyte[] array)
+		{ 
+			float[] a = new float[array.Length];
+			for (int i = 0; i < array.Length; i++)
+			{ 
+				a[i] = array[i];
+			}
+			return ArgMax(a);
 		}
 
 		public int ArgMax(float[] array)
