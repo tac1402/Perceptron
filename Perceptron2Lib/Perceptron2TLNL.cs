@@ -427,20 +427,22 @@ namespace Tac.Perceptron
 				}
 			}*/
 
-			purity.NeighborhoodPurity(Activations, PCount / RCount, RCount); // /2
+			//purity.NeighborhoodPurity(Activations, PCount / RCount, RCount); // /2
+			purity.NeighborhoodPurity(Activations, PCount / 2);
 
 			//string outputA = "\tAN: " + activeNeiron.ToString("F0") + "\tR: " + regionCount.ToString("F0") + "/" + purity.avgPairwise.ToString("F0")
 			//	+ "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
+
+			string outputA = "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
 
 			//string outputA2 = "\t" + activeNeiron.ToString("F0") + "\t" + purity.avgPairwise.ToString("F2")
 			//	+ "\t " + purity.minPurity.ToString("F4") + "\t" + purity.avgPurity.ToString("F4") + "\t" + purity.maxPurity.ToString("F4")
 			//	+ "\t" + FPurity.Avg.ToString("F4");
 
 
-			Console.WriteLine(purity.Distribution.InfoA);
-			//Console.WriteLine(outputA + "\n" + purity.Distribution.InfoA);
-			//File.AppendAllText("Purity_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputA2 + "\n");
-			File.AppendAllText("PurityD_" + Arh + ".txt", purity.Distribution.InfoB + "\n");
+			Console.WriteLine(outputA + "\n" + purity.Distribution.InfoA);
+			File.AppendAllText("Purity_" + Arh + ".txt", outputA + "\n");
+			//File.AppendAllText("PurityD_" + Arh + ".txt", purity.Distribution.InfoB + "\n");
 		}
 
 
@@ -673,9 +675,16 @@ namespace Tac.Perceptron
 
 		private void LearnedStimulSA(int argStimulNumber)
 		{
-			//AB.LearnedStimul2SA(ReactionError, AField, AFieldNorm);
+			float[] ReactionErrorAA = new float[A2Count];
 
-			AB.LearnedStimul2AA(ReactionError, A2Field, A2FieldNorm);
+			AB.LearnedStimul2AA(ReactionError, A2Field, A2FieldNorm, ReactionErrorAA);
+
+			for (int i = 0; i < ReactionErrorAA.Length; i++)
+			{
+				ReactionErrorAA[i] = Math.Sign(ReactionErrorAA[i]);
+			}
+
+			//AB.LearnedStimul2SA(ReactionErrorAA, AField, AFieldNorm);
 		}
 
 		private void LearnedStimulAR(int argStimulNumber)

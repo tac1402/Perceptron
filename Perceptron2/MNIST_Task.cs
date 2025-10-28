@@ -9,15 +9,22 @@ public class MNIST_Task : MNISTLib
 {
 	public void Run()
 	{
-		int N1 = 60000; //60000;
+		int N1 = 60000;
 		//int N1 = 10000;
 		int L = 768;
 		int E = 10000;
 
-		//NeironNetTree net = new NeironNetTree(L, 20000, 10, N1);
-		PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, E, "A");
+		NeironNetTree net = new NeironNetTree(L, 30000, 1, N1, E);
+		net.IsAnalyze = true;
+		//net.SinapsXCount = 32;
+		//net.SinapsYCount = 32;
+		net.sinapsType = NeironNetTree.SinapsType.Full;
+		
+
+		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, E, "A");
+		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
 		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
-		//Perceptron2TLNL net = new Perceptron2TLNL(L, 5000, 2000, 10, N1, E);
+		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
 
 		LoadF();
 
@@ -58,7 +65,7 @@ public class MNIST_Task : MNISTLib
 		}
 
 		BitBlock[] output = new BitBlock[N1];
-		for (int i = 0; i < N1; i++)
+		/*for (int i = 0; i < N1; i++)
 		{
 			output[i] = new BitBlock(10);
 
@@ -72,21 +79,33 @@ public class MNIST_Task : MNISTLib
 			}
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
+		}*/
+		for (int i = 0; i < N1; i++)
+		{
+			output[i] = new BitBlock(1);
+
+			if (topError.Contains(i))
+			{
+				output[i][0] = true;
+			}
+
+			net.JoinStimul(i, TrainSet[i], output[i]);
 		}
 
-		net.ExceptStimul = topError;
+
+
+		//net.ExceptStimul = topError;
 		//netB.OnlyStimul = topError;
 
 		net.Learned();
-		net.Examin(E);
+		//net.Examin(E);
 
 		//net.LoadWeights();
 		//netB.LoadWeights();
 		//net.ExaminAB(E, netB);
 
-
 		/*
-		List<int> topErrorNew = net.TopError(100);
+		List<int> topErrorNew = net.TopError(10000);
 		SaveSet(topErrorNew);
 
 		string set = "";
@@ -94,7 +113,7 @@ public class MNIST_Task : MNISTLib
 		{
 			set += topErrorNew[i].ToString() + ",";
 		}
-		File.WriteAllText("HardError7.txt", set);
+		File.WriteAllText("HardError1.txt", set);
 		*/
 		/*
 		Dictionary<int, int> newError = LoadErrorLog();

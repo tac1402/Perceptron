@@ -18,6 +18,9 @@ public class PerceptronAA : IDisposable
 	private static extern void SA(IntPtr handle, int sIndex, int aIndex, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern float SA_(IntPtr handle, int sIndex, int aIndex);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void AA(IntPtr handle, int aIndex, int a2Index, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -48,7 +51,7 @@ public class PerceptronAA : IDisposable
 	private static extern void LearnedStimul2SA(IntPtr handle, float[] reactionError, float[] aField, float[] aFieldNorm);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void LearnedStimul2AA(IntPtr handle, float[] reactionError, float[] a2Field, float[] a2FieldNorm);
+	private static extern void LearnedStimul2AA(IntPtr handle, float[] reactionError, float[] a2Field, float[] a2FieldNorm, float[] retUpdates);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void RandomChange(IntPtr handle, float d, float c3, float[] aField);
@@ -93,6 +96,10 @@ public class PerceptronAA : IDisposable
 	public void SA(int sIndex, int aIndex, float value)
 	{
 		SA(_handle, sIndex, aIndex, value);
+	}
+	public float SA_(int sIndex, int aIndex)
+	{
+		return SA_(_handle, sIndex, aIndex);
 	}
 	public void AA(int aIndex, int a2Index, float value)
 	{
@@ -150,9 +157,9 @@ public class PerceptronAA : IDisposable
 	{
 		LearnedStimul2SA(_handle, reactionError, aField, aFieldNorm);
 	}
-	public void LearnedStimul2AA(float[] reactionError, float[] a2Field, float[] a2FieldNorm)
+	public void LearnedStimul2AA(float[] reactionError, float[] a2Field, float[] a2FieldNorm, float[] retUpdates)
 	{
-		LearnedStimul2AA(_handle, reactionError, a2Field, a2FieldNorm);
+		LearnedStimul2AA(_handle, reactionError, a2Field, a2FieldNorm, retUpdates);
 	}
 
 	public void RandomChange(float d, float c3, float[] aField)

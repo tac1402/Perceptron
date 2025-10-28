@@ -48,6 +48,8 @@ namespace Tac.Perceptron
 		//private PerceptronT AT;
 		//private PerceptronL AL;
 
+		//private Conv3x3 conv;
+
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 		//private Gain gain;
 		private Purity purity;
@@ -447,6 +449,7 @@ namespace Tac.Perceptron
 			}
 
 			float k1 = 1.0f;
+			int minError2 = int.MaxValue;
 
 			// Делаем очень много итераций
 			for (int n = 0; n < 100000; n++)
@@ -536,7 +539,7 @@ namespace Tac.Perceptron
 				int er = 0; int fer = 0;
 				if (Error < 1000)
 				{
-					(er, fer) = Examin(ECount, false);
+					//(er, fer) = Examin(ECount, false);
 				}
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
@@ -551,13 +554,17 @@ namespace Tac.Perceptron
 
 
 				if (n % 10 == 0 && n > 0)
+				//if (Error2 < minError2)
 				{
 					AB.SaveWeights(weightFileName);
+					//minError2 = Error2;
 				}
+
+				//Console.WriteLine("\tminError2: " + minError2.ToString());
 
 
 				if (Error == 0) { break; }
-				//if (Error < 3000) { break; }
+				//if (Error < 13000) { break; }
 			}
 
 			AB.SaveWeights(weightFileName);
@@ -596,20 +603,23 @@ namespace Tac.Perceptron
 				}
 			}*/
 
-			purity.NeighborhoodPurity(Activations, PCount / RCount, RCount); // /2
+			//purity.NeighborhoodPurity(Activations, PCount / RCount, RCount); // /2
+			purity.NeighborhoodPurity(Activations, PCount / 2);
 
 			//string outputA = "\tAN: " + activeNeiron.ToString("F0") + "\tR: " + regionCount.ToString("F0") + "/" + purity.avgPairwise.ToString("F0")
 			//	+ "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
+
+			string outputA = "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
 
 			//string outputA2 = "\t" + activeNeiron.ToString("F0") + "\t" + purity.avgPairwise.ToString("F2")
 			//	+ "\t " + purity.minPurity.ToString("F4") + "\t" + purity.avgPurity.ToString("F4") + "\t" + purity.maxPurity.ToString("F4")
 			//	+ "\t" + FPurity.Avg.ToString("F4");
 
 
-			Console.WriteLine(purity.Distribution.InfoA);
-			//Console.WriteLine(outputA + "\n" + purity.Distribution.InfoA);
-			//File.AppendAllText("Purity_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", outputA2 + "\n");
-			File.AppendAllText("PurityD_" + Arh + ".txt", purity.Distribution.InfoB + "\n");
+			//Console.WriteLine(purity.Distribution.InfoA);
+			Console.WriteLine(outputA + "\n" + purity.Distribution.InfoA);
+			File.AppendAllText("Purity_" + Arh + ".txt", outputA + "\n");
+			//File.AppendAllText("PurityD_" + Arh + ".txt", purity.Distribution.InfoB + "\n");
 		}
 
 
@@ -650,29 +660,29 @@ namespace Tac.Perceptron
 
 		float sum;
 
-		private float[] Normalize(float[] AField)
+		private float[] Normalize(float[] argAField)
 		{
 			sum = 0;
 			float maxAbs = 0;
 			// Находим максимальное по модулю значение
-			for (int i = 0; i < AField.Length; i++)
+			for (int i = 0; i < argAField.Length; i++)
 			{
-				float absValue = Math.Abs(AField[i]);
+				float absValue = Math.Abs(argAField[i]);
 				if (absValue > maxAbs) maxAbs = absValue;
 
-				sum += AField[i];
+				sum += argAField[i];
 			}
 
 			// Если все значения нулевые, возвращаем исходный массив
 			if (maxAbs == 0)
-				return AField;
+				return argAField;
 
 			// Нормализуем значения
-			float[] normalized = new float[AField.Length];
+			float[] normalized = new float[argAField.Length];
 
-			for (int i = 0; i < AField.Length; i++)
+			for (int i = 0; i < argAField.Length; i++)
 			{
-				normalized[i] = AField[i] / maxAbs;
+				normalized[i] = argAField[i] / maxAbs;
 			}
 
 			return normalized;
@@ -719,6 +729,7 @@ namespace Tac.Perceptron
 
 
 			AFieldNorm = Normalize(AField);
+
 		}
 
 		float[] RField;
@@ -841,11 +852,13 @@ namespace Tac.Perceptron
 		}
 
 
-		//float p3 = 0.000003f;		// MNIST
-		//float correct3 = 0.0001f;	// MNIST
 
 		float p3 = 0.0000001f;
 		float correct3 = 0.00001f;
+
+		//float p3 = 0.01f;
+		//float correct3 = 0.001f;
+
 
 		public float K1(float k2)
 		{

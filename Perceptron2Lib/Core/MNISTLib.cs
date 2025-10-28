@@ -1,7 +1,9 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
+using System;
 using System.Data;
+using Tac.Perceptron;
 
 namespace Tac.Experiment
 {
@@ -13,11 +15,14 @@ namespace Tac.Experiment
 		public float[][] ExamSet = new float[10000][];
 		public float[] ExamLabels = new float[10000];
 
+		public float[][] TrainInvSet = new float[60000][];
+
 		private void Init()
 		{
 			for (int i = 0; i < TrainSet.Length; i++)
 			{
 				TrainSet[i] = new float[28 * 28];
+				TrainInvSet[i] = new float[28 * 28 * 2];
 			}
 			for (int i = 0; i < ExamSet.Length; i++)
 			{

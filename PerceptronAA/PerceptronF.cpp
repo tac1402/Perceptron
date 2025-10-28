@@ -62,6 +62,11 @@ public:
     {
         SAWeights[SIndex * ACount + AIndex] += value;
     }
+    float SA_(int SIndex, int AIndex)
+    {
+        return SAWeights[SIndex * ACount + AIndex];
+    }
+
 
     void AA(int AIndex, int A2Index, float value)
     {
@@ -121,16 +126,16 @@ public:
 
     void LearnedStimulSA(const float* ReactionError, const float* AField, const float* AFieldNorm)
     {
-        LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm, SCount, ACount, RCount, SAWeights, ARWeights);
+        LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm, SCount, ACount, RCount, SAWeights, ARWeights, NULL);
     }
 
     void LearnedStimul2SA(const float* ReactionError, const float* AField, const float* AFieldNorm)
     {
-        LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm, SCount, ACount, A2Count, SAWeights, AAWeights);
+        LearnedStimulSAAvx2(ReactionError, AField, AFieldNorm, SCount, ACount, A2Count, SAWeights, AAWeights, NULL);
     }
-    void LearnedStimul2AA(const float* ReactionError, const float* A2Field, const float* A2FieldNorm)
+    void LearnedStimul2AA(const float* ReactionError, const float* A2Field, const float* A2FieldNorm, float* retUpdates)
     {
-        LearnedStimulSAAvx2(ReactionError, A2Field, A2FieldNorm, ACount, A2Count, RCount, AAWeights, ARWeights);
+        LearnedStimulSAAvx2(ReactionError, A2Field, A2FieldNorm, ACount, A2Count, RCount, AAWeights, ARWeights, retUpdates);
     }
 
 
@@ -611,7 +616,7 @@ private:
     }
 
     inline void LearnedStimulSAAvx2(const float* ReactionError, const float* AField, const float* AFieldNorm, 
-        int argSCount, int argACount, int argRCount, float* argWeight, float* argWeight2)
+        int argSCount, int argACount, int argRCount, float* argWeight, float* argWeight2, float* retUpdates)
     {
         // Вычисляем обновления для каждого A-нейрона
         std::vector<float> a_updates(argACount, 0.0f);
@@ -671,6 +676,10 @@ private:
                 argWeight[i * argACount + j] += a_updates[j];
             }
         }
+        if (retUpdates != NULL)
+        {
+            std::copy(a_updates.begin(), a_updates.end(), retUpdates);
+        }
     }
 
 };
@@ -705,6 +714,14 @@ extern "C"
             static_cast<PerceptronF*>(handle)->SA(sIndex, aIndex, value);
         }
     }
+    PERCEPTRONF_API float SA_(PerceptronFHandle handle, int sIndex, int aIndex)
+    {
+        if (handle)
+        {
+            return static_cast<PerceptronF*>(handle)->SA_(sIndex, aIndex);
+        }
+    }
+
     PERCEPTRONF_API void AA(PerceptronFHandle handle, int aIndex, int a2Index, float value)
     {
         if (handle)
@@ -784,11 +801,11 @@ extern "C"
         }
     }
 
-    PERCEPTRONF_API void LearnedStimul2AA(PerceptronFHandle handle, const float* reactionError, const float* a2Field, const float* a2FieldNorm)
+    PERCEPTRONF_API void LearnedStimul2AA(PerceptronFHandle handle, const float* reactionError, const float* a2Field, const float* a2FieldNorm, float* retUpdates)
     {
-        if (handle && reactionError && a2Field && a2FieldNorm)
+        if (handle && reactionError && a2Field && a2FieldNorm && retUpdates)
         {
-            static_cast<PerceptronF*>(handle)->LearnedStimul2AA(reactionError, a2Field, a2FieldNorm);
+            static_cast<PerceptronF*>(handle)->LearnedStimul2AA(reactionError, a2Field, a2FieldNorm, retUpdates);
         }
     }
 

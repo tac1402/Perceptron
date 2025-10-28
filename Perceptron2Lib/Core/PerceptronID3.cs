@@ -27,7 +27,7 @@ namespace Tac.Perceptron
 			Console.WriteLine(root.Count.ToString());
 		}
 
-		(Dictionary<int, BitBlock>, bool[]) getSamples(int ReactionCount, Dictionary<int, List<int>> argAHConnections, Dictionary<int, BitBlock> argNecessaryReactions,
+		(Dictionary<int, BitBlock>, bool[]) getSamples(int ReactionCount, Dictionary<int, float[]> argActivations, Dictionary<int, BitBlock> argNecessaryReactions,
 			int RNumber, int argFrom, int argTill)
 		{
 			Dictionary<int, BitBlock> result = new Dictionary<int, BitBlock>();
@@ -39,12 +39,11 @@ namespace Tac.Perceptron
 				BitBlock sensor = new BitBlock(argTill - argFrom);
 				bool reaction;
 
-				for (int j = 0; j < argAHConnections[i].Count; j++)
+				for (int j = 0; j < argActivations[i].Length; j++)
 				{
-					int index = argAHConnections[i][j];
-					if (index >= argFrom && index < argTill)
+					if (j >= argFrom && j < argTill && argActivations[i][j] > 0)
 					{
-						sensor[index - argFrom] = true;
+						sensor[j - argFrom] = true;
 					}
 				}
 
@@ -58,7 +57,7 @@ namespace Tac.Perceptron
 			return (result, samplesClass);
 		}
 
-		public void Analyze(int argACount, int argHCount, Dictionary<int, List<int>> argAHConnections,
+		public void Analyze(int argACount, int argHCount, Dictionary<int, float[]> argActivations,
 			Dictionary<int, BitBlock> argNecessaryReactions, int argRNumber, int argFrom, int argTill)
 		{
 			ACount = argACount;
@@ -80,7 +79,7 @@ namespace Tac.Perceptron
 
 			Dictionary<int, BitBlock> samples;
 			bool[] samplesClass;
-			(samples, samplesClass) = getSamples(argHCount, argAHConnections, argNecessaryReactions, argRNumber, argFrom, argTill);
+			(samples, samplesClass) = getSamples(argHCount, argActivations, argNecessaryReactions, argRNumber, argFrom, argTill);
 
 			id3 = new DecisionTreeID3(argFrom);
 			id3.graphP = graphP;

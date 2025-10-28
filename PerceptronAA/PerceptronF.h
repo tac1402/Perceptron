@@ -20,6 +20,7 @@ extern "C"
 
     // Operations
     PERCEPTRONF_API void SA(PerceptronFHandle handle, int sIndex, int aIndex, float value);
+    PERCEPTRONF_API float SA_(PerceptronFHandle handle, int sIndex, int aIndex);
     PERCEPTRONF_API void AA(PerceptronFHandle handle, int aIndex, int a2Index, float value);
     PERCEPTRONF_API void AR(PerceptronFHandle handle, int aIndex, int rIndex, float value);
     PERCEPTRONF_API float AR_(PerceptronFHandle handle, int aIndex, int rIndex);
@@ -34,7 +35,7 @@ extern "C"
     PERCEPTRONF_API void LearnedStimulSA(PerceptronFHandle handle, const float* reactionError, const float* aField, const float* aFieldNorm);
 
     PERCEPTRONF_API void LearnedStimul2SA(PerceptronFHandle handle, const float* reactionError, const float* aField, const float* aFieldNorm);
-    PERCEPTRONF_API void LearnedStimul2AA(PerceptronFHandle handle, const float* reactionError, const float* a2Field, const float* a2FieldNorm);
+    PERCEPTRONF_API void LearnedStimul2AA(PerceptronFHandle handle, const float* reactionError, const float* a2Field, const float* a2FieldNorm, float* retUpdates);
 
     PERCEPTRONF_API void RandomChange(PerceptronFHandle handle, float d, float c3, const float* AField);
     PERCEPTRONF_API void Random2Change(PerceptronFHandle handle, float d, float c3, const float* AField, const float* A2Field);
