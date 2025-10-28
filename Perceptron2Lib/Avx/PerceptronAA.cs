@@ -29,7 +29,7 @@ public class PerceptronAA : IDisposable
 	private static extern float AR_(IntPtr handle, int aIndex, int rIndex);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern void AActivation(IntPtr handle, float[] sField, float[] aField);
+	private static extern void AActivation(IntPtr handle, float[] sField, float[] aField, int startA, int endA);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern void A2Activation(IntPtr handle, float[] aField, float[] a2Field);
@@ -116,10 +116,16 @@ public class PerceptronAA : IDisposable
 	}
 
 
-	public float[] AActivation(float[] sField)
+	public float[] AActivation(float[] sField, int startA = 0, int endA = -1)
 	{
-		float[] aField = new float[ACount];
-		AActivation(_handle, sField, aField);
+		float[] aField;
+		if (endA != -1)
+		{
+			aField = new float[endA - startA];
+		}
+		else { aField = new float[ACount]; }
+
+		AActivation(_handle, sField, aField, startA, endA);
 		return aField;
 	}
 	public float[] A2Activation(float[] aField)

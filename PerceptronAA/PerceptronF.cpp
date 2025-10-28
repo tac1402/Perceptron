@@ -83,10 +83,18 @@ public:
         return ARWeights[RIndex * ACount + AIndex];
     }
 
-    void AActivation(const float* SField, float* AField) 
+    void AActivation(const float* SField, float* AField, int startA, int endA)
     {
-        std::memset(AField, 0, ACount * sizeof(float));
-        AActivationAvx2(AField, SField, SCount, ACount, SAWeights);
+        if (endA == -1)
+        {
+            std::memset(AField, 0, ACount * sizeof(float));
+        }
+        else
+        {
+            std::memset(AField, 0, (endA - startA) * sizeof(float));
+        }
+
+        AActivationAvx2(AField, SField, SCount, ACount, SAWeights, startA, endA);
 
         //AActivationAvx2_New(AField, SField, SCount, ACount, SAWeights);
     }
@@ -95,7 +103,7 @@ public:
     void A2Activation(const float* AField, float* A2Field)
     {
         std::memset(A2Field, 0, A2Count * sizeof(float));
-        AActivationAvx2(A2Field, AField, ACount, A2Count, AAWeights);
+        AActivationAvx2(A2Field, AField, ACount, A2Count, AAWeights, 0, A2Count);
     }
 
     // Активация R слоя при одном А-слое
@@ -300,8 +308,11 @@ private:
     }
 
 
-    inline void AActivationAvx2(float* argAField, const float* argSField, int argSCount, int argACount, float* argWeight)
+    inline void AActivationAvx2(float* argAField, const float* argSField, int argSCount, int argACount, float* argWeight,
+        int startA, int endA)
     { 
+        if (endA == -1) endA = argACount;
+
         // Собираем индексы ненулевых элементов SField
         std::vector<int> nonZeroS;
         nonZeroS.reserve(argSCount);
@@ -314,8 +325,8 @@ private:
         }
         const int nonZeroCount = static_cast<int>(nonZeroS.size());
 
-        int j = 0;
-        for (; j <= argACount - 8; j += 8)
+        int j = startA;
+        for (; j <= endA - 8; j += 8)
         {
             __m256 sum0 = _mm256_setzero_ps();
             __m256 sum1 = _mm256_setzero_ps();
@@ -349,18 +360,18 @@ private:
             }
 
             // Сохраняем результат для векторизованной части
-            if (j + 8 <= argACount)
+            if (j + 8 <= endA)
             {
-                _mm256_store_ps(argAField + j, finalSum);
+                _mm256_store_ps(argAField + (j - startA), finalSum);
             }
             else
             {
-                StoreVector(argAField + j, finalSum, argACount - j);
+                StoreVector(argAField + (j - startA), finalSum, endA - j);
             }
         }
 
         // Скалярная обработка оставшихся j
-        for (; j < argACount; j++)
+        for (; j < endA; j++)
         {
             float sum = 0.0f;
             for (int idx = 0; idx < nonZeroCount; idx++)
@@ -368,7 +379,8 @@ private:
                 const int i = nonZeroS[idx];
                 sum += argWeight[i * argACount + j] * argSField[i];
             }
-            argAField[j] = sum;
+
+            argAField[j - startA] = sum;
         }
     }
 
@@ -747,11 +759,11 @@ extern "C"
     }
 
 
-    PERCEPTRONF_API void AActivation(PerceptronFHandle handle, const float* sField, float* aField) 
+    PERCEPTRONF_API void AActivation(PerceptronFHandle handle, const float* sField, float* aField, int startA, int endA)
     {
         if (handle && sField && aField) 
         {
-            static_cast<PerceptronF*>(handle)->AActivation(sField, aField);
+            static_cast<PerceptronF*>(handle)->AActivation(sField, aField, startA, endA);
         }
     }
     PERCEPTRONF_API void A2Activation(PerceptronFHandle handle, const float* aField, float* a2Field)

@@ -25,7 +25,7 @@ extern "C"
     PERCEPTRONF_API void AR(PerceptronFHandle handle, int aIndex, int rIndex, float value);
     PERCEPTRONF_API float AR_(PerceptronFHandle handle, int aIndex, int rIndex);
 
-    PERCEPTRONF_API void AActivation(PerceptronFHandle handle, const float* sField, float* aField);
+    PERCEPTRONF_API void AActivation(PerceptronFHandle handle, const float* sField, float* aField, int startA, int endA);
     PERCEPTRONF_API void A2Activation(PerceptronFHandle handle, const float* aField, float* a2Field);
 
     PERCEPTRONF_API void RActivation(PerceptronFHandle handle, const float* aField, float* rField);

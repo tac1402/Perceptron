@@ -62,7 +62,7 @@ namespace Tac.Perceptron
 
 			for (int i = 0; i < HCount; i++)
 			{
-				Activations.Add(i, new float[ACount]);
+				Activations.Add(i, new float[ACount/ MaxTreeCount]);
 			}
 
 			ReactionsOutput = new sbyte[RCount];
@@ -314,14 +314,6 @@ namespace Tac.Perceptron
 				double tA = 0;
 				double tR = 0;
 
-				if (n == 0 || n == 1)
-				{
-					for (int i = 0; i < HCount; i++)
-					{
-						// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
-						SActivation(i);
-					}
-				}
 				if (n >= 2)
 				{
 					// За каждую итерацию прокручиваем все примеры из обучающей выборки
@@ -376,7 +368,6 @@ namespace Tac.Perceptron
 				}
 				if (n == 1)
 				{
-					int a = 1;
 				}
 			}
 
@@ -391,6 +382,7 @@ namespace Tac.Perceptron
 
 			//CalcInfo();
 		}
+
 
 		/*private void CalcInfo()
 		{
@@ -432,6 +424,13 @@ namespace Tac.Perceptron
 		{
 			for (int i = 0; i < MaxTreeCount; i++)
 			{
+				int a = 0;
+				for (int j = 0; j < HCount; j++)
+				{
+					// Активируем S-элементы, т.е. подаем входы и рассчитываем средний слой A-элементы
+					SActivation(j, 0, batchCount*i, batchCount * (i+1));
+				}
+
 				for (int j = 0; j < RCount; j++)
 				{
 					Analyze(j, i);
@@ -502,7 +501,7 @@ namespace Tac.Perceptron
 		/// </summary>
 		/// <param name="argStimulNumber">Номер примера в выборке</param>
 		/// <param name="argMode">0 - обучение, 1 - экзамен</param>
-		protected void SActivation(int argStimulNumber, int argMode = 0)
+		protected void SActivation(int argStimulNumber, int argMode = 0, int startA = 0, int endA = -1)
 		{
 
 			// Кинем на сенсоры обучающий пример
@@ -515,7 +514,7 @@ namespace Tac.Perceptron
 				SensorsField = ExaminStimuls[argStimulNumber];
 			}
 
-			AField = AB.AActivation(SensorsField);
+			AField = AB.AActivation(SensorsField, startA, endA);
 
 			// Запомним как на этот пример реагировали A - элементы
 			Activations[argStimulNumber] = AField;

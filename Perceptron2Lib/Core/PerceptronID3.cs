@@ -17,7 +17,7 @@ namespace Tac.Perceptron
 
 		public int[] Result;
 
-		public void printNode(List<int> root, int argFrom)
+		public void printNode(List<int> root)
 		{
 			for (int i = 0; i < root.Count; i++)
 			{
@@ -41,9 +41,13 @@ namespace Tac.Perceptron
 
 				for (int j = 0; j < argActivations[i].Length; j++)
 				{
-					if (j >= argFrom && j < argTill && argActivations[i][j] > 0)
+					/*if (j >= argFrom && j < argTill && argActivations[i][j] > 0)
 					{
 						sensor[j - argFrom] = true;
+					}*/
+					if (argActivations[i][j] > 0)
+					{
+						sensor[j] = true;
 					}
 				}
 
@@ -81,11 +85,12 @@ namespace Tac.Perceptron
 			bool[] samplesClass;
 			(samples, samplesClass) = getSamples(argHCount, argActivations, argNecessaryReactions, argRNumber, argFrom, argTill);
 
-			id3 = new DecisionTreeID3(argFrom);
+			//id3 = new DecisionTreeID3(argFrom);
+			id3 = new DecisionTreeID3(0);
 			id3.graphP = graphP;
 			id3.mountTree(samples, samplesClass, attributes, 0, null);
 
-			printNode(id3.root, argFrom);
+			printNode(id3.root);
 
 			graphP = id3.graphP;
 
