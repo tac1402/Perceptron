@@ -22,12 +22,12 @@ public class ParityTask
 
 		//PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3, 0);
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
-		NeironNetTree net = new NeironNetTree(L, 3000, 1, N1 * N2 * N3, E);
+		NeironNetTreeOld net = new NeironNetTreeOld(L, 3000, 1, N1 * N2 * N3, E);
 
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 14;
 		//net.SinapsYCount = 14;
-		net.sinapsType = NeironNetTree.SinapsType.Full;
+		net.sinapsType = NeironNetTreeOld.SinapsType.Full;
 		
 
 		float[][] input = new float[N1 * N2 * N3][];
@@ -35,7 +35,7 @@ public class ParityTask
 
 		for (int i = 0; i < N1 * N2 * N3; i++)
 		{
-			BitBlock bitBlock = new BitBlock(L, new int[] { i });
+			BitBlock bitBlock = new BitBlock(1, new int[] { i });
 			bitBlock.To();
 
 			input[i] = new float[L];

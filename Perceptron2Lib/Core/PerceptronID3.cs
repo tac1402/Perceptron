@@ -41,10 +41,6 @@ namespace Tac.Perceptron
 
 				for (int j = 0; j < argActivations[i].Length; j++)
 				{
-					/*if (j >= argFrom && j < argTill && argActivations[i][j] > 0)
-					{
-						sensor[j - argFrom] = true;
-					}*/
 					if (argActivations[i][j] > 0)
 					{
 						sensor[j] = true;
