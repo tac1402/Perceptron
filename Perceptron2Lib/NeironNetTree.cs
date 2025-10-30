@@ -2,6 +2,8 @@
 // Copyright (C) 2025 Sergej Jakovlev
 
 using System;
+using System.Drawing;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -43,8 +45,12 @@ namespace Tac.Perceptron
 			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString(); }
 		}
 
+		public int MaxTreeCount = 1;
+		public int batchCount = 0;
+		int PCount = 1000;
 
 		private PerceptronAA AB;
+		private Purity purity;
 
 		public NeironNetTree(int argSCount, int argACount, int argRCount, int argHCount, int argECount, string argName = "")
 		{
@@ -182,8 +188,6 @@ namespace Tac.Perceptron
 		}
 
 
-		public int MaxTreeCount = 3;
-		public int batchCount = 0;
 
 		List<int> AElement = new List<int>();
 		int From = 0, Till = 0;
@@ -272,7 +276,40 @@ namespace Tac.Perceptron
 			}
 		}
 
-		public int SANumber = 0;
+		//public int SANumber = 0;
+
+		private int[] Shuffle(int[] list)
+		{
+			int n = list.Length;
+			while (n > 1)
+			{
+				n--;
+				int k = rnd.Next(n + 1);
+				int value = list[k];
+				list[k] = list[n];
+				list[n] = value;
+			}
+			return list;
+		}
+
+		List<int> PuritySamples;
+		Dictionary<int, int> PuritySamples_;
+		public void Get1000(int totalSamples, int sampleSize)
+		{
+			// Создаем массив всех возможных индексов
+			int[] allIndices = Enumerable.Range(0, totalSamples).ToArray();
+
+			allIndices = Shuffle(allIndices);
+
+			PuritySamples = allIndices.Take(sampleSize).ToList();
+
+			PuritySamples_ = new Dictionary<int, int>();
+			for (int i = 0; i < PuritySamples.Count; i++)
+			{
+				PuritySamples_.Add(PuritySamples[i], i);
+			}
+		}
+
 
 
 		/// <summary>
@@ -281,6 +318,8 @@ namespace Tac.Perceptron
 		public virtual void Learned()
 		{
 			DateTime beginFull = DateTime.Now;
+
+			string weightFileName = WeightFileName();
 
 			for (int i = 0; i < ACount; i++)
 			{
@@ -302,6 +341,9 @@ namespace Tac.Perceptron
 				ExaminReactions[i].To();
 			}
 
+			purity = new Purity(NecessaryReactions);
+			int[] indexL = new int[HCount];
+
 			// Делаем очень много итераций
 			for (int n = nb; n < 100000; n++)
 			{
@@ -316,34 +358,55 @@ namespace Tac.Perceptron
 
 				if (n >= 2)
 				{
+					//indexL = Shuffle(indexL);
+					Get1000(HCount, PCount);
+					purity.SelectReaction(PuritySamples);
+
 					// За каждую итерацию прокручиваем все примеры из обучающей выборки
 					for (int i = 0; i < HCount; i++)
 					{
+						//int index = indexL[i];
+						int index = i;
 
 						beginA = DateTime.Now;
-						SActivation(i);
+						SActivation(index);
 						tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 						// Активируем R-элементы, т.е. рассчитываем выходы
 						beginR = DateTime.Now;
-						RActivation(i);
+						RActivation(index);
 						tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 						// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-						bool e = GetError(i);
+						bool e = GetError(index);
 						if (e == true)
 						{
-							LearnedStimulAR(i);
+							LearnedStimulAR(index);
 							Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 						}
 					}
 
+					if (n % 10 == 0)
+					{
+						AB.SaveWeights(weightFileName);
+					}
+
+					int er = 0; int fer = 0;
+					//(er, fer) = Examin(ECount, false);
+
+
+					//purity.NeighborhoodPurity(Activations, PCount / 2);
+					string outputA = "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
+
+
 					double t = (DateTime.Now - begin).TotalMilliseconds;
 
 					string output = n.ToString() + " - " + Error.ToString() + " - " 
-						+ t.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0");
+						+ t.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
+						+"\tE: " + er.ToString() + " / " + fer.ToString();
 
 					Console.WriteLine(output);
+					Console.WriteLine(outputA);
 					File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
 
 					if (oldError == Error) { stopCount++; }	else { stopCount = 0; }
@@ -364,12 +427,31 @@ namespace Tac.Perceptron
 
 						Console.WriteLine(output);
 						File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
+
+						int r = 0;
+						foreach (var rr in NecessaryReactions)
+						{
+							indexL[r] = rr.Key;
+							r++;
+						}
+
+						Activations = new Dictionary<int, float[]>();
+						for (int i = 0; i < PCount; i++)
+						{
+							Activations.Add(i, new float[ACount]);
+						}
+
+						AB.SaveWeights("Begin" + weightFileName);
+
 					}
 				}
 				if (n == 1)
 				{
 				}
 			}
+
+			AB.SaveWeights(weightFileName);
+
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
 
@@ -381,6 +463,17 @@ namespace Tac.Perceptron
 			graph.Save("tree_" + Arh);
 
 			//CalcInfo();
+		}
+
+		public string WeightFileName()
+		{
+			string weightFileName = "weight" + Arh;
+			if (Name != "")
+			{
+				weightFileName += "_" + Name;
+			}
+			weightFileName += ".bin";
+			return weightFileName;
 		}
 
 
@@ -439,21 +532,24 @@ namespace Tac.Perceptron
 		}
 
 
-		public void Examin(int argECount)
+		bool logErrorType = false;
+		public (int, int) Examin(int argECount, bool log = true)
 		{
-			Console.WriteLine("Begin Examination");
+			//Console.WriteLine("Begin Examination");
 
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
+			int AllFastErrorCount = 0;
+			Dictionary<int, int> error = new Dictionary<int, int>();
 
 			for (int n = 0; n < argECount; n++)
 			{
 
-				if (n % 100 == 0)
-					Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
+				//if (n % 100 == 0)
+				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
-				bool isError = ExaminOne(n);
-				
+				(bool isError, bool isFastError) = ExaminOne(n);
+
 				for (int i = 0; i < RCount; i++)
 				{
 					ErrorCount[i] += (int)Math.Abs(ReactionError[i]);
@@ -461,21 +557,48 @@ namespace Tac.Perceptron
 				if (isError == true)
 				{
 					AllErrorCount++;
-					//Console.WriteLine("#"+n.ToString());
+				}
+				if (isFastError == true)
+				{
+					AllFastErrorCount++;
+				}
+
+				if (logErrorType)
+				{
+					if (isFastError == true)
+					{
+						error.Add(n, 2);
+					}
+					else if (isError == true)
+					{
+						error.Add(n, 1);
+					}
 				}
 			}
 
-			
-			for (int i = 0; i < RCount; i++)
+			if (log == true)
 			{
-				Console.WriteLine("Error = " + i.ToString() + " - " + ErrorCount[i].ToString());
-				File.AppendAllText("Result.txt", "Error = " + i.ToString() + " - " + ErrorCount[i].ToString() + "\n");
+				for (int i = 0; i < RCount; i++)
+				{
+					Console.WriteLine("Error = " + i.ToString() + " - " + ErrorCount[i].ToString());
+					File.AppendAllText("Result_" + Arh + ".txt",
+							"Error = " + i.ToString() + " - " + ErrorCount[i].ToString() + "\n");
+				}
+				Console.WriteLine("Error = " + AllErrorCount.ToString());
+				File.AppendAllText("Result_" + Arh + ".txt", "Error=" + AllErrorCount.ToString() + "\n");
+
+				if (logErrorType)
+				{
+					foreach (var item in error)
+					{
+						File.AppendAllText("ErrorLog.txt", item.Key.ToString() + "\t" + item.Value.ToString() + "\n");
+					}
+				}
 			}
-			Console.WriteLine("Error = " + AllErrorCount.ToString());
-			File.AppendAllText("Result.txt", "Error=" + AllErrorCount.ToString() + "\n");
+			return (AllErrorCount, AllFastErrorCount);
 		}
 
-		public bool ExaminOne(int argNumber)
+		public (bool, bool) ExaminOne(int argNumber)
 		{
 			SActivation(argNumber, 1);
 
@@ -484,6 +607,8 @@ namespace Tac.Perceptron
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
 			bool isError = GetError(argNumber, 1);
 
+			bool isFastError = GetFastError(argNumber, 1);
+
 			/*
 			int[] e = new int[RCount + 1];
 			for (int i = 1; i < RCount + 1; i++)
@@ -491,10 +616,8 @@ namespace Tac.Perceptron
 				e[i] += ReactionError[i];
 			}*/
 
-			return isError;
+			return (isError, isFastError);
 		}
-
-
 
 		/// <summary>
 		/// Активация S-A слоя
@@ -516,9 +639,19 @@ namespace Tac.Perceptron
 
 			AField = AB.AActivation(SensorsField, startA, endA);
 
-			// Запомним как на этот пример реагировали A - элементы
-			Activations[argStimulNumber] = AField;
-
+			if (endA != -1)
+			{
+				// Запомним как на этот пример реагировали A - элементы
+				Activations[argStimulNumber] = AField;
+			}
+			else
+			{
+				if (PuritySamples != null && PuritySamples.Contains(argStimulNumber))
+				{
+					int index = PuritySamples_[argStimulNumber];
+					Activations[index] = AField;
+				}
+			}
 		}
 
 
@@ -540,8 +673,8 @@ namespace Tac.Perceptron
 			for (int i = 0; i < RCount; i++)
 			{
 				if (RField[i] > 0) { ReactionsOutput[i] = 1; }
-				else if (RField[i] < 0) { ReactionsOutput[i] = -1; }
-				else { ReactionsOutput[i] = 0; }
+				else if (RField[i] <= 0) { ReactionsOutput[i] = -1; }
+				//else { ReactionsOutput[i] = 0; }
 			}
 		}
 
@@ -577,5 +710,59 @@ namespace Tac.Perceptron
 		{
 			AB.LearnedStimulAR(ReactionError, AField);
 		}
+
+		private bool GetFastError(int argStimulNumber, int argMode = 0)
+		{
+			bool IsError = false;
+			int index = ArgMax(RField);
+
+			for (int i = 0; i < RCount; i++)
+			{
+				sbyte v = 0;
+				if (argMode == 0)
+				{
+					v = NecessaryReactions[argStimulNumber].DataB[i];
+				}
+				else if (argMode == 1)
+				{
+					v = ExaminReactions[argStimulNumber].DataB[i];
+				}
+
+				if (v == 1)
+				{
+					if (i != index)
+					{
+						IsError = true;
+					}
+					break;
+				}
+			}
+			return IsError;
+		}
+
+		public int ArgMax(sbyte[] array)
+		{
+			float[] a = new float[array.Length];
+			for (int i = 0; i < array.Length; i++)
+			{
+				a[i] = array[i];
+			}
+			return ArgMax(a);
+		}
+
+		public int ArgMax(float[] array)
+		{
+			if (array == null || array.Length == 0)
+				throw new ArgumentException("Array cannot be null or empty");
+
+			int maxIndex = 0;
+			for (int i = 1; i < array.Length; i++)
+			{
+				if (array[i] > array[maxIndex])
+					maxIndex = i;
+			}
+			return maxIndex;
+		}
+
 	}
 }

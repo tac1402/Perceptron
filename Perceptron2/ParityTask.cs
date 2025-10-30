@@ -10,31 +10,41 @@ public class ParityTask
 	public void Run()
 	{
 		int N1 = 256;
-		int N2 = 16;
+		int N2 = 64;
 		int N3 = 1;
+		int L = 14;
+		int E = 0;
 
 		//16-256*12-1
 		//16-32-96-1
 
 		//NeironNetA2 net = new NeironNetA2(14, 5000, 100, 1, N1 * N2);
-		
-		PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3, 0);
+
+		//PerceptronTLNL net = new PerceptronTLNL(12, 300, 1, N1 * N2 * N3, 0);
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
-		/*NeironNetTree net = new NeironNetTree(18, 5000, 1, N1 * N2 * N3);
+		NeironNetTree net = new NeironNetTree(L, 3000, 1, N1 * N2 * N3, E);
 
 		net.IsAnalyze = true;
-		//net.SinapsXCount = 32;
-		//net.SinapsYCount = 25;
+		//net.SinapsXCount = 14;
+		//net.SinapsYCount = 14;
 		net.sinapsType = NeironNetTree.SinapsType.Full;
-		*/
+		
 
-		BitBlock[] input = new BitBlock[N1 * N2 * N3];
+		float[][] input = new float[N1 * N2 * N3][];
 		BitBlock[] output = new BitBlock[N1 * N2 * N3];
 
 		for (int i = 0; i < N1 * N2 * N3; i++)
 		{
-			input[i] = new BitBlock(1, new int[] { i });
-			output[i] = new BitBlock(1, new int[] { IsParity(input[i]) });
+			BitBlock bitBlock = new BitBlock(L, new int[] { i });
+			bitBlock.To();
+
+			input[i] = new float[L];
+			for (int j = 0; j < L; j++)
+			{
+				input[i][j] = bitBlock.DataF[j];
+			}
+
+			output[i] = new BitBlock(1, new int[] { IsParity(bitBlock) });
 
 			net.JoinStimul(i, input[i], output[i]);
 		}
