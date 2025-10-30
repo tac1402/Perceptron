@@ -20,6 +20,8 @@ extern "C"
 
     // Operations
     PERCEPTRONF_API void SA(PerceptronFHandle handle, int sIndex, int aIndex, float value);
+    PERCEPTRONF_API void SetSA(PerceptronFHandle handle, int sIndex, int aIndex, float value);
+
     PERCEPTRONF_API float SA_(PerceptronFHandle handle, int sIndex, int aIndex);
     PERCEPTRONF_API void AA(PerceptronFHandle handle, int aIndex, int a2Index, float value);
     PERCEPTRONF_API void AR(PerceptronFHandle handle, int aIndex, int rIndex, float value);

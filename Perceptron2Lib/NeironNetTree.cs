@@ -131,14 +131,14 @@ namespace Tac.Perceptron
 				{
 					sensorNumber = rnd.Next(SCount);
 					//WeightSA[sensorNumber][argAId] = 1;
-					AB.SA(sensorNumber, argAId, 1);
+					AB.SetSA(sensorNumber, argAId, 1);
 				}
 				sinapsCount = rnd.Next(0, SinapsYCount);
 				for (int j = 0; j < sinapsCount; j++)
 				{
 					sensorNumber = rnd.Next(SCount);
 					//WeightSA[sensorNumber][argAId] = -1;
-					AB.SA(sensorNumber, argAId, -1);
+					AB.SetSA(sensorNumber, argAId, -1);
 				}
 			}
 			else
@@ -156,7 +156,7 @@ namespace Tac.Perceptron
 						sensorType = -1;
 					}
 
-					AB.SA(sensorNumber, argAId, sensorType);
+					AB.SetSA(sensorNumber, argAId, sensorType);
 					//WeightSA[sensorNumber][argAId] = sensorType;
 				}
 			}
@@ -263,7 +263,6 @@ namespace Tac.Perceptron
 				ACount = AElement.Count;
 
 				AB = new PerceptronAA(SCount, ACount, RCount);
-
 				for (int i = 0; i < ACount; i++)
 				{
 					for (int j = 0; j < SCount; j++)

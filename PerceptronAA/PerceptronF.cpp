@@ -62,6 +62,12 @@ public:
     {
         SAWeights[SIndex * ACount + AIndex] += value;
     }
+
+    void SetSA(int SIndex, int AIndex, float value)
+    {
+        SAWeights[SIndex * ACount + AIndex] = value;
+    }
+
     float SA_(int SIndex, int AIndex)
     {
         return SAWeights[SIndex * ACount + AIndex];
@@ -726,6 +732,14 @@ extern "C"
             static_cast<PerceptronF*>(handle)->SA(sIndex, aIndex, value);
         }
     }
+    PERCEPTRONF_API void SetSA(PerceptronFHandle handle, int sIndex, int aIndex, float value)
+    {
+        if (handle)
+        {
+            static_cast<PerceptronF*>(handle)->SetSA(sIndex, aIndex, value);
+        }
+    }
+
     PERCEPTRONF_API float SA_(PerceptronFHandle handle, int sIndex, int aIndex)
     {
         if (handle)

@@ -18,6 +18,9 @@ public class PerceptronAA : IDisposable
 	private static extern void SA(IntPtr handle, int sIndex, int aIndex, float value);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void SetSA(IntPtr handle, int sIndex, int aIndex, float value);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern float SA_(IntPtr handle, int sIndex, int aIndex);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -97,6 +100,11 @@ public class PerceptronAA : IDisposable
 	{
 		SA(_handle, sIndex, aIndex, value);
 	}
+	public void SetSA(int sIndex, int aIndex, float value)
+	{
+		SetSA(_handle, sIndex, aIndex, value);
+	}
+
 	public float SA_(int sIndex, int aIndex)
 	{
 		return SA_(_handle, sIndex, aIndex);
