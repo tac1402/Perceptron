@@ -15,7 +15,7 @@ extern "C"
     typedef void* PerceptronFHandle;
 
     // Creation and destruction
-    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount, int a2Count = 0);
+    PERCEPTRONF_API PerceptronFHandle CreatePerceptronF(int sCount, int aCount, int rCount, int a2Count);
     PERCEPTRONF_API void DisposePerceptronF(PerceptronFHandle handle);
 
     // Operations
@@ -44,6 +44,6 @@ extern "C"
 
 
     PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename);
-    PERCEPTRONF_API bool LoadWeights(PerceptronFHandle handle, const char* filename);
+    PERCEPTRONF_API int LoadWeights(PerceptronFHandle handle, const char* filename);
 }
 

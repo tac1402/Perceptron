@@ -66,7 +66,7 @@ public class PerceptronAA : IDisposable
 	private static extern bool SaveWeights(IntPtr handle, string filename);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-	private static extern bool LoadWeights(IntPtr handle, string filename);
+	private static extern int LoadWeights(IntPtr handle, string filename);
 
 
 	private int SCount;
@@ -190,7 +190,7 @@ public class PerceptronAA : IDisposable
 		return SaveWeights(_handle, filename);
 	}
 
-	public bool LoadWeights(string filename)
+	public int LoadWeights(string filename)
 	{
 		return LoadWeights(_handle, filename);
 	}

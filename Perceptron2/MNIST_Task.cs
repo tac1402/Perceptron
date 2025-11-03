@@ -11,27 +11,31 @@ public class MNIST_Task : MNISTLib
 	{
 		int N1 = 60000;
 		//int N1 = 10000;
-		int L = 768;
+		int L = 28*28;
 		int E = 10000;
 
+		int Add = 100;
+
+		/*
 		NeironNetTree net = new NeironNetTree(L, 400000, 1, N1, E);
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 32;
 		//net.SinapsYCount = 32;
 		net.sinapsType = NeironNetTree.SinapsType.Full;
-		
+		*/
 
-		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 10, N1, E, "A");
+		PerceptronTLNL net = new PerceptronTLNL(L + Add, 30000, 10, N1, E, "D");
 		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
 		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
 
-		LoadF();
+		LoadF(Add);
 
 		//Load();
 		//LoadHard(5000);
 
 		//ReSort();
+		
 		
 		string hardError = File.ReadAllText("HardError.txt");
 		string[] hError = hardError.Split(',');
@@ -44,6 +48,14 @@ public class MNIST_Task : MNISTLib
 			int k = int.Parse(hError[i]);
 			topError.Add(k);
 			tE.Add(k, 0);
+		}
+		
+		
+		string outputExam = File.ReadAllText("Output_[60000]784x16265.txt");
+		int[] outputEx = new int[E];
+		for (int i = 0; i < E; i++)
+		{
+			outputEx[i] = int.Parse(outputExam.Substring(i, 1));
 		}
 
 		BitBlock[] outputE = new BitBlock[E];
@@ -59,13 +71,13 @@ public class MNIST_Task : MNISTLib
 					outputE[i][j] = true;
 				}
 			}
-
+			ExamSet[i] = InsertGaps(ExamSet[i], L, Add, outputEx[i]);
+			
 			net.JoinEStimul(i, ExamSet[i], outputE[i]);
-			//netB.JoinEStimul(i, ExamSet[i], outputE[i]);
 		}
 
 		BitBlock[] output = new BitBlock[N1];
-		/*for (int i = 0; i < N1; i++)
+		for (int i = 0; i < N1; i++)
 		{
 			output[i] = new BitBlock(10);
 
@@ -77,10 +89,17 @@ public class MNIST_Task : MNISTLib
 					output[i][j] = true;
 				}
 			}
+			int classC = 0;
+			if (topError.Contains(i))
+			{
+				classC = 1;
+			}
+			TrainSet[i] = InsertGaps(TrainSet[i], L, Add, classC);
+			
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
-		}*/
-		for (int i = 0; i < N1; i++)
+		}
+		/*for (int i = 0; i < N1; i++)
 		{
 			output[i] = new BitBlock(1);
 
@@ -90,7 +109,7 @@ public class MNIST_Task : MNISTLib
 			}
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
-		}
+		}*/
 
 
 
@@ -98,7 +117,7 @@ public class MNIST_Task : MNISTLib
 		//netB.OnlyStimul = topError;
 
 		net.Learned();
-		//net.Examin(E);
+		net.Examin(E);
 
 		//net.LoadWeights();
 		//netB.LoadWeights();
@@ -128,63 +147,29 @@ public class MNIST_Task : MNISTLib
 	}
 
 
-
-
-	public void Analyze()
+	public float[] InsertGaps(float[] argSet, int L, int Add, float gapValue)
 	{
-		LoadF();
+		float[] dest = new float[L + Add];
 
-		int[] SField = new int[768];
-		int[] SField0 = new int[768];
+		// Вычисляем шаг для равномерного распределения
+		float step = (float)L / (Add + 1);
 
-		for (int j = 0; j < 768; j++)
+		int srcIndex = 0;
+		for (int i = 0; i < L + Add; i++)
 		{
-			for (int i = 1; i < 60000; i++)
+			// Определяем, должна ли это быть позиция для дырки
+			if (srcIndex < L && i > 0 && Math.Abs(i - (srcIndex * step)) < 0.5f)
 			{
-				if (TrainSet[i][j] !=0 && TrainSet[i][j] == TrainSet[i - 1][j])
-				{
-					SField[j]++;
-				}
-				if (TrainSet[i][j] != 0)
-				{
-					SField0[j]++;
-				}
+				dest[i] = gapValue;
+			}
+			else
+			{
+				dest[i] = argSet[srcIndex];
+				srcIndex++;
 			}
 		}
-		int a = 1;
-	}
 
-	public Dictionary<int, int> LoadErrorLog(string argFileName = "ErrorLog.txt")
-	{ 
-		Dictionary<int, int> error = new Dictionary<int, int>();
-		string[] e = File.ReadAllLines(argFileName);
-		for (int i = 0; i < e.Length; i++)
-		{
-			string[] line = e[i].Split('\t');
-			error.Add(int.Parse(line[0]), int.Parse(line[1]));
-		}
-		return error;
-	}
-
-	public void SaveSet(List<int> argSet)
-	{
-		int n = argSet.Count;
-
-		float[][] newLearningSet = new float[n][];
-		float[] newLearningLabel = new float[n];
-		for (int i = 0; i < n; i++)
-		{
-			newLearningSet[i] = new float[28 * 28];
-		}
-
-		for (int i = 0; i < n; i++)
-		{
-			newLearningSet[i] = TrainSet[argSet[i]];
-			newLearningLabel[i] = TrainLabels[argSet[i]];
-		}
-
-		WritePicture("MNIST\\train-images#hard", n, newLearningSet);
-		WriteLabels("MNIST\\train-labels#hard", n, newLearningLabel);
+		return dest;
 	}
 
 

@@ -85,9 +85,9 @@ public class RandomTask
 		int L = 64;
 		int E = nSamples / 2;
 
-		NeironNetTree net = new NeironNetTree(L, 800, 2, N1, E);
+		PerceptronDT net = new PerceptronDT(L, 800, 2, N1, E);
 		net.IsAnalyze = false;
-		net.sinapsType = NeironNetTree.SinapsType.Full;
+		net.sinapsType = PerceptronDT.SinapsType.Full;
 
 
 		BitBlock[] outputE = new BitBlock[E];

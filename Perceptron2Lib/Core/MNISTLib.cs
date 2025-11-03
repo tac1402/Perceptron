@@ -15,18 +15,18 @@ namespace Tac.Experiment
 		public float[][] ExamSet = new float[10000][];
 		public float[] ExamLabels = new float[10000];
 
-		public float[][] TrainInvSet = new float[60000][];
+		//public float[][] TrainInvSet = new float[60000][];
 
-		private void Init()
+		private void Init(int argAdd = 0)
 		{
 			for (int i = 0; i < TrainSet.Length; i++)
 			{
-				TrainSet[i] = new float[28 * 28];
-				TrainInvSet[i] = new float[28 * 28 * 2];
+				TrainSet[i] = new float[28 * 28 + argAdd];
+				//TrainInvSet[i] = new float[28 * 28 * 2];
 			}
 			for (int i = 0; i < ExamSet.Length; i++)
 			{
-				ExamSet[i] = new float[28 * 28];
+				ExamSet[i] = new float[28 * 28 + argAdd];
 			}
 		}
 
@@ -52,9 +52,9 @@ namespace Tac.Experiment
 			ReadLabels("MNIST\\t10k-labels.idx1-ubyte", 10000, ExamLabels);
 		}
 
-		public void LoadF()
+		public void LoadF(int argAdd = 0)
 		{
-			Init();
+			Init(argAdd);
 
 			ReadPicture("MNIST_Fashion\\train-images-idx3-ubyte", 60000, TrainSet);
 			ReadLabels("MNIST_Fashion\\train-labels-idx1-ubyte", 60000, TrainLabels);

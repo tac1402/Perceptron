@@ -530,16 +530,16 @@ namespace Tac.Perceptron
 
 				if (Error2 > 0)
 				{
-					Analyze();
+					//Analyze();
 				}
 
-				k1 = K1(Error2);
+				//k1 = K1(Error2);
 				OldError = Error;
 
 				int er = 0; int fer = 0;
 				if (Error < 1000)
 				{
-					//(er, fer) = Examin(ECount, false);
+					(er, fer) = Examin(ECount, false);
 				}
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;

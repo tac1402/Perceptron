@@ -1,0 +1,12 @@
+p3 = 0,0000001000000012; c3 = 0,0000099999997474
+Error = 0 - 449
+Error = 1 - 56
+Error = 2 - 900
+Error = 3 - 375
+Error = 4 - 704
+Error = 5 - 157
+Error = 6 - 696
+Error = 7 - 125
+Error = 8 - 124
+Error = 9 - 88
+Error=2429

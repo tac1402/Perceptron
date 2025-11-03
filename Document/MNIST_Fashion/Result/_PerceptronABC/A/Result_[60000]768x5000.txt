@@ -1,0 +1,24 @@
+p3 = 0,0000001000000012; c3 = 0,0000099999997474
+Error = 0 - 395
+Error = 1 - 76
+Error = 2 - 450
+Error = 3 - 275
+Error = 4 - 734
+Error = 5 - 84
+Error = 6 - 945
+Error = 7 - 227
+Error = 8 - 84
+Error = 9 - 90
+Error=2311
+p3 = 0,0000001000000012; c3 = 0,0000099999997474
+Error = 0 - 357
+Error = 1 - 51
+Error = 2 - 451
+Error = 3 - 256
+Error = 4 - 473
+Error = 5 - 72
+Error = 6 - 697
+Error = 7 - 116
+Error = 8 - 84
+Error = 9 - 95
+Error=1784

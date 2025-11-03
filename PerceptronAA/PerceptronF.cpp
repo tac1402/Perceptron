@@ -29,7 +29,7 @@ private:
     std::uniform_real_distribution<float> dist;
 
 public:
-    PerceptronF(int argSCount, int argACount, int argRCount, int argA2Count = 0)
+    PerceptronF(int argSCount, int argACount, int argRCount, int argA2Count)
         : SCount(argSCount), ACount(argACount), RCount(argRCount), A2Count(argA2Count), rnd(24), dist(0.0f, 1.0f)
     {
         SAWeights = static_cast<float*>(_mm_malloc(SCount * ACount * sizeof(float), 32));
@@ -195,8 +195,57 @@ public:
         return true;
     }
 
+    int LoadWeights(const char* filename)
+    {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) { return 0; }
+
+        // Читаем размерности массивов из файла
+        int file_SCount, file_ACount, file_RCount;
+        file.read(reinterpret_cast<char*>(&file_SCount), sizeof(file_SCount));
+        file.read(reinterpret_cast<char*>(&file_ACount), sizeof(file_ACount));
+        file.read(reinterpret_cast<char*>(&file_RCount), sizeof(file_RCount));
+
+        // Проверяем базовые условия для первого массива
+        if (file_SCount != SCount || file_ACount != ACount)
+        {
+            file.close();
+            return 0;
+        }
+
+        // Определяем необходимость загрузки второго массива
+        bool loadBoth = (file_RCount == RCount);
+        size_t sa_size = SCount * ACount;
+        size_t ar_size = RCount * ACount;
+
+        // Читаем первый массив
+        file.read(reinterpret_cast<char*>(SAWeights), sa_size * sizeof(float));
+        if (!file.good())
+        {
+            file.close();
+            return 0;
+        }
+
+        int loadedCount = 1; // Первый массив загружен успешно
+
+        // Читаем второй массив если нужно
+        if (loadBoth)
+        {
+            file.read(reinterpret_cast<char*>(ARWeights), ar_size * sizeof(float));
+            if (!file.good())
+            {
+                file.close();
+                return 1; // Возвращаем 1, так как первый массив уже загружен
+            }
+            loadedCount = 2; // Оба массива загружены
+        }
+
+        file.close();
+        return loadedCount;
+    }
+
     // Функция для загрузки весов из бинарного файла
-    bool LoadWeights(const char* filename)
+    /*bool LoadWeights(const char* filename)
     {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) { return false; }
@@ -229,7 +278,7 @@ public:
 
         file.close();
         return true;
-    }
+    }*/
 
 
 private:
@@ -855,7 +904,7 @@ extern "C"
     {
         return static_cast<PerceptronF*>(handle)->SaveWeights(filename);
     }
-    PERCEPTRONF_API bool LoadWeights(PerceptronFHandle handle, const char* filename)
+    PERCEPTRONF_API int LoadWeights(PerceptronFHandle handle, const char* filename)
     {
         return static_cast<PerceptronF*>(handle)->LoadWeights(filename);
     }
