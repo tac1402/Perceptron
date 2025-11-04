@@ -17,14 +17,14 @@ public class MNIST_Task : MNISTLib
 		int Add = 100;
 
 		/*
-		NeironNetTree net = new NeironNetTree(L, 400000, 1, N1, E);
+		PerceptronDT net = new PerceptronDT(L, 400000, 10, N1, E);
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 32;
 		//net.SinapsYCount = 32;
-		net.sinapsType = NeironNetTree.SinapsType.Full;
+		net.sinapsType = PerceptronDT.SinapsType.Full;
 		*/
 
-		PerceptronTLNL net = new PerceptronTLNL(L + Add, 30000, 10, N1, E, "D");
+		PerceptronTLNL net = new PerceptronTLNL(L + Add, 30000, 10, N1, E, "B");
 		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
 		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
@@ -41,7 +41,6 @@ public class MNIST_Task : MNISTLib
 		string[] hError = hardError.Split(',');
 		List<int> topError = new List<int>();
 		Dictionary<int, int> tE = new Dictionary<int, int>();
-
 
 		for (int i = 0; i < hError.Length - 1; i++)
 		{
@@ -71,7 +70,12 @@ public class MNIST_Task : MNISTLib
 					outputE[i][j] = true;
 				}
 			}
-			ExamSet[i] = InsertGaps(ExamSet[i], L, Add, outputEx[i]);
+			for (int j = 0; j < Add; j++)
+			{
+				ExamSet[i][L + j] = outputEx[i];
+			}
+
+			//ExamSet[i] = InsertGaps(ExamSet[i], L, Add, outputEx[i]);
 			
 			net.JoinEStimul(i, ExamSet[i], outputE[i]);
 		}
@@ -94,7 +98,12 @@ public class MNIST_Task : MNISTLib
 			{
 				classC = 1;
 			}
-			TrainSet[i] = InsertGaps(TrainSet[i], L, Add, classC);
+			for (int j = 0; j < Add; j++)
+			{
+				TrainSet[i][L + j] = classC;
+			}
+
+			//TrainSet[i] = InsertGaps(TrainSet[i], L, Add, classC);
 			
 
 			net.JoinStimul(i, TrainSet[i], output[i]);

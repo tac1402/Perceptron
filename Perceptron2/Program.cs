@@ -9,3 +9,6 @@ task.Run();
 
 //RandomTask task = new RandomTask();
 //task.Run();
+
+//BlackTask task = new BlackTask();
+//task.Run();

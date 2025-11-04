@@ -18,8 +18,8 @@ namespace ViewMNIST
 		public PictureView()
 		{
 			InitializeComponent();
-			//ReadE();
-			ReadL();
+			ReadE();
+			//ReadL();
 		}
 
 		public void ReadL()
@@ -35,11 +35,11 @@ namespace ViewMNIST
 		public void ReadE()
 		{
 			//FashionMNIST
-			//ReadPicture("t10k-images-idx3-ubyte", 10000);
-			//ReadLabels("t10k-labels-idx1-ubyte", 10000);
+			ReadPicture("t10k-images-idx3-ubyte", 10000);
+			ReadLabels("t10k-labels-idx1-ubyte", 10000);
 			//MNIST
-			ReadPicture("t10k-images.idx3-ubyte", 10000);
-			ReadLabels("t10k-labels.idx1-ubyte", 10000);
+			//ReadPicture("t10k-images.idx3-ubyte", 10000);
+			//ReadLabels("t10k-labels.idx1-ubyte", 10000);
 		}
 
 		byte[,] tmpPicture = new byte[60000,28 * 28];
@@ -80,6 +80,7 @@ namespace ViewMNIST
 
 		public void ImageDraw()
 		{
+			PictureNumber = int.Parse(PictureNumberTxt.Text);
 
 			int sizeX = 28; // 21
 			int sizeY = 28; // 21
@@ -118,8 +119,10 @@ namespace ViewMNIST
 					{
 						x++;
 					}
-					byte tmpValue=0;
-					if (tmpPicture[PictureNumber, g] > 128) tmpValue = 255;
+					byte tmpValue= tmpPicture[PictureNumber, g];
+					newBitmap.SetPixel(j, i, Color.FromArgb(tmpValue, Color.Black));
+
+					/*if (tmpPicture[PictureNumber, g] > 128) tmpValue = 255;
 					tmpBitmap.SetPixel(j, i, Color.FromArgb(tmpValue, Color.Black));
 
 					if (tmpValue == 0)
@@ -131,14 +134,14 @@ namespace ViewMNIST
 					{ 
 						newBitmap.SetPixel(x, y, Color.Black);
 						tmp += "1";
-					}
+					}*/
 
 					g++;
 				}
 			}
 
 			// Обновление на форме
-			pictureBox.Image = tmpBitmap;
+			pictureBox.Image = newBitmap;
 
 			if (PictureNumber <= 10000)
 			{
