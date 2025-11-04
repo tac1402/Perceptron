@@ -16,7 +16,7 @@ namespace Tac.Perceptron
 	public class PerceptronDT
 	{
 		public float[] SensorsField; /* Сенсорное поле */
-		public sbyte[] ReactionsOutput; /* Реагирующие поле */
+		//public sbyte[] ReactionsOutput; /* Реагирующие поле */
 
 		protected int SCount; // Количество сенсоров
 		public int ACount; // Количество ассоциаций
@@ -75,7 +75,7 @@ namespace Tac.Perceptron
 				Activations.Add(i, new float[ACount/ MaxTreeCount]);
 			}
 
-			ReactionsOutput = new sbyte[RCount];
+			//ReactionsOutput = new sbyte[RCount];
 			ReactionError = new float[RCount];
 
 
@@ -428,8 +428,8 @@ namespace Tac.Perceptron
 						tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 						// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-						bool e = GetError(index);
-						if (e == true)
+						Reaction r = GetError(index);
+						if (r.E == true)
 						{
 							LearnedStimulAR(index);
 							Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
@@ -594,11 +594,11 @@ namespace Tac.Perceptron
 		}
 
 
-		bool logErrorType = false;
+		bool logErrorType = true;
 		public (int, int) Examin(int argECount, bool log = true)
 		{
 			//Console.WriteLine("Begin Examination");
-			/*
+			
 			string weightFileName = WeightFileName();
 			LoadWeights();
 			if (isLoaded)
@@ -607,8 +607,7 @@ namespace Tac.Perceptron
 				{
 					ExaminReactions[i].To();
 				}
-			}*/
-
+			}
 
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
@@ -690,9 +689,7 @@ namespace Tac.Perceptron
 			// Активируем R-элементы, т.е. рассчитываем выходы
 			RActivation(argNumber);
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-			bool isError = GetError(argNumber, 1);
-
-			bool isFastError = GetFastError(argNumber, 1);
+			Reaction r = GetError(argNumber, 1);
 
 			/*
 			int[] e = new int[RCount + 1];
@@ -701,7 +698,7 @@ namespace Tac.Perceptron
 				e[i] += ReactionError[i];
 			}*/
 
-			return (isError, isFastError);
+			return (r.IsErrorHard, r.IsErrorSoft);
 		}
 
 		/// <summary>
@@ -755,17 +752,18 @@ namespace Tac.Perceptron
 				}
 			}*/
 
-			for (int i = 0; i < RCount; i++)
+			/*for (int i = 0; i < RCount; i++)
 			{
 				if (RField[i] > 0) { ReactionsOutput[i] = 1; }
 				else if (RField[i] <= 0) { ReactionsOutput[i] = -1; }
 				//else { ReactionsOutput[i] = 0; }
-			}
+			}*/
 		}
 
-		private bool GetError(int argStimulNumber, int argMode = 0)
+		private Reaction GetError(int argStimulNumber, int argMode = 0)
 		{
-			bool IsError = false;
+			Reaction r = new Reaction(RField, RCount);
+
 			for (int i = 0; i < RCount; i++)
 			{
 				sbyte v = 0;
@@ -778,75 +776,25 @@ namespace Tac.Perceptron
 					v = ExaminReactions[argStimulNumber].DataB[i];
 				}
 
-				if (ReactionsOutput[i] != 0 && ReactionsOutput[i] == v)
+				int output = (RField[i] > 0) ? 1 : -1;
+				if (output != v)
 				{
-					ReactionError[i] = 0;
+					r.IsErrorHard = true;
+					r.Error[i] = v;
 				}
-				else
+
+				if (v == 1 && i != r.RMax)
 				{
-					IsError = true;
-					ReactionError[i] = v;
+					r.IsErrorSoft = true;
 				}
 			}
-			return IsError;
+			return r;
 		}
+
 
 		protected void LearnedStimulAR(int argStimulNumber)
 		{
 			AB.LearnedStimulAR(ReactionError, AField);
-		}
-
-		private bool GetFastError(int argStimulNumber, int argMode = 0)
-		{
-			bool IsError = false;
-			int index = ArgMax(RField);
-
-			for (int i = 0; i < RCount; i++)
-			{
-				sbyte v = 0;
-				if (argMode == 0)
-				{
-					v = NecessaryReactions[argStimulNumber].DataB[i];
-				}
-				else if (argMode == 1)
-				{
-					v = ExaminReactions[argStimulNumber].DataB[i];
-				}
-
-				if (v == 1)
-				{
-					if (i != index)
-					{
-						IsError = true;
-					}
-					break;
-				}
-			}
-			return IsError;
-		}
-
-		public int ArgMax(sbyte[] array)
-		{
-			float[] a = new float[array.Length];
-			for (int i = 0; i < array.Length; i++)
-			{
-				a[i] = array[i];
-			}
-			return ArgMax(a);
-		}
-
-		public int ArgMax(float[] array)
-		{
-			if (array == null || array.Length == 0)
-				throw new ArgumentException("Array cannot be null or empty");
-
-			int maxIndex = 0;
-			for (int i = 1; i < array.Length; i++)
-			{
-				if (array[i] > array[maxIndex])
-					maxIndex = i;
-			}
-			return maxIndex;
 		}
 
 	}
