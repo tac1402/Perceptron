@@ -28,7 +28,7 @@ public class GrayCodeTask
 			int c = GrayCode(input[i]);
 			output[i] = new BitBlock(1, new int[] { c });
 
-			net.JoinStimul(i - 1, input[i], output[i]);
+			//net.JoinStimul(i - 1, input[i], output[i]);
 		}
 
 		net.Learned();

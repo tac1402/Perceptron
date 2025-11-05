@@ -14,22 +14,22 @@ public class MNIST_Task : MNISTLib
 		int L = 28*28;
 		int E = 10000;
 
-		int Add = 100;
+		//int Add = 100;
 
-		/*
-		PerceptronDT net = new PerceptronDT(L, 400000, 10, N1, E);
+		
+		PerceptronDT net = new PerceptronDT(L, 100000, 1, N1, E, 5);
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 32;
 		//net.SinapsYCount = 32;
 		net.sinapsType = PerceptronDT.SinapsType.Full;
-		*/
+		
 
-		PerceptronTLNL net = new PerceptronTLNL(L + Add, 30000, 10, N1, E, "B");
+		//PerceptronTLNL net = new PerceptronTLNL(L + Add, 20000, 10, N1, E, "B");
 		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
 		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
 
-		LoadF(Add);
+		LoadF(0);
 
 		//Load();
 		//LoadHard(5000);
@@ -49,39 +49,37 @@ public class MNIST_Task : MNISTLib
 			tE.Add(k, 0);
 		}
 		
-		
+		/*
 		string outputExam = File.ReadAllText("Output_[60000]784x16265.txt");
 		int[] outputEx = new int[E];
 		for (int i = 0; i < E; i++)
 		{
 			outputEx[i] = int.Parse(outputExam.Substring(i, 1));
-		}
+		}*/
 
-		BitBlock[] outputE = new BitBlock[E];
+		sbyte[][] outputE = new sbyte[E][];
 		for (int i = 0; i < E; i++)
 		{
-			outputE[i] = new BitBlock(10);
+			outputE[i] = new sbyte[10];
 
 			int c = (int)ExamLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
 				{
-					outputE[i][j] = true;
+					outputE[i][j] = 1;
 				}
 			}
-			for (int j = 0; j < Add; j++)
+			/*for (int j = 0; j < Add; j++)
 			{
 				ExamSet[i][L + j] = outputEx[i];
-			}
-
-			//ExamSet[i] = InsertGaps(ExamSet[i], L, Add, outputEx[i]);
+			}*/
 			
 			net.JoinEStimul(i, ExamSet[i], outputE[i]);
 		}
 
-		BitBlock[] output = new BitBlock[N1];
-		for (int i = 0; i < N1; i++)
+		sbyte[][] output = new sbyte[N1][];
+		/*for (int i = 0; i < N1; i++)
 		{
 			output[i] = new BitBlock(10);
 
@@ -93,32 +91,30 @@ public class MNIST_Task : MNISTLib
 					output[i][j] = true;
 				}
 			}
-			int classC = 0;
-			if (topError.Contains(i))
-			{
-				classC = 1;
-			}
-			for (int j = 0; j < Add; j++)
-			{
-				TrainSet[i][L + j] = classC;
-			}
+			//int classC = 0;
+			//if (topError.Contains(i))
+			//{
+			//	classC = 1;
+			//}
+			//for (int j = 0; j < Add; j++)
+			//{
+			//	TrainSet[i][L + j] = classC;
+			//}
 
-			//TrainSet[i] = InsertGaps(TrainSet[i], L, Add, classC);
-			
-
-			net.JoinStimul(i, TrainSet[i], output[i]);
-		}
-		/*for (int i = 0; i < N1; i++)
-		{
-			output[i] = new BitBlock(1);
-
-			if (topError.Contains(i))
-			{
-				output[i][0] = true;
-			}
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
 		}*/
+		for (int i = 0; i < N1; i++)
+		{
+			output[i] = new sbyte[1];
+
+			if (topError.Contains(i))
+			{
+				output[i][0] = 1;
+			}
+
+			net.JoinStimul(i, TrainSet[i], output[i]);
+		}
 
 
 

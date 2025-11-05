@@ -27,38 +27,43 @@ namespace Tac.Perceptron
 			Console.WriteLine(root.Count.ToString());
 		}
 
-		(Dictionary<int, BitBlock>, bool[]) getSamples(int ReactionCount, Dictionary<int, float[]> argActivations, Dictionary<int, BitBlock> argNecessaryReactions,
+		(sbyte[][], sbyte[]) getSamples(int ReactionCount, Dictionary<int, float[]> argActivations, Dictionary<int, sbyte[]> argNecessaryReactions,
 			int RNumber, int argFrom, int argTill)
 		{
-			Dictionary<int, BitBlock> result = new Dictionary<int, BitBlock>();
-
-			bool[] samplesClass = new bool[ReactionCount];
+			sbyte[][] result = new sbyte[ReactionCount][];
+			sbyte[] samplesClass = new sbyte[ReactionCount];
 
 			for (int i = 0; i < ReactionCount; i++)
 			{
-				BitBlock sensor = new BitBlock(argTill - argFrom);
-				bool reaction;
+				result[i] = new sbyte[argTill - argFrom];
 
 				for (int j = 0; j < argActivations[i].Length; j++)
 				{
 					if (argActivations[i][j] > 0)
 					{
-						sensor[j] = true;
+						result[i][j] = 1;
+					}
+					else
+					{
+						result[i][j] = -1;
 					}
 				}
 
-				reaction = argNecessaryReactions[i][RNumber];
-
-				result.Add(i, sensor);
-				samplesClass[i] = reaction;
+				if (argNecessaryReactions[i][RNumber] == 1)
+				{
+					samplesClass[i] = 1;
+				}
+				else
+				{
+					samplesClass[i] = -1;
+				}
 			}
-
 
 			return (result, samplesClass);
 		}
 
 		public void Analyze(int argACount, int argHCount, Dictionary<int, float[]> argActivations,
-			Dictionary<int, BitBlock> argNecessaryReactions, int argRNumber, int argFrom, int argTill)
+			Dictionary<int, sbyte[]> argNecessaryReactions, int argRNumber, int argFrom, int argTill)
 		{
 			ACount = argACount;
 			Result = new int[ACount];
@@ -77,8 +82,8 @@ namespace Tac.Perceptron
 
 			Console.Write(".");
 
-			Dictionary<int, BitBlock> samples;
-			bool[] samplesClass;
+			sbyte[][] samples;
+			sbyte[] samplesClass;
 			(samples, samplesClass) = getSamples(argHCount, argActivations, argNecessaryReactions, argRNumber, argFrom, argTill);
 
 			//id3 = new DecisionTreeID3(argFrom);
@@ -115,24 +120,35 @@ namespace Tac.Perceptron
 		private double entropySet = 0.0;
 		private int from = 0;
 
+		private ID3 id3;
+
 		public DecisionTreeID3(int argFrom)
 		{
 			from = argFrom;
 			graphP = new Graph();
 			graphN = new Graph();
+			id3 = new ID3();
 		}
 
 		/// <summary>
 		/// Возвращает общее количество положительных образцов в таблице образцов
 		/// </summary>
-		private int countTotalPositives(bool[] samplesClass)
+		private int GetTotalPositives(sbyte[] samplesClass)
 		{
-			int result = 0;
-			foreach (bool value in samplesClass)
+			return id3.GetTotalPositives(samplesClass);
+			
+			/*int result = 0;
+			foreach (sbyte value in samplesClass)
 			{
-				if (value == true) { result++; }
+				if (value == 1) { result++; }
 			}
-			return result;
+
+			if (ret != result)
+			{
+				int a = 1;
+			}
+
+			return result;*/
 		}
 
 		/// <summary>
@@ -171,16 +187,16 @@ namespace Tac.Perceptron
 		/// <param name="value">допустимое значение для атрибута</param>
 		/// <param name="positives">количество всех атрибутов с положительным значением</param>
 		/// <param name="negatives">количество всех атрибутов с отрицательным значением</param>
-		private void getValuesToAttribute(Dictionary<int, BitBlock> argSamples, bool[] argSamplesClass,
-			int attribute, bool value, out int positives, out int negatives)
+		private void getValuesToAttribute(sbyte[][] argSamples, sbyte[] argSamplesClass,
+			int attribute, sbyte value, out int positives, out int negatives)
 		{
 			positives = 0;
 			negatives = 0;
-			for (int i = 0; i < argSamples.Count; i++)
+			for (int i = 0; i < argSamples.Length; i++)
 			{
 				if (argSamples[i][attribute] == value)
 				{
-					if (argSamplesClass[i] == true)
+					if (argSamplesClass[i] == 1)
 					{
 						positives++;
 					}
@@ -196,7 +212,7 @@ namespace Tac.Perceptron
 		/// Рассчитывает gain атрибута
 		/// </summary>
 		/// <param name="attribute">Атрибут для расчета</param>
-		private double gain(Dictionary<int, BitBlock> samples, bool[] samplesClass, int attribute)
+		private double gain(sbyte[][] samples, sbyte[] samplesClass, int attribute)
 		{
 			double sum = 0.0;
 
@@ -205,14 +221,14 @@ namespace Tac.Perceptron
 
 			positives = negatives = 0;
 
-			getValuesToAttribute(samples, samplesClass, attribute, true, out positives, out negatives);
+			getValuesToAttribute(samples, samplesClass, attribute, 1, out positives, out negatives);
 
 			entropy = calcEntropy(positives, negatives);
 			sum += -(double)(positives + negatives) / total * entropy;
 
 			positives = negatives = 0;
 
-			getValuesToAttribute(samples, samplesClass, attribute, false, out positives, out negatives);
+			getValuesToAttribute(samples, samplesClass, attribute, -1, out positives, out negatives);
 
 			entropy = calcEntropy(positives, negatives);
 			sum += -(double)(positives + negatives) / total * entropy;
@@ -224,7 +240,7 @@ namespace Tac.Perceptron
 		/// Возвращает лучший атрибут (с наибольшим gain)
 		/// </summary>
 		/// <param name="attributes">Вектор с атрибутами</param>
-		private int getBestAttribute(Dictionary<int, BitBlock> samples, bool[] samplesClass, int[] attributes)
+		private int getBestAttribute(sbyte[][] samples, sbyte[] samplesClass, int[] attributes)
 		{
 			double maxGain = 0.0;
 			int result = attributes[0];
@@ -245,32 +261,40 @@ namespace Tac.Perceptron
 		/// <summary>
 		/// Возвращает true, если все примеры в выборке положительные
 		/// </summary>
-		private bool allSamplesPositives(bool[] samplesClass) => allSamples(samplesClass, true);
+		private sbyte allSamplesPositives(sbyte[] samplesClass) => allSamples(samplesClass, 1);
 
 		/// <summary>
 		/// Возвращает true, если все примеры в выборке отрицательные
 		/// </summary>
-		private bool allSamplesNegatives(bool[] samplesClass) => allSamples(samplesClass, false);
+		private sbyte allSamplesNegatives(sbyte[] samplesClass) => allSamples(samplesClass, -1);
 
-		private bool allSamples(bool[] samplesClass, bool argValue)
+		private sbyte allSamples(sbyte[] samplesClass, sbyte argValue)
 		{
-			bool ret = true;
-			foreach (bool value in samplesClass)
+			return id3.AllSamples(samplesClass, argValue);
+			
+			/*sbyte ret = 1;
+			foreach (sbyte value in samplesClass)
 			{
 				if (value != argValue)
 				{
-					ret = false;
+					ret = -1;
 					break;
 				}
 			}
-			return ret;
+
+			if (r1 != ret)
+			{
+				int a = 1;
+			}
+
+			return ret;*/
 		}
 
 
 		/// <summary>
 		/// Построить дерево решений на основе представленных образцов
 		/// </summary>
-		public int mountTree(Dictionary<int, BitBlock> samples, bool[] samplesClass, int[] attributes, int Level, Graph graph)
+		public int mountTree(sbyte[][] samples, sbyte[] samplesClass, int[] attributes, int Level, Graph graph)
 		{
 			if (Level == 1)
 			{
@@ -288,13 +312,13 @@ namespace Tac.Perceptron
 				}
 			}
 
-			if (allSamplesPositives(samplesClass) == true) { return -1; }
-			if (allSamplesNegatives(samplesClass) == true) { return -1; }
+			if (allSamplesPositives(samplesClass) == 1) { return -1; }
+			if (allSamplesNegatives(samplesClass) == 1) { return -1; }
 			if (attributes.Length == 0) { return -1; }
 			if (Level > 100) { return -1; }
 
-			total = samples.Count;
-			int totalPositives = countTotalPositives(samplesClass);
+			total = samples.Length;
+			int totalPositives = GetTotalPositives(samplesClass);
 
 			entropySet = calcEntropy(totalPositives, total - totalPositives);
 
@@ -315,28 +339,28 @@ namespace Tac.Perceptron
 
 			int Count = 0;
 			int Count2 = 0;
-			for (int i = 0; i < samples.Count; i++)
+			for (int i = 0; i < samples.Length; i++)
 			{
-				if (samples[i][bestAttribute] == true)
+				if (samples[i][bestAttribute] == 1)
 				{
 					Count++;
 				}
-				if (samples[i][bestAttribute] == false)
+				if (samples[i][bestAttribute] == -1)
 				{
 					Count2++;
 				}
 			}
 
-			Dictionary<int, BitBlock> s;
-			bool[] sc;
+			sbyte[][] s;
+			sbyte[] sc;
 
 			// 1 проход построения дерева, основываясь на положительном классе
-			s = new Dictionary<int, BitBlock>(Count);
-			sc = new bool[Count];
+			s = new sbyte[Count][];
+			sc = new sbyte[Count];
 			int k = 0;
-			for (int i = 0; i < samples.Count; i++)
+			for (int i = 0; i < samples.Length; i++)
 			{
-				if (samples[i][bestAttribute] == true)
+				if (samples[i][bestAttribute] == 1)
 				{
 					s[k] = samples[i];
 					sc[k] = samplesClass[i];
@@ -345,7 +369,7 @@ namespace Tac.Perceptron
 			}
 
 			int positiveLink = -1;
-			if (s.Count != 0)
+			if (s.Length != 0)
 			{
 				if (Level == 0)
 				{
@@ -356,12 +380,12 @@ namespace Tac.Perceptron
 
 
 			// 2 проход построения дерева, основываясь на отрицательном классе
-			s = new Dictionary<int, BitBlock>(Count2);
-			sc = new bool[Count2];
+			s = new sbyte[Count2][];
+			sc = new sbyte[Count2];
 			k = 0;
-			for (int i = 0; i < samples.Count; i++)
+			for (int i = 0; i < samples.Length; i++)
 			{
-				if (samples[i][bestAttribute] == false)
+				if (samples[i][bestAttribute] == -1)
 				{
 					s[k] = samples[i];
 					sc[k] = samplesClass[i];
@@ -370,7 +394,7 @@ namespace Tac.Perceptron
 			}
 
 			int negativeLink = -1;
-			if (s.Count != 0)
+			if (s.Length != 0)
 			{
 				if (Level == 0)
 				{

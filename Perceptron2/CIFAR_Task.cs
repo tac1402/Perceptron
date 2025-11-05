@@ -15,34 +15,34 @@ public class CIFAR_Task : CIFARLib
 
 		Load();
 
-		BitBlock[] outputE = new BitBlock[E];
+		sbyte[][] outputE = new sbyte[E][];
 		for (int i = 0; i < E; i++)
 		{
-			outputE[i] = new BitBlock(10);
+			outputE[i] = new sbyte[10];
 
 			int c = (int)ExamLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
 				{
-					outputE[i][j] = true;
+					outputE[i][j] = 1;
 				}
 			}
 
 			net.JoinEStimul(i, ExamSetPack[i], outputE[i]);
 		}
 
-		BitBlock[] output = new BitBlock[N1];
+		sbyte[][] output = new sbyte[N1][];
 		for (int i = 0; i < N1; i++)
 		{
-			output[i] = new BitBlock(10);
+			output[i] = new sbyte[10];
 
 			int c = (int)TrainLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
 				{
-					output[i][j] = true;
+					output[i][j] = 1;
 				}
 			}
 

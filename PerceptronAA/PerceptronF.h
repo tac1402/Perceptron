@@ -42,6 +42,7 @@ extern "C"
     PERCEPTRONF_API void RandomChange(PerceptronFHandle handle, float d, float c3, const float* AField);
     PERCEPTRONF_API void Random2Change(PerceptronFHandle handle, float d, float c3, const float* AField, const float* A2Field);
 
+    PERCEPTRONF_API void Normalize(PerceptronFHandle handle, const float* aField, float* retAFieldNorm);
 
     PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename);
     PERCEPTRONF_API int LoadWeights(PerceptronFHandle handle, const char* filename);

@@ -164,6 +164,12 @@ public:
         RandomChangeAVX2(d, c3, A2Field, ACount, A2Count, RCount, AAWeights);
     }
 
+    void Normalize(const float* AField, float* retAFieldNorm)
+    {
+        NormalizeAvx2(AField, ACount, retAFieldNorm);
+    }
+
+
     // Функция для сохранения весов в бинарный файл
     bool SaveWeights(const char* filename)
     {
@@ -243,42 +249,6 @@ public:
         file.close();
         return loadedCount;
     }
-
-    // Функция для загрузки весов из бинарного файла
-    /*bool LoadWeights(const char* filename)
-    {
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open()) { return false; }
-
-        // Читаем размерности массивов из файла
-        int file_SCount, file_ACount, file_RCount;
-        file.read(reinterpret_cast<char*>(&file_SCount), sizeof(file_SCount));
-        file.read(reinterpret_cast<char*>(&file_ACount), sizeof(file_ACount));
-        file.read(reinterpret_cast<char*>(&file_RCount), sizeof(file_RCount));
-
-        // Проверяем совпадение размерностей
-        if (file_SCount != SCount || file_ACount != ACount || file_RCount != RCount)
-        {
-            file.close();
-            return false;
-        }
-
-        // Читаем данные массивов
-        size_t sa_size = SCount * ACount;
-        size_t ar_size = RCount * ACount;
-
-        file.read(reinterpret_cast<char*>(SAWeights), sa_size * sizeof(float));
-        file.read(reinterpret_cast<char*>(ARWeights), ar_size * sizeof(float));
-
-        if (!file.good())
-        {
-            file.close();
-            return false;
-        }
-
-        file.close();
-        return true;
-    }*/
 
 
 private:
@@ -749,6 +719,74 @@ private:
         }
     }
 
+
+    inline void NormalizeAvx2(const float* AField, int length, float* retAFieldNorm)
+    {
+
+        retAFieldNorm = (float*)malloc(length * sizeof(float));
+
+        // Инициализация
+        float maxAbs = 0.0f;
+
+        // Векторные переменные для AVX2
+        __m256 v_max_abs = _mm256_setzero_ps();
+
+        int i = 0;
+
+        // Обработка основных блоков по 8 элементов
+        for (; i <= length - 8; i += 8) 
+        {
+            __m256 v_data = _mm256_loadu_ps(&AField[i]);
+
+            // Вычисление абсолютных значений
+            __m256 v_abs = _mm256_and_ps(v_data, _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF)));
+
+            // Обновление максимума
+            v_max_abs = _mm256_max_ps(v_max_abs, v_abs);
+        }
+
+        // Редукция вектора максимумов
+        __m128 v_max_abs_high = _mm256_extractf128_ps(v_max_abs, 1);
+        __m128 v_max_abs_low = _mm256_castps256_ps128(v_max_abs);
+        __m128 v_max_abs_128 = _mm_max_ps(v_max_abs_high, v_max_abs_low);
+
+        v_max_abs_128 = _mm_max_ps(v_max_abs_128, _mm_shuffle_ps(v_max_abs_128, v_max_abs_128, _MM_SHUFFLE(1, 0, 3, 2)));
+        v_max_abs_128 = _mm_max_ps(v_max_abs_128, _mm_shuffle_ps(v_max_abs_128, v_max_abs_128, _MM_SHUFFLE(2, 3, 0, 1)));
+
+        _mm_store_ss(&maxAbs, v_max_abs_128);
+
+
+        // Обработка оставшихся элементов
+        for (; i < length; i++) 
+        {
+            float absValue = fabsf(AField[i]);
+            if (absValue > maxAbs) maxAbs = absValue;
+        }
+
+        // Если все значения нулевые, копируем исходный массив
+        if (maxAbs == 0.0f) 
+        {
+            memcpy(retAFieldNorm, AField, length * sizeof(float));
+            return;
+        }
+
+        // Нормализация
+        __m256 v_inv_max = _mm256_set1_ps(1.0f / maxAbs);
+
+        i = 0;
+        for (; i <= length - 8; i += 8) 
+        {
+            __m256 v_data = _mm256_loadu_ps(&AField[i]);
+            __m256 v_normalized = _mm256_mul_ps(v_data, v_inv_max);
+            _mm256_storeu_ps(&retAFieldNorm[i], v_normalized);
+        }
+
+        // Обработка оставшихся элементов
+        for (; i < length; i++) 
+        {
+            retAFieldNorm[i] = AField[i] / maxAbs;
+        }
+    }
 };
 
 // C wrapper functions
@@ -897,6 +935,14 @@ extern "C"
         if (handle && aField && a2Field)
         {
             static_cast<PerceptronF*>(handle)->Random2Change(d, c3, aField, a2Field);
+        }
+    }
+
+    PERCEPTRONF_API void Normalize(PerceptronFHandle handle, const float* aField, float* retAFieldNorm)
+    {
+        if (handle && aField && retAFieldNorm)
+        {
+            static_cast<PerceptronF*>(handle)->Normalize(aField, retAFieldNorm);
         }
     }
 

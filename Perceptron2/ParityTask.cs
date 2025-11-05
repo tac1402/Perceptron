@@ -31,7 +31,7 @@ public class ParityTask
 		
 
 		float[][] input = new float[N1 * N2 * N3][];
-		BitBlock[] output = new BitBlock[N1 * N2 * N3];
+		sbyte[][] output = new sbyte[N1 * N2 * N3][];
 
 		for (int i = 0; i < N1 * N2 * N3; i++)
 		{
@@ -44,7 +44,8 @@ public class ParityTask
 				input[i][j] = bitBlock.DataF[j];
 			}
 
-			output[i] = new BitBlock(1, new int[] { IsParity(bitBlock) });
+			output[i] = new sbyte[1];
+			output[i][0] = IsParity(bitBlock);
 
 			net.JoinStimul(i, input[i], output[i]);
 		}
@@ -52,9 +53,9 @@ public class ParityTask
 		net.Learned();
 	}
 
-	private int IsParity(BitBlock argInput)
+	private sbyte IsParity(BitBlock argInput)
 	{
-		int ret = 0;
+		sbyte ret = 0;
 		int sum = 0;
 
 		for (int i = 0; i < argInput.Count; i++)
@@ -64,7 +65,7 @@ public class ParityTask
 				sum++;
 			}
 		}
-		ret = sum % 2;
+		ret = (sbyte)(sum % 2);
 		return ret;
 	}
 

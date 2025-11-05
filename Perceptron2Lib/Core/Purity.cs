@@ -6,14 +6,14 @@ namespace Tac.Perceptron
 	public class Purity
 	{
 
-		private Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
+		private Dictionary<int, sbyte[]> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
 
 		public int[] reactions;
 		public int[] reactions2;
 
 		//private Hamming Hamming = new Hamming();
 
-		public Purity(Dictionary<int, BitBlock> argNecessaryReactions)
+		public Purity(Dictionary<int, sbyte[]> argNecessaryReactions)
 		{
 			NecessaryReactions = argNecessaryReactions;
 
@@ -24,7 +24,7 @@ namespace Tac.Perceptron
 				int rCount = 0;
 				for (int i = 0; i < NecessaryReactions.Count; i++)
 				{
-					string key = NecessaryReactions[i].ToString();
+					string key = ReactionToString(NecessaryReactions[i]);
 
 					if (r.ContainsKey(key) == false)
 					{
@@ -34,6 +34,19 @@ namespace Tac.Perceptron
 					reactions[i] = r[key];
 				}
 			}
+		}
+
+		public string ReactionToString(sbyte[] sample)
+		{
+			string s = "";
+			for (int i = 0; i < sample.Length; i++)
+			{
+				if (sample[i] == 1)
+					s += "1";
+				else
+					s += "0";
+			}
+			return s;
 		}
 
 		public void SelectReaction(List<int> select)

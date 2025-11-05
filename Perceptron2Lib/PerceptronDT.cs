@@ -1,43 +1,24 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
-using System;
-using System.Drawing;
-using System.Runtime.ConstrainedExecution;
-using System.Security.Cryptography;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace Tac.Perceptron
 {
 
 	/// <summary>
 	/// Оптимизированная версия перцептрона Розенблатта, засчет сохранения реакций A элементов для каждого примера из обучающей выборки (AHConnections)
 	/// </summary>
-	public class PerceptronDT
+	public class PerceptronDT : Perceptron
 	{
 		public float[] SensorsField; /* Сенсорное поле */
 		//public sbyte[] ReactionsOutput; /* Реагирующие поле */
-
-		protected int SCount; // Количество сенсоров
-		public int ACount; // Количество ассоциаций
-		protected int RCount; // Количество реакций
-		protected int HCount; // Количество примеров, запоминается реакция A-элементов на каждый пример из обучающей выборки
-		private int ECount; // Количество примеров
 
 
 		public float[] AField;
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
 
-		public Dictionary<int, float[]> LearnedStimuls; // Обучающие стимулы из обучающей выборки
-		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
+		//protected float[] ReactionError;
 
-		public Dictionary<int, float[]> ExaminStimuls; // Стимулы для экзамена
-		public Dictionary<int, BitBlock> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
-
-		protected float[] ReactionError;
-
-		public int RndNumber = 10;
-		protected Random rnd;
+		//public int RndNumber = 10;
 
 		private string Name = "";
 		private string Arh
@@ -45,25 +26,20 @@ namespace Tac.Perceptron
 			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString(); }
 		}
 
-		public int MaxTreeCount = 20;
+		public int MaxTreeCount = 1;
 		public bool InitSetSA = false; // влияет на иницициализацию SA связей, можно или устанавливать (SetSA()) или прибавлять (SA())
 
 		public int batchCount = 0;
 		int PCount = 1000;
 
-		private PerceptronAA AB;
 		private Purity purity;
 
 		private bool isLoaded = false;
 
-		public PerceptronDT(int argSCount, int argACount, int argRCount, int argHCount, int argECount, string argName = "")
+		public PerceptronDT(int argSCount, int argACount, int argRCount, int argHCount, int argECount, int argMaxTreeCount = 1, string argName = "")
+			: base(argSCount, argACount, argRCount, argHCount, argECount)
 		{
-			rnd = new Random(RndNumber);
-			ACount = argACount;
-			SCount = argSCount;
-			RCount = argRCount;
-			HCount = argHCount;
-			ECount = argECount;
+			MaxTreeCount = argMaxTreeCount;
 			Name = argName;
 
 			batchCount = ACount;
@@ -75,18 +51,7 @@ namespace Tac.Perceptron
 				Activations.Add(i, new float[ACount/ MaxTreeCount]);
 			}
 
-			//ReactionsOutput = new sbyte[RCount];
-			ReactionError = new float[RCount];
-
-
-			LearnedStimuls = new Dictionary<int, float[]>();
-			NecessaryReactions = new Dictionary<int, BitBlock>();
-
-			ExaminStimuls = new Dictionary<int, float[]>();
-			ExaminReactions = new Dictionary<int, BitBlock>();
-
 			AB = new PerceptronAA(SCount, ACount, RCount);
-
 		}
 
 		public bool IsAnalyze = false;
@@ -185,31 +150,6 @@ namespace Tac.Perceptron
 					//WeightSA[sensorNumber][argAId] = sensorType;
 				}
 			}
-		}
-
-
-		/// <summary>
-		/// Добавить на обработку новый пример из обучающей выборки
-		/// </summary>
-		/// <param name="argStimulNumber">Номер примера из обучающей выборки</param>
-		/// <param name="argPerception">Стимулы (входы) из примера обучающей выборки</param>
-		/// <param name="argReaction">Нужная реакция (выходы) из примера обучающей выборки</param>
-		public void JoinStimul(int argStimulNumber, float[] argPerception, BitBlock argReaction)
-		{
-			// Запомним обучающий стимул
-			LearnedStimuls.Add(argStimulNumber, argPerception);
-
-			// Запомним какая реакция должна быть на этот пример
-			NecessaryReactions.Add(argStimulNumber, argReaction);
-		}
-
-		public void JoinEStimul(int argStimulNumber, float[] argPerception, BitBlock argReaction)
-		{
-			// Запомним обучающий стимул
-			ExaminStimuls.Add(argStimulNumber, argPerception);
-
-			// Запомним какая реакция должна быть на этот пример
-			ExaminReactions.Add(argStimulNumber, argReaction);
 		}
 
 
@@ -382,15 +322,6 @@ namespace Tac.Perceptron
 			int stopCount = 0;
 			int oldError = 0;
 
-			foreach (var rr in NecessaryReactions)
-			{
-				rr.Value.To();
-			}
-			for (int i = 0; i < ExaminStimuls.Count; i++)
-			{
-				ExaminReactions[i].To();
-			}
-
 			purity = new Purity(NecessaryReactions);
 			int[] indexL = new int[HCount];
 
@@ -431,7 +362,7 @@ namespace Tac.Perceptron
 						Reaction r = GetError(index);
 						if (r.E == true)
 						{
-							LearnedStimulAR(index);
+							LearnedStimulAR(index, r.Error);
 							Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
 						}
 					}
@@ -601,13 +532,6 @@ namespace Tac.Perceptron
 			
 			string weightFileName = WeightFileName();
 			LoadWeights();
-			if (isLoaded)
-			{
-				for (int i = 0; i < ExaminStimuls.Count; i++)
-				{
-					ExaminReactions[i].To();
-				}
-			}
 
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
@@ -616,7 +540,7 @@ namespace Tac.Perceptron
 
 			for (int n = 0; n < argECount; n++)
 			{
-				(bool isError, bool isFastError) = ExaminOne(n);
+				Reaction r = ExaminOne(n);
 
 				/*
 				string output = "";
@@ -636,24 +560,24 @@ namespace Tac.Perceptron
 
 				for (int i = 0; i < RCount; i++)
 				{
-					ErrorCount[i] += (int)Math.Abs(ReactionError[i]);
+					ErrorCount[i] += (int)Math.Abs(r.Error[i]);
 				}
-				if (isError == true)
+				if (r.IsErrorHard == true)
 				{
 					AllErrorCount++;
 				}
-				if (isFastError == true)
+				if (r.IsErrorSoft == true)
 				{
 					AllFastErrorCount++;
 				}
 
 				if (logErrorType)
 				{
-					if (isFastError == true)
+					if (r.IsErrorSoft == true)
 					{
 						error.Add(n, 2);
 					}
-					else if (isError == true)
+					else if (r.IsErrorHard == true)
 					{
 						error.Add(n, 1);
 					}
@@ -682,24 +606,15 @@ namespace Tac.Perceptron
 			return (AllErrorCount, AllFastErrorCount);
 		}
 
-		public (bool, bool) ExaminOne(int argNumber)
+		public Reaction ExaminOne(int argNumber)
 		{
 			SActivation(argNumber, 1);
-
 			// Активируем R-элементы, т.е. рассчитываем выходы
 			RActivation(argNumber);
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-			Reaction r = GetError(argNumber, 1);
-
-			/*
-			int[] e = new int[RCount + 1];
-			for (int i = 1; i < RCount + 1; i++)
-			{
-				e[i] += ReactionError[i];
-			}*/
-
-			return (r.IsErrorHard, r.IsErrorSoft);
+			return GetError(argNumber, 1);
 		}
+
 
 		/// <summary>
 		/// Активация S-A слоя
@@ -741,60 +656,12 @@ namespace Tac.Perceptron
 		protected void RActivation(int argStimulNumber)
 		{
 			RField = AB.RActivation(AField);
-
-			/*int[] Summa = new int[RCount];
-			for (int j = 0; j < RCount; j++)
-			{
-				for (int i = 0; i < AHConnections[argStimulNumber].Count; i++)
-				{
-					int index = AHConnections[argStimulNumber][i];
-					Summa[j] += WeightAR[index][j];
-				}
-			}*/
-
-			/*for (int i = 0; i < RCount; i++)
-			{
-				if (RField[i] > 0) { ReactionsOutput[i] = 1; }
-				else if (RField[i] <= 0) { ReactionsOutput[i] = -1; }
-				//else { ReactionsOutput[i] = 0; }
-			}*/
-		}
-
-		private Reaction GetError(int argStimulNumber, int argMode = 0)
-		{
-			Reaction r = new Reaction(RField, RCount);
-
-			for (int i = 0; i < RCount; i++)
-			{
-				sbyte v = 0;
-				if (argMode == 0)
-				{
-					v = NecessaryReactions[argStimulNumber].DataB[i];
-				}
-				else if (argMode == 1)
-				{
-					v = ExaminReactions[argStimulNumber].DataB[i];
-				}
-
-				int output = (RField[i] > 0) ? 1 : -1;
-				if (output != v)
-				{
-					r.IsErrorHard = true;
-					r.Error[i] = v;
-				}
-
-				if (v == 1 && i != r.RMax)
-				{
-					r.IsErrorSoft = true;
-				}
-			}
-			return r;
 		}
 
 
-		protected void LearnedStimulAR(int argStimulNumber)
+		protected void LearnedStimulAR(int argStimulNumber, float[] rError)
 		{
-			AB.LearnedStimulAR(ReactionError, AField);
+			AB.LearnedStimulAR(rError, AField);
 		}
 
 	}

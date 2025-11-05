@@ -63,6 +63,9 @@ public class PerceptronAA : IDisposable
 	private static extern void Random2Change(IntPtr handle, float d, float c3, float[] aField, float[] a2Field);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern void Normalize(IntPtr handle, float[] aField, float[] aFieldNorm);
+
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern bool SaveWeights(IntPtr handle, string filename);
 
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -183,6 +186,12 @@ public class PerceptronAA : IDisposable
 	public void Random2Change(float d, float c3, float[] aField, float[] a2Field)
 	{
 		Random2Change(_handle, d, c3, aField, a2Field);
+	}
+	public float[] Normalize(float[] aField)
+	{
+		float[] ret = new float[aField.Length];
+		Normalize(_handle, aField, ret);
+		return ret;
 	}
 
 	public bool SaveWeights(string filename)

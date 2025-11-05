@@ -10,7 +10,7 @@ namespace Tac.Perceptron
 	{
 		public BitVector32[] Data;
 		public float[] DataF;
-		public sbyte[] DataB;
+		public sbyte[] DataSB;
 
 		public int Count { get { return Data.Length * 32; } }
 
@@ -71,17 +71,17 @@ namespace Tac.Perceptron
 		public void To()
 		{
 			DataF = new float[Count];
-			DataB = new sbyte[Count];
+			DataSB = new sbyte[Count];
 			for (int i = 0; i < Count; i++)
 			{
 				if (this[i] == true)
 				{
 					DataF[i] = 1;
-					DataB[i] = 1;
+					DataSB[i] = 1;
 				}
 				else
 				{
-					DataB[i] = -1;
+					DataSB[i] = -1;
 				}
 			}
 		}
