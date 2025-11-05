@@ -2,6 +2,8 @@
 // Copyright (C) 2025 Sergej Jakovlev
 
 
+using System;
+
 namespace Tac.Perceptron
 {
 	/// <summary>
@@ -28,7 +30,7 @@ namespace Tac.Perceptron
 		}
 
 		(sbyte[][], sbyte[]) getSamples(int ReactionCount, Dictionary<int, float[]> argActivations, Dictionary<int, sbyte[]> argNecessaryReactions,
-			int RNumber, int argFrom, int argTill)
+			int argFrom, int argTill)
 		{
 			sbyte[][] result = new sbyte[ReactionCount][];
 			sbyte[] samplesClass = new sbyte[ReactionCount];
@@ -49,7 +51,7 @@ namespace Tac.Perceptron
 					}
 				}
 
-				if (argNecessaryReactions[i][RNumber] == 1)
+				if (argNecessaryReactions[i][0] == 1)
 				{
 					samplesClass[i] = 1;
 				}
@@ -63,7 +65,7 @@ namespace Tac.Perceptron
 		}
 
 		public void Analyze(int argACount, int argHCount, Dictionary<int, float[]> argActivations,
-			Dictionary<int, sbyte[]> argNecessaryReactions, int argRNumber, int argFrom, int argTill)
+			Dictionary<int, sbyte[]> argNecessaryReactions, int argFrom, int argTill)
 		{
 			ACount = argACount;
 			Result = new int[ACount];
@@ -84,7 +86,7 @@ namespace Tac.Perceptron
 
 			sbyte[][] samples;
 			sbyte[] samplesClass;
-			(samples, samplesClass) = getSamples(argHCount, argActivations, argNecessaryReactions, argRNumber, argFrom, argTill);
+			(samples, samplesClass) = getSamples(argHCount, argActivations, argNecessaryReactions, argFrom, argTill);
 
 			//id3 = new DecisionTreeID3(argFrom);
 			id3 = new DecisionTreeID3(0);
@@ -114,10 +116,8 @@ namespace Tac.Perceptron
 	{
 		public List<int> root = new List<int>();
 		public Graph graphP;
-		public Graph graphN;
+		public bool CreateGraph = false;
 
-		private int total = 0;
-		private double entropySet = 0.0;
 		private int from = 0;
 
 		private ID3 id3;
@@ -126,143 +126,13 @@ namespace Tac.Perceptron
 		{
 			from = argFrom;
 			graphP = new Graph();
-			graphN = new Graph();
 			id3 = new ID3();
-		}
-
-		/// <summary>
-		/// Возвращает общее количество положительных образцов в таблице образцов
-		/// </summary>
-		private int GetTotalPositives(sbyte[] samplesClass)
-		{
-			return id3.GetTotalPositives(samplesClass);
-			
-			/*int result = 0;
-			foreach (sbyte value in samplesClass)
-			{
-				if (value == 1) { result++; }
-			}
-
-			if (ret != result)
-			{
-				int a = 1;
-			}
-
-			return result;*/
-		}
-
-		/// <summary>
-		/// Рассчитавает энтропию по следующей формуле:
-		/// -p+log2p+ - p-log2p-
-		/// 
-		/// где: p+ — доля положительных значений
-		///		 p- — доля отрицательных значений
-		/// </summary>
-		/// <param name="positives">Количество положительных значений</param>
-		/// <param name="negatives">Количество отрицательных значений</param>
-		/// <returns>Возвращает значение энтропии</returns>
-		private float calcEntropy(int positives, int negatives)
-		{
-			int total = positives + negatives;
-			float ratioPositive = (float)positives / total;
-			float ratioNegative = (float)negatives / total;
-
-			if (ratioPositive != 0)
-			{
-				ratioPositive = -(ratioPositive) * (float)Math.Log(ratioPositive, 2);
-			}
-			if (ratioNegative != 0)
-			{
-				ratioNegative = -(ratioNegative) * (float)Math.Log(ratioNegative, 2);
-			}
-
-			float result = ratioPositive + ratioNegative;
-
-			return result;
-		}
-
-		/// <summary>
-		/// Просматривает таблицу образцов, проверяя атрибут и является ли результат положительным или отрицательным
-		/// </summary>
-		/// <param name="value">допустимое значение для атрибута</param>
-		/// <param name="positives">количество всех атрибутов с положительным значением</param>
-		/// <param name="negatives">количество всех атрибутов с отрицательным значением</param>
-		private void getValuesToAttribute(sbyte[][] argSamples, sbyte[] argSamplesClass,
-			int attribute, sbyte value, out int positives, out int negatives)
-		{
-			positives = 0;
-			negatives = 0;
-			for (int i = 0; i < argSamples.Length; i++)
-			{
-				if (argSamples[i][attribute] == value)
-				{
-					if (argSamplesClass[i] == 1)
-					{
-						positives++;
-					}
-					else
-					{
-						negatives++;
-					}
-				}
-			}
-		}
-
-		/// <summary>
-		/// Рассчитывает gain атрибута
-		/// </summary>
-		/// <param name="attribute">Атрибут для расчета</param>
-		private double gain(sbyte[][] samples, sbyte[] samplesClass, int attribute)
-		{
-			double sum = 0.0;
-
-			int positives, negatives;
-			double entropy;
-
-			positives = negatives = 0;
-
-			getValuesToAttribute(samples, samplesClass, attribute, 1, out positives, out negatives);
-
-			entropy = calcEntropy(positives, negatives);
-			sum += -(double)(positives + negatives) / total * entropy;
-
-			positives = negatives = 0;
-
-			getValuesToAttribute(samples, samplesClass, attribute, -1, out positives, out negatives);
-
-			entropy = calcEntropy(positives, negatives);
-			sum += -(double)(positives + negatives) / total * entropy;
-
-			return entropySet + sum;
-		}
-
-		/// <summary>
-		/// Возвращает лучший атрибут (с наибольшим gain)
-		/// </summary>
-		/// <param name="attributes">Вектор с атрибутами</param>
-		private int getBestAttribute(sbyte[][] samples, sbyte[] samplesClass, int[] attributes)
-		{
-			double maxGain = 0.0;
-			int result = attributes[0];
-
-			for (int i = 0; i < attributes.Length; i++)
-			{
-				double locGain = gain(samples, samplesClass, attributes[i]);
-
-				if (locGain > maxGain)
-				{
-					maxGain = locGain;
-					result = attributes[i];
-				}
-			}
-			return result;
 		}
 
 		/// <summary>
 		/// Возвращает true, если все примеры в выборке положительные
 		/// </summary>
 		private sbyte allSamplesPositives(sbyte[] samplesClass) => allSamples(samplesClass, 1);
-
 		/// <summary>
 		/// Возвращает true, если все примеры в выборке отрицательные
 		/// </summary>
@@ -271,25 +141,37 @@ namespace Tac.Perceptron
 		private sbyte allSamples(sbyte[] samplesClass, sbyte argValue)
 		{
 			return id3.AllSamples(samplesClass, argValue);
-			
-			/*sbyte ret = 1;
-			foreach (sbyte value in samplesClass)
-			{
-				if (value != argValue)
-				{
-					ret = -1;
-					break;
-				}
-			}
-
-			if (r1 != ret)
-			{
-				int a = 1;
-			}
-
-			return ret;*/
 		}
 
+		/// <summary>
+		/// Возвращает лучший атрибут (с наибольшим gain)
+		/// </summary>
+		/// <param name="attributes">Вектор с атрибутами</param>
+		private int getBestAttribute(sbyte[][] samples, sbyte[] samplesClass, int[] attributes)
+		{
+			int total = samples.Length;
+			double entropySet = id3.CalcEntropyTotal(samplesClass);
+
+			var result = attributes
+				.AsParallel()
+				.Select(attribute =>
+				{
+					sbyte[] attributeSet = new sbyte[total];
+					for (int j = 0; j < total; j++)
+					{
+						attributeSet[j] = samples[j][attribute];
+					}
+
+					double gain = entropySet;
+					gain += id3.CalcEntropyAdd(attributeSet, samplesClass, 1);
+					gain += id3.CalcEntropyAdd(attributeSet, samplesClass, -1);
+
+					return new { Attribute = attribute, Gain = gain };
+				})
+				.Aggregate((best, current) => current.Gain > best.Gain ? current : best);
+
+			return result.Attribute;
+		}
 
 		/// <summary>
 		/// Построить дерево решений на основе представленных образцов
@@ -316,11 +198,6 @@ namespace Tac.Perceptron
 			if (allSamplesNegatives(samplesClass) == 1) { return -1; }
 			if (attributes.Length == 0) { return -1; }
 			if (Level > 100) { return -1; }
-
-			total = samples.Length;
-			int totalPositives = GetTotalPositives(samplesClass);
-
-			entropySet = calcEntropy(totalPositives, total - totalPositives);
 
 			int bestAttribute = getBestAttribute(samples, samplesClass, attributes);
 
@@ -403,15 +280,18 @@ namespace Tac.Perceptron
 				negativeLink = mountTree(s, sc, at.ToArray(), Level + 1, graph);
 			}
 
-			if (Level >= 0)
+			if (CreateGraph == true)
 			{
-				if (positiveLink != -1)
+				if (Level >= 0)
 				{
-					graph.AddBranch(bestAttribute + from, positiveLink, "+");
-				}
-				if (negativeLink != -1)
-				{
-					graph.AddBranch(bestAttribute + from, negativeLink, "-");
+					if (positiveLink != -1)
+					{
+						graph.AddBranch(bestAttribute + from, positiveLink, "+");
+					}
+					if (negativeLink != -1)
+					{
+						graph.AddBranch(bestAttribute + from, negativeLink, "-");
+					}
 				}
 			}
 

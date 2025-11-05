@@ -1,6 +1,7 @@
 ﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
 // Copyright (C) 2025 Sergej Jakovlev
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace Tac.Perceptron
@@ -16,11 +17,13 @@ namespace Tac.Perceptron
 		private static extern void DisposeID3(IntPtr handle);
 
 		[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-		public static extern int GetTotalPositives(IntPtr handle, sbyte[] aField, int length);
+		public static extern double CalcEntropyTotal(IntPtr handle, sbyte[] samplesClass, int length);
 
 		[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
-		public static extern sbyte AllSamples(IntPtr handle, sbyte[] aField, int length, sbyte argValue);
+		public static extern sbyte AllSamples(IntPtr handle, sbyte[] samplesClass, int length, sbyte argValue);
 
+		[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+		public static extern double CalcEntropyAdd(IntPtr handle, sbyte[] attributeSet, sbyte[] samplesClass, int total, sbyte argValue);
 
 		public ID3()
 		{
@@ -40,16 +43,22 @@ namespace Tac.Perceptron
 		}
 
 
-		public int GetTotalPositives(sbyte[] aField)
+		public double CalcEntropyTotal(sbyte[] samplesClass)
 		{
-			return GetTotalPositives(_handle, aField, aField.Length);
+			return CalcEntropyTotal(_handle, samplesClass, samplesClass.Length);
 		}
 
-		public sbyte AllSamples(sbyte[] aField, sbyte argValue)
+		public sbyte AllSamples(sbyte[] samplesClass, sbyte argValue)
 		{
-			return AllSamples(_handle, aField, aField.Length, argValue);
+			return AllSamples(_handle, samplesClass, samplesClass.Length, argValue);
 		}
 
+		public double CalcEntropyAdd(sbyte[] attributeSet, sbyte[] samplesClass, sbyte argValue)
+		{
+			return CalcEntropyAdd(_handle, attributeSet, samplesClass, attributeSet.Length, argValue);
+		}
+
+		
 
 		~ID3()
 		{

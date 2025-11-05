@@ -6,7 +6,6 @@
 
 #include "PerceptronF.h"
 #include <immintrin.h>
-#include <vector>
 #include <cstring>
 #include <memory>
 #include <cmath>

@@ -19,7 +19,10 @@ extern "C"
     ID3_API void DisposeID3(ID3Handle handle);
 
     // Operations
-    ID3_API int GetTotalPositives(ID3Handle handle, const signed char* samplesClass, int lenght);
+    ID3_API double CalcEntropyTotal(ID3Handle handle, const signed char* samplesClass, int total);
     ID3_API signed char AllSamples(ID3Handle handle, const signed char* samplesClass, int lenght, signed char argValue);
+
+    ID3_API double CalcEntropyAdd(ID3Handle handle, const signed char* attributeSet, const signed char* samplesClass, int total, signed char value);
+
 }
 

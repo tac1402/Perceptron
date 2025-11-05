@@ -161,19 +161,17 @@ namespace Tac.Perceptron
 
 		private void StartAnalyze()
 		{
-			id3.Analyze(ACount, HCount, Activations, NecessaryReactions, rNumber, From, Till);
+			id3.Analyze(ACount, HCount, Activations, NecessaryReactions, From, Till);
 		}
 
 		PerceptronID3 id3;
-		int rNumber;
 
-		public void Analyze(int argRNumber, int argBatchNumber)
+		public void Analyze(int argBatchNumber)
 		{
 			id3 = new PerceptronID3();
 
 			From = argBatchNumber * batchCount;
 			Till = batchCount + argBatchNumber * batchCount;
-			rNumber = argRNumber;
 
 			id3.graphP = graph;
 
@@ -517,10 +515,7 @@ namespace Tac.Perceptron
 					SActivation(j, 0, batchCount*i, batchCount * (i+1));
 				}
 
-				for (int j = 0; j < RCount; j++)
-				{
-					Analyze(j, i);
-				}
+				Analyze(i);
 			}
 		}
 
