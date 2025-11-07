@@ -654,7 +654,7 @@ namespace Tac.Perceptron
 			int a2 = 1;
 		}
 
-		Dictionary<string, int> AA = new Dictionary<string, int>();
+		//Dictionary<string, int> AA = new Dictionary<string, int>();
 
 		protected void RActivation(int argStimulNumber)
 		{

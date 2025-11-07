@@ -17,17 +17,15 @@ namespace Tac.Perceptron
 	{
 
 		public float[] SensorsField; /* Сенсорное поле */
-		//public sbyte[] ReactionsOutput; /* Реагирующие поле */
 
 		public float[] AField;
 		public float[] AFieldNorm;
 
 
-		public int[] ErrorLog;
 		public List<int> ExceptStimul = new List<int>();
 		public List<int> OnlyStimul = new List<int>();
 
-		//private float[] ReactionError;
+		public int[] ErrorLog;
 		private int OldError = 0;
 
 		public Dictionary<int, float[]> Activations = new Dictionary<int, float[]>();
@@ -40,6 +38,10 @@ namespace Tac.Perceptron
 		{
 			get { return "[" + HCount.ToString() + "]" + SCount.ToString() + "x" + ACount.ToString(); }
 		}
+
+		private LayerSA LayerSA;
+		private LayerAR LayerAR;
+
 
 		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount, string argName = "") 
 			: base (argSCount, argACount, argRCount, argHCount, argECount)
@@ -54,6 +56,21 @@ namespace Tac.Perceptron
 
 			AB = new PerceptronAA(SCount, ACount, RCount);
 		}
+
+		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount, LayerSA argLayerSA, string argName = "")
+			: base(argSCount, argACount, argRCount, argHCount, argECount)
+		{
+			Name = argName;
+
+			SensorsField = new float[SCount];
+			AField = new float[ACount];
+			ErrorLog = new int[HCount];
+
+			LayerSA = argLayerSA;
+			AB = new PerceptronAA(SCount, ACount, 0);
+			LayerAR = new LayerAR(ACount + LayerSA.ACount, RCount);
+		}
+
 
 
 		int PCount = 1000;
@@ -316,6 +333,127 @@ namespace Tac.Perceptron
 			}
 		}
 
+		public void Learned2()
+		{
+			DateTime beginFull = DateTime.Now;
+
+			int[] indexL = new int[HCount];
+			int indexR = 0;
+			foreach (var rr in NecessaryReactions)
+			{
+				indexL[indexR] = rr.Key;
+				indexR++;
+			}
+
+			for (int n = 0; n < 100000; n++)
+			{
+				DateTime begin = DateTime.Now;
+				DateTime beginA;
+				DateTime beginR;
+				DateTime beginLar;
+				DateTime beginLsa;
+				DateTime beginRnd;
+
+				double tA = 0;
+				double tR = 0;
+				double tLar = 0;
+				double tLsa = 0;
+				double tRnd = 0;
+
+
+				Error = 0;
+				Error2 = 0;
+
+				indexL = Shuffle(indexL);
+
+				// За каждую итерацию прокручиваем все примеры из обучающей выборки
+				for (int i = 0; i < HCount; i++)
+				{
+					int index = indexL[i];
+
+					beginA = DateTime.Now;
+					LayerSA.SActivation(LearnedStimuls[index]);
+					SActivation(index);
+					tA += (DateTime.Now - beginA).TotalMilliseconds;
+
+					// Активируем R-элементы, т.е. рассчитываем выходы
+					beginR = DateTime.Now;
+					float[] AField2 = AFieldSum(LayerSA.AField, AField);
+					LayerAR.RActivation(AField2);
+					RField = LayerAR.RField;
+					tR += (DateTime.Now - beginR).TotalMilliseconds;
+
+					// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
+					GetError(index);
+					if (r.E == true)
+					{
+						beginLar = DateTime.Now;
+						LayerAR.LearnedStimulAR(AField2, r.Error);
+						tLar += (DateTime.Now - beginLar).TotalMilliseconds;
+
+						beginR = DateTime.Now;
+						LayerAR.RActivation(AField2);
+						RField = LayerAR.RField;
+						tR += (DateTime.Now - beginR).TotalMilliseconds;
+
+						GetError(index);
+						if (r.E == true)
+						{
+							beginRnd = DateTime.Now;
+							RandomChange(index);
+							tRnd += (DateTime.Now - beginRnd).TotalMilliseconds;
+
+							beginLsa = DateTime.Now;
+							LearnedStimulSA(index, r.Error);
+							tLsa += (DateTime.Now - beginLsa).TotalMilliseconds;
+
+							/*beginLar = DateTime.Now;
+							LayerAR.LearnedStimulAR(AField2, r.Error);
+							tLar += (DateTime.Now - beginLar).TotalMilliseconds;*/
+
+							Error2++;
+						}
+						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
+					}
+				}
+
+				OldError = Error;
+
+				int er = 0; int fer = 0;
+				if (Error < 1000)
+				{
+					(er, fer) = Examin(ECount, false);
+				}
+
+				double t = (DateTime.Now - begin).TotalMilliseconds;
+				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()  
+								+ "\t" + t.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
+								+ " " + tLar.ToString("F0") + "-" + tLsa.ToString("F0") + "-" + tRnd.ToString("F0")
+								+ "\tE: " + er.ToString() + " / " + fer.ToString();
+
+				Console.WriteLine(output);
+				File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
+
+				if (Error == 0) { break; }
+			}
+
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
+
+			string outputF = "\tFullTime = " + tFull.ToString() + " ms ";
+
+			Console.WriteLine(outputF);
+			File.AppendAllText("Error_" + Arh + ".txt", outputF + "\n");
+		}
+
+		public float[] AFieldSum(float[] AField1, float[] AField2)
+		{
+			float[] AField = new float[AField1.Length + AField2.Length];
+			Array.Copy(AField1, 0, AField, 0, AField1.Length);
+			Array.Copy(AField2, 0, AField, AField1.Length, AField2.Length);
+			return AField;
+		}
+
+
 		/// <summary>
 		/// Когда все примеры добавлены, вызывается чтобы перцептрон их выучил
 		/// </summary>
@@ -354,7 +492,7 @@ namespace Tac.Perceptron
 			}
 
 
-			float k1 = 1.0f;
+			//float k1 = 1.0f;
 			int minError2 = int.MaxValue;
 
 			// Делаем очень много итераций
@@ -414,7 +552,7 @@ namespace Tac.Perceptron
 						if (r.E == true)
 						{
 							beginRnd = DateTime.Now;
-							RandomChange(index, k1);
+							RandomChange(index);
 							tRnd += (DateTime.Now - beginRnd).TotalMilliseconds;
 
 							beginLsa = DateTime.Now;
@@ -448,7 +586,7 @@ namespace Tac.Perceptron
 				}
 
 				double t = (DateTime.Now - begin).TotalMilliseconds;
-				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() + " (" + k1.ToString("F4") + ")"
+				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString() 
 								+ "\t" + t.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
 								+ " " + tLar.ToString("F0") + "-" + tLsa.ToString("F0") + "-" + tRnd.ToString("F0")
 								+ "\tE: " + er.ToString() + " / " + fer.ToString();
@@ -651,7 +789,7 @@ namespace Tac.Perceptron
 		//float p3 = 0.01f;
 		//float correct3 = 0.001f;
 
-		private void RandomChange(int argStimulNumber, float argK1)
+		private void RandomChange(int argStimulNumber)
 		{
 			float d = p3;
 			if (OldError != 0) d = p3 * ((float)OldError / (float)HCount);

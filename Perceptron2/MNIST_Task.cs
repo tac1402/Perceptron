@@ -16,17 +16,21 @@ public class MNIST_Task : MNISTLib
 
 		//int Add = 100;
 
-		
+		LayerSA layerSA = new LayerSA(L, 7233);
+
+		/*
 		PerceptronDT net = new PerceptronDT(L, 100000, 1, N1, E, 5);
 		net.IsAnalyze = true;
 		//net.SinapsXCount = 32;
 		//net.SinapsYCount = 32;
 		net.sinapsType = PerceptronDT.SinapsType.Full;
-		
+		*/
 
 		//PerceptronTLNL net = new PerceptronTLNL(L + Add, 20000, 10, N1, E, "B");
 		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
-		//PerceptronTLNL netB = new PerceptronTLNL(L, 10000, 10, N1, E, "B");
+		
+		PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1, E, layerSA);
+
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
 
 		LoadF(0);
@@ -36,7 +40,7 @@ public class MNIST_Task : MNISTLib
 
 		//ReSort();
 		
-		
+		/*
 		string hardError = File.ReadAllText("HardError.txt");
 		string[] hError = hardError.Split(',');
 		List<int> topError = new List<int>();
@@ -47,7 +51,7 @@ public class MNIST_Task : MNISTLib
 			int k = int.Parse(hError[i]);
 			topError.Add(k);
 			tE.Add(k, 0);
-		}
+		}*/
 		
 		/*
 		string outputExam = File.ReadAllText("Output_[60000]784x16265.txt");
@@ -79,16 +83,16 @@ public class MNIST_Task : MNISTLib
 		}
 
 		sbyte[][] output = new sbyte[N1][];
-		/*for (int i = 0; i < N1; i++)
+		for (int i = 0; i < N1; i++)
 		{
-			output[i] = new BitBlock(10);
+			output[i] = new sbyte[10];
 
 			int c = (int)TrainLabels[i];
 			for (int j = 0; j < 10; j++)
 			{
 				if (c == j)
 				{
-					output[i][j] = true;
+					output[i][j] = 1;
 				}
 			}
 			//int classC = 0;
@@ -103,8 +107,8 @@ public class MNIST_Task : MNISTLib
 
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
-		}*/
-		for (int i = 0; i < N1; i++)
+		}
+		/*for (int i = 0; i < N1; i++)
 		{
 			output[i] = new sbyte[1];
 
@@ -114,15 +118,15 @@ public class MNIST_Task : MNISTLib
 			}
 
 			net.JoinStimul(i, TrainSet[i], output[i]);
-		}
+		}*/
 
 
 
 		//net.ExceptStimul = topError;
 		//netB.OnlyStimul = topError;
 
-		net.Learned();
-		net.Examin(E);
+		net.Learned2();
+		//net.Examin(E);
 
 		//net.LoadWeights();
 		//netB.LoadWeights();
