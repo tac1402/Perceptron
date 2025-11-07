@@ -17,10 +17,10 @@ namespace Tac.Perceptron
 		public Dictionary<int, float[]> ExaminStimuls; // Стимулы для экзамена
 		public Dictionary<int, sbyte[]> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
 
-
-		protected Random rnd = new Random(24);
+		public Reaction r;
 
 		protected float[] RField;
+		protected Random rnd = new Random(24);
 
 		protected PerceptronAA AB;
 
@@ -37,6 +37,8 @@ namespace Tac.Perceptron
 
 			ExaminStimuls = new Dictionary<int, float[]>();
 			ExaminReactions = new Dictionary<int, sbyte[]>();
+
+			r = new Reaction(RCount);
 		}
 
 		/// <summary>
@@ -64,30 +66,31 @@ namespace Tac.Perceptron
 		}
 
 
-		protected Reaction GetError(int argStimulNumber, int argMode = 0)
+		protected void GetError(int argStimulNumber, int argMode = 0)
 		{
 			if (argMode == 0)
 			{
-				return GetError(argStimulNumber, NecessaryReactions[argStimulNumber]);
+				GetError(argStimulNumber, NecessaryReactions[argStimulNumber]);
 			}
 			else if (argMode == 1)
 			{
-				return GetError(argStimulNumber, ExaminReactions[argStimulNumber]);
+				GetError(argStimulNumber, ExaminReactions[argStimulNumber]);
 			}
-			return null;
 		}
 
-		private Reaction GetError(int argStimulNumber, sbyte[] need)
+		private void GetError(int argStimulNumber, sbyte[] need)
 		{
-			Reaction r = new Reaction(RField, RCount);
+			r.Clear();
+			r.CalcRMax(RField);
 
 			for (int i = 0; i < RCount; i++)
 			{
 				int output = (RField[i] > 0) ? 1 : -1;
-				if (output != need[i])
+				int n = (need[i] == 1) ? 1 : -1;
+				if (output != n)
 				{
 					r.IsErrorHard = true;
-					r.Error[i] = need[i];
+					r.Error[i] = n;
 				}
 
 				if (need[i] == 1 && i != r.RMax)
@@ -95,7 +98,7 @@ namespace Tac.Perceptron
 					r.IsErrorSoft = true;
 				}
 			}
-			return r;
 		}
+
 	}
 }

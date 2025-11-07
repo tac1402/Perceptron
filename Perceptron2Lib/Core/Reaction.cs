@@ -13,10 +13,21 @@ namespace Tac.Perceptron
 
 		public bool E { get { return IsErrorHard; } }
 
-		public Reaction(float[] RField, int RCount)
+		public Reaction(int RCount)
+		{
+			Error = new float[RCount];
+		}
+
+		public void Clear()
+		{
+			Error = new float[Error.Length];
+			IsErrorHard = false;
+			IsErrorSoft = false;
+		}
+
+		public void CalcRMax(float[] RField)
 		{
 			RMax = ArgMax(RField);
-			Error = new float[RCount];
 		}
 
 		private int ArgMax(float[] array)

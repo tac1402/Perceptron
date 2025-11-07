@@ -722,7 +722,7 @@ private:
     inline void NormalizeAvx2(const float* AField, int length, float* retAFieldNorm)
     {
 
-        retAFieldNorm = (float*)malloc(length * sizeof(float));
+        //retAFieldNorm = (float*)malloc(length * sizeof(float));
 
         // Инициализация
         float maxAbs = 0.0f;

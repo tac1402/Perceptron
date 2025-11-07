@@ -215,7 +215,7 @@ namespace Tac.Perceptron
 				//if (n % 100 == 0)
 				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
-				Reaction r = ExaminOne(n);
+				ExaminOne(n);
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -268,13 +268,13 @@ namespace Tac.Perceptron
 			return (AllErrorCount, AllFastErrorCount);
 		}
 
-		public Reaction ExaminOne(int argNumber)
+		public void ExaminOne(int argNumber)
 		{
 			SActivation(argNumber, 1);
 			// Активируем R-элементы, т.е. рассчитываем выходы
 			RActivation(argNumber);
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-			return GetError(argNumber, 1);
+			GetError(argNumber, 1);
 		}
 
 
@@ -326,7 +326,7 @@ namespace Tac.Perceptron
 			InitAnalyze();
 
 			string weightFileName = WeightFileName();
-			LoadWeights();
+			//LoadWeights();
 
 
 			int heCount = HCount - ExceptStimul.Count;
@@ -399,7 +399,7 @@ namespace Tac.Perceptron
 					tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 					// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-					Reaction r = GetError(index);
+					GetError(index);
 					if (r.E == true)
 					{
 						beginLar = DateTime.Now;
@@ -410,19 +410,19 @@ namespace Tac.Perceptron
 						RActivation(index);
 						tR += (DateTime.Now - beginR).TotalMilliseconds;
 
-						Reaction r2 = GetError(index);
-						if (r2.E == true)
+						GetError(index);
+						if (r.E == true)
 						{
 							beginRnd = DateTime.Now;
 							RandomChange(index, k1);
 							tRnd += (DateTime.Now - beginRnd).TotalMilliseconds;
 
 							beginLsa = DateTime.Now;
-							LearnedStimulSA(index, r2.Error);
+							LearnedStimulSA(index, r.Error);
 							tLsa += (DateTime.Now - beginLsa).TotalMilliseconds;
 
 							beginLar = DateTime.Now;
-							LearnedStimulAR(index, r2.Error);
+							LearnedStimulAR(index, r.Error);
 							tLar += (DateTime.Now - beginLar).TotalMilliseconds;
 
 							Error2++;
@@ -461,7 +461,7 @@ namespace Tac.Perceptron
 				if (n % 10 == 0 && n > 0)
 				//if (Error2 < minError2)
 				{
-					AB.SaveWeights(weightFileName);
+					//AB.SaveWeights(weightFileName);
 					//minError2 = Error2;
 				}
 
@@ -472,7 +472,7 @@ namespace Tac.Perceptron
 				//if (Error < 13000) { break; }
 			}
 
-			AB.SaveWeights(weightFileName);
+			//AB.SaveWeights(weightFileName);
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
 
@@ -641,10 +641,12 @@ namespace Tac.Perceptron
 			RField = AB.RActivation(AField);
 		}
 
+		float p3 = 0.0002f;
+		float correct3 = 0.001f;
 
 
-		float p3 = 0.0000001f;
-		float correct3 = 0.00001f;
+		//float p3 = 0.0000001f;
+		//float correct3 = 0.00001f;
 
 		//float p3 = 0.01f;
 		//float correct3 = 0.001f;

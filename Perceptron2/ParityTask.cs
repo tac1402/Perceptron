@@ -24,7 +24,7 @@ public class ParityTask
 		//NeironNetA net = new NeironNetA(18, 6000, 1, N1 * N2 * N3);
 		PerceptronDT net = new PerceptronDT(L, 3000, 1, N1 * N2 * N3, E);
 
-		net.IsAnalyze = true;
+		net.IsAnalyze = false;
 		//net.SinapsXCount = 14;
 		//net.SinapsYCount = 14;
 		net.sinapsType = PerceptronDT.SinapsType.Full;

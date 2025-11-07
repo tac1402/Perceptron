@@ -77,6 +77,11 @@ namespace Tac.Perceptron
 				SinapsXCount = SCount;
 				SinapsYCount = SCount;
 			}
+			else if (sinapsType == SinapsType.Random)
+			{
+				if (SinapsXCount == 0) { SinapsXCount = SCount; }
+				if (SinapsYCount == 0) { SinapsYCount = SCount; }
+			}
 			else if (sinapsType == SinapsType.Sinaps2x2)
 			{
 				SinapsXCount = 2;
@@ -95,33 +100,12 @@ namespace Tac.Perceptron
 
 			if (sinapsType == SinapsType.Random)
 			{
-				sinapsCount = rnd.Next(0, SinapsXCount);
 				for (int j = 0; j < sinapsCount; j++)
 				{
 					sensorNumber = rnd.Next(SCount);
-					//WeightSA[sensorNumber][argAId] = 1;
-					if (InitSetSA == true)
-					{
-						AB.SetSA(sensorNumber, argAId, 1);
-					}
-					else
-					{
-						AB.SA(sensorNumber, argAId, 1);
-					}
-				}
-				sinapsCount = rnd.Next(0, SinapsYCount);
-				for (int j = 0; j < sinapsCount; j++)
-				{
-					sensorNumber = rnd.Next(SCount);
-					//WeightSA[sensorNumber][argAId] = -1;
-					if (InitSetSA == true)
-					{
-						AB.SetSA(sensorNumber, argAId, -1);
-					}
-					else
-					{
-						AB.SA(sensorNumber, argAId, -1);
-					}
+					if (rnd.Next(2) == 0) sensorType = 1; else sensorType = -1;
+
+					AB.SetSA(sensorNumber, argAId, sensorType);
 				}
 			}
 			else
@@ -150,6 +134,14 @@ namespace Tac.Perceptron
 					//WeightSA[sensorNumber][argAId] = sensorType;
 				}
 			}
+
+			/*
+			string s = "";
+			for (int i = 0; i < SCount; i++)
+			{
+				s += AB.SA_(i, argAId);
+			}
+			int a = 1;*/
 		}
 
 
@@ -301,7 +293,7 @@ namespace Tac.Perceptron
 			DateTime beginFull = DateTime.Now;
 
 			string weightFileName = WeightFileName();
-			LoadWeights();
+			//LoadWeights();
 			if (isLoaded)
 			{
 				IsAnalyze = false;
@@ -357,7 +349,7 @@ namespace Tac.Perceptron
 						tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 						// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-						Reaction r = GetError(index);
+						GetError(index);
 						if (r.E == true)
 						{
 							LearnedStimulAR(index, r.Error);
@@ -367,14 +359,14 @@ namespace Tac.Perceptron
 
 					//if (n % 10 == 0)
 					//{
-						bool ret = AB.SaveWeights(weightFileName);
+						//bool ret = AB.SaveWeights(weightFileName);
 					//}
 
 					int er = 0; int fer = 0;
 					(er, fer) = Examin(ECount, false);
 
 
-					purity.NeighborhoodPurity(Activations, PCount / 2);
+					//purity.NeighborhoodPurity(Activations, PCount / 2);
 					string outputA = "\tP: " + purity.minPurity.ToString("F4") + "-" + purity.avgPurity.ToString("F4") + "-" + purity.maxPurity.ToString("F4");
 
 
@@ -441,7 +433,7 @@ namespace Tac.Perceptron
 				}
 			}
 
-			AB.SaveWeights(weightFileName);
+			//AB.SaveWeights(weightFileName);
 
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
@@ -526,7 +518,7 @@ namespace Tac.Perceptron
 			//Console.WriteLine("Begin Examination");
 			
 			string weightFileName = WeightFileName();
-			LoadWeights();
+			//LoadWeights();
 
 			int[] ErrorCount = new int[RCount];
 			int AllErrorCount = 0;
@@ -535,7 +527,7 @@ namespace Tac.Perceptron
 
 			for (int n = 0; n < argECount; n++)
 			{
-				Reaction r = ExaminOne(n);
+				ExaminOne(n);
 
 				/*
 				string output = "";
@@ -601,13 +593,13 @@ namespace Tac.Perceptron
 			return (AllErrorCount, AllFastErrorCount);
 		}
 
-		public Reaction ExaminOne(int argNumber)
+		public void ExaminOne(int argNumber)
 		{
 			SActivation(argNumber, 1);
 			// Активируем R-элементы, т.е. рассчитываем выходы
 			RActivation(argNumber);
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
-			return GetError(argNumber, 1);
+			GetError(argNumber, 1);
 		}
 
 
@@ -644,10 +636,26 @@ namespace Tac.Perceptron
 					Activations[index] = AField;
 				}
 			}
+			/*
+			string s = "";
+			for (int i = 0; i < ACount; i++)
+			{
+				if (AField[i] > 0)
+				{
+					s += "1";
+				}
+				else
+				{
+					s += "0";
+				}
+			}
+			AA.Add(s, 0);
+			*/
+			int a2 = 1;
 		}
 
+		Dictionary<string, int> AA = new Dictionary<string, int>();
 
-		float[] RField;
 		protected void RActivation(int argStimulNumber)
 		{
 			RField = AB.RActivation(AField);
