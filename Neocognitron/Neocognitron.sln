@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36603.0 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neocognitron", "Neocognitron.csproj", "{FB12B054-8CEA-4693-8499-06785A18E222}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB12B054-8CEA-4693-8499-06785A18E222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB12B054-8CEA-4693-8499-06785A18E222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB12B054-8CEA-4693-8499-06785A18E222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB12B054-8CEA-4693-8499-06785A18E222}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B3508CF3-ECE9-4B2B-BD01-E23A6FC36C41}
+	EndGlobalSection
+EndGlobal
