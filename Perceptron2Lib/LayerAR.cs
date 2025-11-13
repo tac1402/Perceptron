@@ -18,6 +18,7 @@ namespace Tac.Perceptron
 		{
 			get { return "AR_" + ACount.ToString() + "x" + RCount.ToString(); }
 		}
+		private bool isLoaded = false;
 
 		public LayerAR(int argACount, int argRCount, string argName = "")
 		{
@@ -26,6 +27,30 @@ namespace Tac.Perceptron
 			Name = argName;
 
 			AB = new PerceptronAA(0, ACount, RCount);
+		}
+
+		public string WeightFileName()
+		{
+			string weightFileName = "weight" + Arh;
+			if (Name != "")
+			{
+				weightFileName += "_" + Name;
+			}
+			weightFileName += ".bin";
+			return weightFileName;
+		}
+
+		public void LoadWeights()
+		{
+			string weightFileName = WeightFileName();
+			if (File.Exists(weightFileName))
+			{
+				int ret = AB.LoadWeights(weightFileName);
+				if (ret != 0)
+				{
+					isLoaded = true;
+				}
+			}
 		}
 
 		public void RActivation(float[] AField)
@@ -38,6 +63,10 @@ namespace Tac.Perceptron
 			AB.LearnedStimulAR(rError, AField);
 		}
 
+		public void SaveWeights()
+		{ 
+			AB.SaveWeights(WeightFileName());
+		}
 
 	}
 }

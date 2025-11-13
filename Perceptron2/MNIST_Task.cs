@@ -126,7 +126,7 @@ public class MNIST_Task : MNISTLib
 		//netB.OnlyStimul = topError;
 
 		net.Learned2();
-		//net.Examin(E);
+		net.Examin(E);
 
 		//net.LoadWeights();
 		//netB.LoadWeights();

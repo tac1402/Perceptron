@@ -83,6 +83,8 @@ namespace Tac.Perceptron
 			r.Clear();
 			r.CalcRMax(RField);
 
+			int a = 0;
+
 			for (int i = 0; i < RCount; i++)
 			{
 				int output = (RField[i] > 0) ? 1 : -1;
@@ -92,12 +94,22 @@ namespace Tac.Perceptron
 					r.IsErrorHard = true;
 					r.Error[i] = n;
 				}
+				else
+				{
+					a++;
+				}
 
 				if (need[i] == 1 && i != r.RMax)
 				{
 					r.IsErrorSoft = true;
 				}
 			}
+
+			if (a == 1)
+			{
+				int b = 1;
+			}
+
 		}
 
 	}

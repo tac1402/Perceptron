@@ -270,7 +270,7 @@ namespace Tac.Perceptron
 
 			if (File.Exists(weightFileName))
 			{
-				ACount = 16265;
+				ACount = 12613;
 				AB = new PerceptronAA(SCount, ACount, RCount);
 
 				int ret = AB.LoadWeights(weightFileName);
@@ -293,7 +293,7 @@ namespace Tac.Perceptron
 			DateTime beginFull = DateTime.Now;
 
 			string weightFileName = WeightFileName();
-			//LoadWeights();
+			LoadWeights();
 			if (isLoaded)
 			{
 				IsAnalyze = false;
@@ -359,7 +359,7 @@ namespace Tac.Perceptron
 
 					//if (n % 10 == 0)
 					//{
-						//bool ret = AB.SaveWeights(weightFileName);
+						bool ret = AB.SaveWeights(weightFileName);
 					//}
 
 					int er = 0; int fer = 0;
@@ -433,7 +433,7 @@ namespace Tac.Perceptron
 				}
 			}
 
-			//AB.SaveWeights(weightFileName);
+			AB.SaveWeights(weightFileName);
 
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;

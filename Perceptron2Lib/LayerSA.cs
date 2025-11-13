@@ -45,10 +45,8 @@ namespace Tac.Perceptron
 		public void LoadWeights()
 		{
 			string weightFileName = WeightFileName();
-
 			if (File.Exists(weightFileName))
 			{
-
 				int ret = AB.LoadWeights(weightFileName);
 				if (ret != 0)
 				{
@@ -63,6 +61,11 @@ namespace Tac.Perceptron
 		public void SActivation(float[] SensorsField, int startA = 0, int endA = -1)
 		{
 			AField = AB.AActivation(SensorsField, startA, endA);
+		}
+
+		public void SaveWeights()
+		{
+			AB.SaveWeights(WeightFileName());
 		}
 
 	}

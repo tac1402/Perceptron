@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Tac.Perceptron
@@ -232,7 +233,7 @@ namespace Tac.Perceptron
 				//if (n % 100 == 0)
 				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
-				ExaminOne(n);
+				ExaminOne2(n);
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -294,6 +295,22 @@ namespace Tac.Perceptron
 			GetError(argNumber, 1);
 		}
 
+		public void ExaminOne2(int argNumber)
+		{
+			// Активируем A-элементы
+			LayerSA.SActivation(ExaminStimuls[argNumber]);
+			SActivation(argNumber, 1);
+
+			// Активируем R-элементы, т.е. рассчитываем выходы
+			float[] AField2 = AFieldSum(LayerSA.AField, AField);
+			LayerAR.RActivation(AField2);
+			RField = LayerAR.RField;
+
+			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
+			GetError(argNumber, 1);
+		}
+
+
 
 		private List<int> top(int[] argErrorLog, int N)
 		{
@@ -333,9 +350,25 @@ namespace Tac.Perceptron
 			}
 		}
 
+		public void LoadWeights2()
+		{
+			string weightFileName = WeightFileName();
+
+			if (File.Exists(weightFileName))
+			{
+				int ret = AB.LoadWeights(weightFileName);
+
+				LayerSA.LoadWeights();
+				LayerAR.LoadWeights();
+			}
+		}
+
+
 		public void Learned2()
 		{
 			DateTime beginFull = DateTime.Now;
+			string weightFileName = WeightFileName();
+			LoadWeights2();
 
 			int[] indexL = new int[HCount];
 			int indexR = 0;
@@ -420,7 +453,7 @@ namespace Tac.Perceptron
 				OldError = Error;
 
 				int er = 0; int fer = 0;
-				if (Error < 1000)
+				//if (Error < 1000)
 				{
 					(er, fer) = Examin(ECount, false);
 				}
@@ -433,6 +466,10 @@ namespace Tac.Perceptron
 
 				Console.WriteLine(output);
 				File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
+
+				LayerSA.SaveWeights();
+				LayerAR.SaveWeights();
+				AB.SaveWeights(weightFileName);
 
 				if (Error == 0) { break; }
 			}
@@ -465,7 +502,7 @@ namespace Tac.Perceptron
 
 			string weightFileName = WeightFileName();
 			//LoadWeights();
-
+			//LoadLog();
 
 			int heCount = HCount - ExceptStimul.Count;
 			if (OnlyStimul.Count != 0)
@@ -580,7 +617,7 @@ namespace Tac.Perceptron
 				OldError = Error;
 
 				int er = 0; int fer = 0;
-				if (Error < 1000)
+				//if (Error < 1000)
 				{
 					(er, fer) = Examin(ECount, false);
 				}
@@ -596,21 +633,16 @@ namespace Tac.Perceptron
 
 
 
-				if (n % 10 == 0 && n > 0)
-				//if (Error2 < minError2)
-				{
-					//AB.SaveWeights(weightFileName);
-					//minError2 = Error2;
-				}
-
-				//Console.WriteLine("\tminError2: " + minError2.ToString());
+				AB.SaveWeights(weightFileName);
+				SaveLog();
 
 
-				if (Error == 0) { break; }
-				//if (Error < 13000) { break; }
+				//if (Error == 0) { break; }
+				//if (Error < 44000) { break; }
+				break;
 			}
 
-			//AB.SaveWeights(weightFileName);
+			AB.SaveWeights(weightFileName);
 
 			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
 
@@ -619,6 +651,30 @@ namespace Tac.Perceptron
 			Console.WriteLine(outputF);
 			File.AppendAllText("Error_" + Arh + ".txt", outputF + "\n");
 
+		}
+
+		private void LoadLog()
+		{
+			string[] log = File.ReadAllLines("ErrorLog.txt");
+			for (int i = 0; i < log.Length; i++)
+			{
+				string[] l = log[i].Split('\t');
+				int index = int.Parse(l[0]);
+				int count = int.Parse(l[1]);
+				ErrorLog[index] = count;
+			}
+		}
+
+
+		private void SaveLog()
+		{
+			string s = "";
+			List<int> log = TopError(HCount);
+			for (int i = 0; i < HCount; i++)
+			{
+				s += log[i].ToString() + "\t" + ErrorLog[log[i]].ToString() + "\n"; 
+			}
+			File.WriteAllText("ErrorLog.txt", s);
 		}
 
 
@@ -779,12 +835,13 @@ namespace Tac.Perceptron
 			RField = AB.RActivation(AField);
 		}
 
-		float p3 = 0.0002f;
-		float correct3 = 0.001f;
+		//RandomTest
+		//float p3 = 0.0002f;
+		//float correct3 = 0.001f;
 
 
-		//float p3 = 0.0000001f;
-		//float correct3 = 0.00001f;
+		float p3 = 0.0000001f;
+		float correct3 = 0.00001f;
 
 		//float p3 = 0.01f;
 		//float correct3 = 0.001f;
