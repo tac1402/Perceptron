@@ -91,8 +91,10 @@ namespace Neocognitron
 			{
 				for (int m = 0; m < size; m++)
 				{
+					//DateTime beginB = DateTime.Now;
 					// Get the window array for a specific location (n,m).
 					windowInEachPlane = inputs.getWindows(n, m, windowSize);
+					//NeocognitronStructure.tB += (DateTime.Now - beginB).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
 					vOutput = vcCells[n][m].propagate(windowInEachPlane);

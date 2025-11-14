@@ -158,14 +158,17 @@ namespace Neocognitron
 			double[][] vOutput = new double[size][];
 			double value;
 
+
 			// For every cell location in each plane, propagate the input 
 			for (int n = 0; n < size; n++)
 			{
 				vOutput[n] = new double[size];
 				for (int m = 0; m < size; m++)
 				{
+					//DateTime beginA = DateTime.Now;
 					// Get the window array for a specific location (n,m).
 					windowsFromEachPlane = input.getWindows(n, m, windowSize);
+					//NeocognitronStructure.tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
 					vOutput[n][m] = vsCells[n][m].propagate(windowsFromEachPlane);
@@ -182,7 +185,7 @@ namespace Neocognitron
 			if (argTrain)
 			{
 				train(input, output, vOutput);
-				output = this.propagate(input, false);
+				output = propagate(input, false);
 			}
 
 			return output;
@@ -197,6 +200,7 @@ namespace Neocognitron
 		 */
 		public void train(OutputConnections input, OutputConnections output, double[][] vOutput)
 		{
+			//DateTime beginB = DateTime.Now;
 
 			// Determine length of the weight array that will be changed (for each window)
 			int weightLength = (int)Math.Pow(windowSize, 2);
@@ -234,6 +238,7 @@ namespace Neocognitron
 				}
 			}
 
+			//NeocognitronStructure.tB += (DateTime.Now - beginB).TotalMilliseconds;
 		}
 	}
 }

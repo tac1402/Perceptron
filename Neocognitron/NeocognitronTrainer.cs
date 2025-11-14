@@ -35,8 +35,9 @@ namespace Neocognitron
 				for (int n2 = 0; n2 < inputs.Count; n2++)
 				{
 					output.propagate(inputs[n2], true);
-					Console.Write(".");
+					//Console.Write(".");
 				}
+				//Console.Write("*");
 			}
 			return output;
 		}
@@ -54,7 +55,11 @@ namespace Neocognitron
 				output = n.propagate(inputs[i], false);
 
 				// If output is already been used, or there is no output
-				if (outLoc.Contains(output) || output == -1)
+				if (output == -1)
+				{
+					return false;
+				}
+				if (outLoc.Contains(output))
 				{
 					return false;
 				}

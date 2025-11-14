@@ -82,17 +82,14 @@ namespace Neocognitron
 				{
 					for (int y = m - offset; y <= m + offset; y++) 
 					{
-						try 
+						if (x >= 0 && x < size && y >= 0 && y < size)
 						{
 							ret[count] = outputs[k][x][y];
-						} 
-						catch (Exception ex) 
-						{
-							ret[count] = 0;
 						}
 						count++;
 					}
 				}
+				int a = 1;
 			}
 
 			return ret;
@@ -114,7 +111,7 @@ namespace Neocognitron
 
 			for (int k = 0; k < K; k++)
 			{
-				ret[k] = new double[ws];
+				//ret[k] = new double[ws];
 				ret[k] = getWindowInPlane(k, n, m, windowSize);
 			}
 

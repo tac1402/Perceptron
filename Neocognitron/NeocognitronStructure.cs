@@ -36,11 +36,11 @@ namespace Neocognitron
 		double[] delta;
 		double[] delta_bar;
 
-		public Random rnd = new Random(10);
+		public Random rnd = new Random();
 
 		public NeocognitronStructure()
 		{
-			p = (int)Math.Round(rnd.NextDouble() * 10 + 10);
+			p = (int)Math.Round(rnd.NextDouble() * 20 + 10);
 			numSPlanes = new int[] { p, p, p };
 			numCPlanes = new int[] { p, p, p };
 
@@ -131,16 +131,24 @@ namespace Neocognitron
 			return output;
 		}
 
+		public static double tA;
+		public static double tB;
+
+
 		/// <summary>
 		/// Статическая функция, позволяющая умножать два массива друг на друга.
 		/// </summary>
 		public static double arrayMultiply(double[] a, double[] b)
 		{
+			//DateTime beginA = DateTime.Now;
+
 			double output = 0;
 			for (int i = 0; i < a.Length; i++)
 			{
 				output += a[i] * b[i];
 			}
+
+			//tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 			return output;
 		}

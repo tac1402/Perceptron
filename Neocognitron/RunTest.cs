@@ -53,7 +53,11 @@ namespace Neocognitron
 			NeocognitronTrainer trainer = new NeocognitronTrainer(inputs, testInputs);
 
 			//(int)Math.Round(Math.random() * 15 + 5)
-			Neocognitron n = trainer.getNeocognitron(10);
+			Neocognitron n = trainer.getNeocognitron(5);
+
+			//Neocognitron n = trainer.runTrainingSet(10);
+			//trainer.verifyTraining(n);
+
 			trainer.verifyNeocognitron(n, testInputs, false);
 		}
 
