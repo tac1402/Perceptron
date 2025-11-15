@@ -1,83 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	public class CLayer
 	{
-
-		// Structural values saved for speedy access
 		private int planes;
 		private int size;
 		private int windowSize;
 
-		// All the layer's c-cells, organized as cCell[plane][n][m] 
-		private CCell[][][] cCells;
-		// The single v-plane of v-cells, organized as vcCells[n][m]
-		private VCCell[][] vcCells;
+		private MWeights d;
+		private double alpha;
 
-		private NeocognitronStructure s;
-
-		public CLayer(int layer, NeocognitronStructure argS)
+		public CLayer(int layer, NeocognitronStructure s)
 		{
-			s = argS;
-
-			// Initialize values
 			size = s.cLayerSizes[layer];
 			planes = s.numCPlanes[layer];
 			windowSize = s.cWindowSize[layer];
 
-			cCells = new CCell[planes][][];
-			for (int i = 0; i < planes; i++)
-			{
-				cCells[i] = new CCell[size][];
-				for (int j = 0; j < size; j++)
-				{
-					cCells[i][j] = new CCell[size];
-				}
-			}
-
-			vcCells = new VCCell[size][];
-			for (int j = 0; j < size; j++)
-			{
-				vcCells[j] = new VCCell[size];
-			}
-
-			InitializeCells(s.d[layer], s.alpha);
+			d = s.d[layer];
+			alpha = s.alpha;
 		}
 
-		/**
-		 * Initializes each c-cell.
-		 * 
-		 * @param d		Initial d weight values
-		 * @param alpha	Constant alpha
-		 */
-		public void InitializeCells(double[] d, double alpha)
-		{
-			for (int n = 0; n < size; n++)
-			{
-				for (int m = 0; m < size; m++)
-				{
-					vcCells[n][m] = new VCCell(d);
-
-					for (int k = 0; k < planes; k++)
-					{
-						cCells[k][n][m] = new CCell(d, alpha);
-					}
-				}
-			}
-		}
-
-		/**
-		 * For a given input, determine the output for this layer. The input
-		 * and output object are both OutputConnections. 
-		 * 
-		 * @param inputs	The input to this layer
-		 * @return			The output from this layer
-		 */
 		public OutputConnections propagate(OutputConnections inputs)
 		{
 			OutputConnections output = new OutputConnections(planes, size);
@@ -97,17 +41,47 @@ namespace Neocognitron
 					//NeocognitronStructure.tB += (DateTime.Now - beginB).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
-					vOutput = vcCells[n][m].propagate(windowInEachPlane);
+					vOutput = propagateVC(windowInEachPlane, d);
 					// Cycle through each plane and determine the output for a specific location (n,m)
 					for (int k = 0; k < planes; k++)
 					{
-						value = cCells[k][n][m].propagate(windowInEachPlane[k], vOutput);
+						value = propagateC(windowInEachPlane[k], vOutput, d, alpha);
 						output.setSingleOutput(k, n, m, value);
 					}
 				}
 			}
 
 			return output;
+		}
+
+		public double propagateC(double[] input, double v, MWeights d, double alpha)
+		{
+			double output = NeocognitronStructure.arrayMultiply(d.w, input);
+			output = (1 + output) / (1 + v) - 1;
+
+			output = output / (alpha + output);
+
+			// For negative outputs, set to zero
+			if (output < 0)
+			{
+				output = 0;
+			}
+
+			return output;
+		}
+
+
+		public double propagateVC(double[][] inputs, MWeights d)
+		{
+			double output = 0;
+
+			// where input is inputs[sk][window] a window in each plane
+			for (int sk = 0; sk < inputs.Length; sk++)
+			{
+				output += NeocognitronStructure.arrayMultiply(d.w, inputs[sk]);
+			}
+
+			return output / inputs.Length;
 		}
 
 	}

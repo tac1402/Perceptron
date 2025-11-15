@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	/// <summary>
 	/// Это вспомогательный класс, используемый для обучения неокогнитрона. Используя Lists входных данных, неокогнитрон 
@@ -46,7 +44,7 @@ namespace Neocognitron
 		/// Определите, прошло ли обучение успешно. Неокогнитрон выдаёт ошибку, если два символа возвращают одинаковый результат 
 		/// или если нет выходных данных для какого-либо символа.
 		/// </summary>
-		public bool verifyTraining(Neocognitron n)
+		public int verifyTraining(Neocognitron n)
 		{
 			List<int> outLoc = new List<int>();
 			int output;
@@ -57,15 +55,15 @@ namespace Neocognitron
 				// If output is already been used, or there is no output
 				if (output == -1)
 				{
-					return false;
+					return 0;
 				}
 				if (outLoc.Contains(output))
 				{
-					return false;
+					return outLoc.Count;
 				}
 				outLoc.Add(output);
 			}
-			return true;
+			return -1;
 		}
 
 		public Neocognitron getNeocognitron(int trainingLoops)
@@ -73,16 +71,22 @@ namespace Neocognitron
 			Neocognitron output;
 
 			int count = 0;
-			double errorRate = 1;
-			double bestError = 1;
+			double errorRate = 100;
+			double bestError = 100;
 			do
 			{       // While the error rate is not zero
+				int isAllOk = -1;
 				do
 				{   // and while the training is not successful
 					output = runTrainingSet(trainingLoops);
+
+					isAllOk = verifyTraining(output);
+
 					count++;
-					Console.WriteLine("Loop: " + count.ToString() + "      Best: " + bestError.ToString() + "      Current: " + errorRate.ToString());
-				} while (!verifyTraining(output));
+					Console.WriteLine("Loop: " + count.ToString() + "\tBest: " + bestError.ToString("F4") + 
+						"\tCurrent: " + errorRate.ToString("F4") + 
+						"\tCount: " + isAllOk);
+				} while (isAllOk != -1);
 
 				errorRate = verifyNeocognitron(output, testInputs, false);
 				if (errorRate < bestError)
@@ -119,7 +123,7 @@ namespace Neocognitron
 				if (trainingOutput != testOutput)
 					output++;
 			}
-			return output / t.Count;
+			return output;
 		}
 
 	}

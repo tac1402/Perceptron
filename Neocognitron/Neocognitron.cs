@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	public class Neocognitron
 	{
@@ -58,18 +54,13 @@ namespace Neocognitron
 			}
 
 			// Determine the output from the final layer
-			return determineOutput(output.getPointsOnPlanes(0, 0));
+			return Max(output.getPointsOnPlanes());
 		}
 
-		/**
-		 * Given the output from the final layer, determine the output of
-		 * the network. The output is an integer which ranges across all
-		 * possible outputs.
-		 * 
-		 * @param out	Output from the last layer in the neocognitron.
-		 * @return		The index of the maximum output in the last layer.
-		 */
-		public int determineOutput(double[] out_)
+		/// <summary>
+		/// Определяет выход последнего слоя. Выход — это целое число, которое попадает в диапазон всех возможных выходов.
+		/// </summary>
+		public int Max(double[] out_)
 		{
 			double maxValue = 0;
 			int index = -1;

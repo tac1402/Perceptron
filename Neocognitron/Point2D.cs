@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	public class Point2D
 	{

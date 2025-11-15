@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	/// <summary>
 	/// Объект SLayer содержит все s-ячейки в каждой s-плоскости в пределах заданного s-слоя.
@@ -14,17 +9,10 @@ namespace Neocognitron
 	/// </summary>
 	public class SLayer
 	{
-
-		// Structural values saved for speedy access
 		private int planes;
 		private int size;
 		private int windowSize;
 		private int columnSize;
-
-		// All the layer's s-cells, organized as sCell[plane][n][m] 
-		private SCell[][][] sCells;
-		// The single v-plane of v-cells, organized as vcCells[n][m]
-		private VSCell[][] vsCells;
 
 		// Learning constant q
 		private double q;
@@ -42,7 +30,9 @@ namespace Neocognitron
 		private double[][][] a;
 
 		// Weights for v-cells c[window]
-		private double[] c;
+		private MWeights c;
+
+		private double r;
 
 		private NeocognitronStructure s;
 
@@ -56,26 +46,8 @@ namespace Neocognitron
 			windowSize = s.sWindowSize[layer];
 			columnSize = s.sColumnSize[layer];
 
-			//sCells = new SCell[planes][size][size];
-			sCells = new SCell[planes][][];
-			for (int i = 0; i < planes; i++)
-			{
-				sCells[i] = new SCell[size][];
-				for (int j = 0; j < size; j++)
-				{
-					sCells[i][j] = new SCell[size];
-				}
-			}
-
-			//vsCells = new VSCell[size][size];
-			vsCells = new VSCell[size][];
-			for (int i = 0; i < size; i++)
-			{
-				vsCells[i] = new VSCell[size];
-			}
-
-
 			q = s.q[layer];
+			r = s.r[layer];
 
 			// Determine number of planes in previous c-layer
 			int previousPlanes;
@@ -87,8 +59,9 @@ namespace Neocognitron
 			c = s.c[layer];
 
 			InitializeA(previousPlanes);
-			InitializeB();
-			InitializeCells(s.r[layer]);
+
+			b = new double[planes];
+
 		}
 
 		/// <summary>
@@ -117,34 +90,18 @@ namespace Neocognitron
 			}
 		}
 
-		/// <summary>
-		/// Инициализирует каждый вес b нулем
-		/// </summary>
-		public void InitializeB()
+		public double propagateVS(double[][] inputs, MWeights c)
 		{
-			b = new double[planes];
-			for (int k = 0; k < planes; k++)
+			double output = 0;
+			for (int i = 0; i < inputs.Length; i++)
 			{
-				b[k] = 0;
-			}
-		}
-
-		/// <summary>
-		/// Инициализируйте каждую s-ячейку
-		/// </summary>
-		public void InitializeCells(double r)
-		{
-			for (int n = 0; n < size; n++)
-			{
-				for (int m = 0; m < size; m++)
+				for (int j = 0; j < inputs[0].Length; j++)
 				{
-					vsCells[n][m] = new VSCell(c);
-					for (int k = 0; k < planes; k++)
-					{
-						sCells[k][n][m] = new SCell(r);
-					}
+					output += inputs[i][j] * inputs[i][j] * c.w[j];
 				}
 			}
+			output = Math.Sqrt(output);
+			return output;
 		}
 
 
@@ -171,12 +128,12 @@ namespace Neocognitron
 					//NeocognitronStructure.tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
-					vOutput[n][m] = vsCells[n][m].propagate(windowsFromEachPlane);
+					vOutput[n][m] = propagateVS(windowsFromEachPlane, c);
 
 					// Cycle through each plane and determine the output for a specific location (n,m)
 					for (int k = 0; k < planes; k++)
 					{
-						value = sCells[k][n][m].propagate(windowsFromEachPlane, vOutput[n][m], b[k], a[k]);
+						value = propagateS(windowsFromEachPlane, vOutput[n][m], b[k], a[k], r);
 						output.setSingleOutput(k, n, m, value);
 					}
 				}
@@ -185,10 +142,32 @@ namespace Neocognitron
 			if (argTrain)
 			{
 				train(input, output, vOutput);
-				output = propagate(input, false);
+				//output = propagate(input, false);
 			}
 
 			return output;
+		}
+
+		public double propagateS(double[][] inputs, double vInput, double b, double[][] a, double r)
+		{
+			double output = 0;
+			for (int ck = 0; ck < inputs.Length; ck++)
+			{
+				output += NeocognitronStructure.arrayMultiply(a[ck], inputs[ck]);
+			}
+
+			double denominator = 1 + 2 * r / (1 + r) * b * vInput;
+
+			output = (1 + output) / denominator - 1;
+
+			// Output function, set to zero if negative
+			if (output < 0)
+			{
+				output = 0;
+			}
+
+			// Final multiplication
+			return r * output;
 		}
 
 		/**
@@ -231,7 +210,7 @@ namespace Neocognitron
 						// Loop through every weight a[k][ck][window] in the given window 
 						for (int w = 0; w < weightLength; w++)
 						{
-							delta = q * c[w] * in_[w];
+							delta = q * c.w[w] * in_[w];
 							a[k][ck][w] += delta;
 						}
 					}

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
 {
 	/// <summary>
 	/// Объект, содержащий все выходные данные определенного слоя неокогнитрона. 
@@ -231,14 +227,21 @@ namespace Neocognitron
 				{
 					for (int y = m - offset; y <= m + offset; y++)
 					{
-						try
+						int newX = x - n + offset;
+						int newY = y - m + offset;
+
+						if (x >= 0 && x < size && y >= 0 && y < size)
 						{
-							ret[x - n + offset][y - m + offset] = outputs[k][x][y];
+							ret[newX][newY] = outputs[k][x][y];
+						}
+
+						/*try
+						{
 						}
 						catch (Exception ex)
 						{
 							ret[x - n + offset][y - m + offset] = 0;
-						}
+						}*/
 					}
 				}
 			}
@@ -346,22 +349,13 @@ namespace Neocognitron
 			outputs[kValue] = newOutputs;
 		}
 
-		/**
-		 * Get an array of a certain point (n,m) in every plane.
-		 * 
-		 * @param n		Matrix location (1st dimension)
-		 * @param m		Matrix location (2nd dimension)
-		 * @return		Array of of output points for each plane 
-		 * 				(output[k] = value[k][n][m] )
-		 */
-		public double[] getPointsOnPlanes(int n, int m)
+		public double[] getPointsOnPlanes()
 		{
 			double[] output = new double[K];
 
-			// For every plane, grab point (n,m)
 			for (int k = 0; k < K; k++)
 			{
-				output[k] = outputs[k][n][m];
+				output[k] = outputs[k][0][0];
 			}
 
 			return output;

@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿// Author: Sergej Jakovlev <tac1402@gmail.com>
+// Copyright (C) 2025 Sergej Jakovlev
 
-namespace Neocognitron
+namespace Tac.Neocognitron
+
 {
 	public class NeocognitronStructure
 	{
@@ -26,34 +23,27 @@ namespace Neocognitron
 		public int[] sColumnSize = { 5, 5, 2 };
 
 		public double[] r;
-		public double[][] c;
-		public double[][] d;
+		public MWeights[] c;
+		public MWeights[] d;
 		public double[] q;
 		public double alpha;
 
 		// Values used to determine c and d
-		double[] gamma;
-		double[] delta;
-		double[] delta_bar;
+		//double[] gamma;
+		//double[] delta;
+		//double[] delta_bar;
 
 		public Random rnd = new Random();
 
 		public NeocognitronStructure()
 		{
-			p = (int)Math.Round(rnd.NextDouble() * 20 + 10);
+			p = (int)Math.Round(rnd.NextDouble() * 10 + 10);
 			numSPlanes = new int[] { p, p, p };
 			numCPlanes = new int[] { p, p, p };
 
 			r = new double[] { rnd.NextDouble() * 4 + 1, rnd.NextDouble() * 1 + 2, rnd.NextDouble() * 2 + 2 };
 			q = new double[] { rnd.NextDouble() * .1 + .2, rnd.NextDouble() * 4 + 8, rnd.NextDouble() * 10 + 6 };
 			alpha = rnd.NextDouble() * .08 + .42;
-
-			gamma = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
-			delta = new double[] { rnd.NextDouble() * .2 + .4, rnd.NextDouble() * .75 + .2, rnd.NextDouble() * .3 + .4 };
-			delta_bar = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
-
-			c = new double[numLayers][];
-			d = new double[numLayers][];
 
 			generateC();
 			generateD();
@@ -65,11 +55,14 @@ namespace Neocognitron
 		/// </summary>
 		public void generateC()
 		{
+			c = new MWeights[numLayers];
+			double[] gamma = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+
 			// For first layer, depends on input
-			c[0] = generateMonotonic(gamma[0], sWindowSize[0], 1, true);
-			for (int l = 1; l < numLayers; l++)
+			c[0] = new MWeights(sWindowSize[0], gamma[0], 1, true);
+			for (int i = 1; i < numLayers; i++)
 			{
-				c[l] = generateMonotonic(gamma[l], sWindowSize[l], numCPlanes[l - 1], true);
+				c[i] = new MWeights(sWindowSize[i], gamma[i], numCPlanes[i - 1], true);
 			}
 		}
 
@@ -78,57 +71,19 @@ namespace Neocognitron
 		/// </summary>
 		public void generateD()
 		{
+			d = new MWeights[numLayers];
+			double[] delta = new double[] { rnd.NextDouble() * .2 + .4, rnd.NextDouble() * .75 + .2, rnd.NextDouble() * .3 + .4 };
+			double[] delta_bar = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+
 			// For first layer, depends on input
-			for (int l = 0; l < numLayers; l++)
+			for (int i = 0; i < numLayers; i++)
 			{
-				d[l] = generateMonotonic(delta[l], cWindowSize[l], numSPlanes[l], false);
-				for (int w = 0; w < d[l].Length; w++)
+				d[i] = new MWeights(cWindowSize[i], delta[i], numSPlanes[i], false);
+				for (int j = 0; j < d[i].w.Length; j++)
 				{
-					d[l][w] = d[l][w] * delta_bar[l];
+					d[i].w[j] *= delta_bar[i];
 				}
 			}
-		}
-
-		/// <summary>
-		/// Сгенерировать монотонно убывающую двумерную функцию.
-		/// </summary>
-		/// <param name="argBase">Базовое значение для функции</param>
-		/// <param name="size">Размер используемого окна</param>
-		/// <param name="planes">Количество плоскостей, используемых для нормализации</param>
-		/// <param name="norm">Нормализовать выход, чтобы получить сумму 1</param>
-		/// <returns>Возвращает монотонную двумерную функцию</returns>
-		public double[] generateMonotonic(double argBase, int size, int planes, bool norm)
-		{
-			double[] output = new double[(int)Math.Pow(size, 2)];
-			Point2D center = new Point2D(((double)size - 1) / 2, ((double)size - 1) / 2);
-
-			// Calculated each value
-			int index = 0;
-			for (int n = 0; n < size; n++)
-			{
-				for (int m = 0; m < size; m++)
-				{
-					output[index] = Math.Pow(argBase, center.Distance(n, m));
-					index++;
-				}
-			}
-
-			// Normalize the entire function
-			if (norm)
-			{
-				double sum = 0;
-				for (int w = 0; w < Math.Pow(size, 2); w++)
-				{
-					sum += output[w];
-				}
-				// Normalize with respect to # of planes
-				double multiplier = 1 / ((double)planes * sum);
-				for (int w = 0; w < Math.Pow(size, 2); w++)
-				{
-					output[w] = output[w] * multiplier;
-				}
-			}
-			return output;
 		}
 
 		public static double tA;
