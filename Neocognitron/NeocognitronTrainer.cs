@@ -11,10 +11,10 @@ namespace Tac.Neocognitron
 	{
 
 		// Input images used for training and verification
-		List<double[][]> inputs;
-		List<double[][]> testInputs;
+		List<float[][]> inputs;
+		List<float[][]> testInputs;
 
-		public NeocognitronTrainer(List<double[][]> argInputs, List<double[][]> argTestInputs)
+		public NeocognitronTrainer(List<float[][]> argInputs, List<float[][]> argTestInputs)
 		{ 
 			inputs = argInputs;
 			testInputs = argTestInputs;
@@ -27,6 +27,22 @@ namespace Tac.Neocognitron
 		public Neocognitron runTrainingSet(int loops)
 		{
 			Neocognitron output = new Neocognitron(new NeocognitronStructure());
+
+			for (int n = 0; n < loops; n++)
+			{
+				for (int n2 = 0; n2 < inputs.Count; n2++)
+				{
+					output.propagate(inputs[n2], true);
+					//Console.Write(".");
+				}
+				//Console.Write("*");
+			}
+			return output;
+		}
+
+		public Neocognitron runTrainingSet2(int loops, Neocognitron output)
+		{
+			//Neocognitron output = new Neocognitron(new NeocognitronStructure());
 
 			for (int n = 0; n < loops; n++)
 			{
@@ -68,25 +84,29 @@ namespace Tac.Neocognitron
 
 		public Neocognitron getNeocognitron(int trainingLoops)
 		{
-			Neocognitron output;
+			Neocognitron output = null;
 
 			int count = 0;
 			double errorRate = 100;
+			double errorRate2 = 100;
 			double bestError = 100;
 			do
 			{       // While the error rate is not zero
-				int isAllOk = -1;
+				int isAllOk = 0;
+				//output = new Neocognitron(new NeocognitronStructure());
 				do
 				{   // and while the training is not successful
+					//output = runTrainingSet2(trainingLoops, output);
 					output = runTrainingSet(trainingLoops);
 
 					isAllOk = verifyTraining(output);
+					errorRate2 = verifyNeocognitron(output, testInputs, false);
 
 					count++;
 					Console.WriteLine("Loop: " + count.ToString() + "\tBest: " + bestError.ToString("F4") + 
-						"\tCurrent: " + errorRate.ToString("F4") + 
+						"\tCurrent: " + errorRate.ToString("F4") + "\t" + errorRate2.ToString("F4") +
 						"\tCount: " + isAllOk);
-				} while (isAllOk != -1);
+				} while (isAllOk != -1 || errorRate2 > bestError);
 
 				errorRate = verifyNeocognitron(output, testInputs, false);
 				if (errorRate < bestError)
@@ -99,10 +119,10 @@ namespace Tac.Neocognitron
 			return output;
 		}
 
-		public double verifyNeocognitron(Neocognitron n, List<double[][]> t, bool verbose)
+		public float verifyNeocognitron(Neocognitron n, List<float[][]> t, bool verbose)
 		{
 
-			double output = 0;
+			float output = 0;
 
 			int trainingOutput, testOutput;
 			if (verbose)

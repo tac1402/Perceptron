@@ -22,11 +22,11 @@ namespace Tac.Neocognitron
 		public int[] cWindowSize = { 5, 5, 2 };
 		public int[] sColumnSize = { 5, 5, 2 };
 
-		public double[] r;
+		public float[] r;
 		public MWeights[] c;
 		public MWeights[] d;
-		public double[] q;
-		public double alpha;
+		public float[] q;
+		public float alpha;
 
 		// Values used to determine c and d
 		//double[] gamma;
@@ -38,12 +38,15 @@ namespace Tac.Neocognitron
 		public NeocognitronStructure()
 		{
 			p = (int)Math.Round(rnd.NextDouble() * 10 + 10);
-			numSPlanes = new int[] { p, p, p };
-			numCPlanes = new int[] { p, p, p };
+			numSPlanes = new int[] { p, p, 100 };
+			numCPlanes = new int[] { p, p, 100 };
 
-			r = new double[] { rnd.NextDouble() * 4 + 1, rnd.NextDouble() * 1 + 2, rnd.NextDouble() * 2 + 2 };
-			q = new double[] { rnd.NextDouble() * .1 + .2, rnd.NextDouble() * 4 + 8, rnd.NextDouble() * 10 + 6 };
-			alpha = rnd.NextDouble() * .08 + .42;
+			//r = new double[] { rnd.NextDouble() * 4 + 1, rnd.NextDouble() * 1 + 2, rnd.NextDouble() * 2 + 2 };
+			//q = new double[] { rnd.NextDouble() * .1 + .2, rnd.NextDouble() * 4 + 8, rnd.NextDouble() * 10 + 6 };
+			r = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
+			q = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
+			//alpha = rnd.NextDouble() * .08 + .42;
+			alpha = (float)rnd.NextDouble();
 
 			generateC();
 			generateD();
@@ -56,7 +59,7 @@ namespace Tac.Neocognitron
 		public void generateC()
 		{
 			c = new MWeights[numLayers];
-			double[] gamma = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+			float[] gamma = new float[] { (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble() };
 
 			// For first layer, depends on input
 			c[0] = new MWeights(sWindowSize[0], gamma[0], 1, true);
@@ -72,8 +75,9 @@ namespace Tac.Neocognitron
 		public void generateD()
 		{
 			d = new MWeights[numLayers];
-			double[] delta = new double[] { rnd.NextDouble() * .2 + .4, rnd.NextDouble() * .75 + .2, rnd.NextDouble() * .3 + .4 };
-			double[] delta_bar = new double[] { rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble() };
+			//double[] delta = new double[] { rnd.NextDouble() * .2 + .4, rnd.NextDouble() * .75 + .2, rnd.NextDouble() * .3 + .4 };
+			float[] delta = new float[] { (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble() };
+			float[] delta_bar = new float[] { (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble() };
 
 			// For first layer, depends on input
 			for (int i = 0; i < numLayers; i++)
@@ -93,11 +97,11 @@ namespace Tac.Neocognitron
 		/// <summary>
 		/// Статическая функция, позволяющая умножать два массива друг на друга.
 		/// </summary>
-		public static double arrayMultiply(double[] a, double[] b)
+		public static float arrayMultiply(float[] a, float[] b)
 		{
 			//DateTime beginA = DateTime.Now;
 
-			double output = 0;
+			float output = 0;
 			for (int i = 0; i < a.Length; i++)
 			{
 				output += a[i] * b[i];

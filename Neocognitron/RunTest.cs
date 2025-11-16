@@ -15,7 +15,7 @@ public class RunTest
 		files[3] = "data/3_00.bmp";
 		files[4] = "data/4_00.bmp";
 
-		List<double[][]> inputs = new List<double[][]>();
+		List<float[][]> inputs = new List<float[][]>();
 		for (int i = 0; i < files.Length; i++)
 		{
 			inputs.Add(readImage(files[i]));
@@ -38,7 +38,7 @@ public class RunTest
 		files[13] = "data/3_03.bmp";
 		files[14] = "data/4_03.bmp";
 
-		List<double[][]> testInputs = new List<double[][]>();
+		List<float[][]> testInputs = new List<float[][]>();
 		for (int i = 0; i < files.Length; i++)
 		{
 			testInputs.Add(readImage(files[i]));
@@ -47,7 +47,7 @@ public class RunTest
 		NeocognitronTrainer trainer = new NeocognitronTrainer(inputs, testInputs);
 
 		//(int)Math.Round(Math.random() * 15 + 5)
-		Neocognitron n = trainer.getNeocognitron(5);
+		Neocognitron n = trainer.getNeocognitron(10);
 
 		//Neocognitron n = trainer.runTrainingSet(10);
 		//trainer.verifyTraining(n);
@@ -56,14 +56,14 @@ public class RunTest
 	}
 
 
-	public double[][] readImage(string file) 
+	public float[][] readImage(string file) 
 	{
 		using (var bmp = new Bitmap(file))
 		{
-			double[][] output = new double[bmp.Height][];
+			float[][] output = new float[bmp.Height][];
 
 			for (int i = 0; i < bmp.Height; i++)
-				output[i] = new double[bmp.Width];
+				output[i] = new float[bmp.Width];
 
 			for (int x = 0; x < bmp.Height; x++)
 			{

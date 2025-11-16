@@ -15,28 +15,40 @@ namespace Tac.Neocognitron
 		private int size;
 
 		// Actual output values (size x size x K)
-		private double[][][] outputs;
+		private float[][][] outputs;
+
+		private Window[] outputsW;
 
 		public OutputConnections(int argK, int argSize)
 		{
 			K = argK;
 			size = argSize;
 
+			outputsW = new Window[K];
+
 			// Create K outputs, each (size by size)
-			outputs = new double[K][][];
+			outputs = new float[K][][];
 			for (int i = 0; i < K; i++)
 			{
-				outputs[i] = new double[size][];
+				outputs[i] = new float[size][];
+				outputsW[i] = new Window(size);
 				for (int j = 0; j < size; j++)
 				{
-					outputs[i][j] = new double[size];
+					outputs[i][j] = new float[size];
 				}
 			}
 		}
 
-		public void setSingleOutput(int k, int n, int m, double value)
+		public void setSingleOutput(int k, int n, int m, float value)
 		{
 			outputs[k][n][m] = value;
+			outputsW[k].Set(n, m, value);
+		}
+
+		public void setPlaneOutput(int k, float[][] newOutputs)
+		{
+			outputs[k] = newOutputs;
+			outputsW[k].Set(newOutputs);
 		}
 
 
@@ -50,11 +62,11 @@ namespace Tac.Neocognitron
 		 * @param windowSize	size of the square window
 		 * @return				array representation of the window
 		 */
-		public double[] getWindowInPlane(int k, int n, int m, int windowSize) 
+		public float[] getWindowInPlane(int k, int n, int m, int windowSize) 
 		{
 			int ws = (int)Math.Pow(windowSize, 2);
 			// Initialize the output array
-			double[] ret = new double[ws];
+			float[] ret = new float[ws];
 
 			// If window size is the entire plane, return the entire plane
 			if (windowSize == size) 
@@ -100,14 +112,11 @@ namespace Tac.Neocognitron
 		 * @param windowSize	size of the square window
 		 * @return				array representation of each window in each plane
 		 */
-		public double[][] getWindows(int n, int m, int windowSize) 
+		public float[][] getWindows(int n, int m, int windowSize) 
 		{
-			int ws = (int)Math.Pow(windowSize, 2);
-			double[][] ret = new double[K][];
-
+			float[][] ret = new float[K][];
 			for (int k = 0; k < K; k++)
 			{
-				//ret[k] = new double[ws];
 				ret[k] = getWindowInPlane(k, n, m, windowSize);
 			}
 
@@ -123,20 +132,18 @@ namespace Tac.Neocognitron
 		 * @param windowSize	window size used to generate the s-column
 		 * @return				the array of representative cells
 		 */
-		public Point2D[] getRepresentativeCells(int windowSize)
+		public List<Point2D> getRepresentativeCells(int windowSize)
 		{
 			List<Location> points = new List<Location>();
 			Location temp;
 
 			int offset = (windowSize - 1) / 2;
 
-			double[][][] sColumn;
 
 			// Create a list of all possible representative cells
 			if (windowSize == size)
 			{
-				sColumn = getSquareWindows(size / 2, size / 2, windowSize);
-				temp = getLocationOfMax(sColumn, new Point2D(size / 2, size / 2), windowSize);
+				temp = getLocationOfMax(new Point2D(size / 2, size / 2), windowSize);
 				points.Add(temp);
 			}
 			else
@@ -146,11 +153,10 @@ namespace Tac.Neocognitron
 				{
 					for (int m = offset; m < size - offset; m++)
 					{
-						sColumn = getSquareWindows(n, m, windowSize);
-						temp = getLocationOfMax(sColumn, new Point2D(n, m), windowSize);
+						temp = getLocationOfMax(new Point2D(n, m), windowSize);
 						if (temp != null)
 						{
-							if (!points.Contains(temp))
+							if (points.Contains(temp) == false)
 							{
 								points.Add(temp);
 							}
@@ -159,14 +165,14 @@ namespace Tac.Neocognitron
 				}
 			}
 
-			// Convert list of locations to array of points, one per plane
-			Point2D[] reps = new Point2D[K];
+			List<Point2D> reps = new List<Point2D>();
 			for (int k = 0; k < K; k++)
 			{
-				reps[k] = getMaxPerPlane(k, points);
+				Point2D point = getMaxPerPlane(k, points);
+				reps.Add(point);
 			}
 
-			// Must only leave 1 per plane
+			// Отбирается одна точка из каждого фильтра
 			return reps;
 		}
 
@@ -234,14 +240,6 @@ namespace Tac.Neocognitron
 						{
 							ret[newX][newY] = outputs[k][x][y];
 						}
-
-						/*try
-						{
-						}
-						catch (Exception ex)
-						{
-							ret[x - n + offset][y - m + offset] = 0;
-						}*/
 					}
 				}
 			}
@@ -260,38 +258,25 @@ namespace Tac.Neocognitron
 		{
 			Point2D p = null;
 			double maxValue = 0;
-			Location temp;
 
 			for (int i = 0; i < l.Count; i++)
 			{
-				temp = l[i];
-				if (temp == null)
+				if (l[i] != null)
 				{
-					p = null;
-				}
-				else if (temp.getPlane() == plane)
-				{
-					if (getSingleOutput(temp) > maxValue)
+					if (l[i].Plane == plane)
 					{
-						maxValue = getSingleOutput(temp);
-						p = temp.getPoint();
+						double v = outputs[l[i].Plane][(int)l[i].Point.X][(int)l[i].Point.Y];
+						if (v > maxValue)
+						{
+							maxValue = v;
+							p = l[i].Point;
+						}
 					}
 				}
 			}
-
 			return p;
 		}
 
-		/**
-		 * Get a specific output for a given location.
-		 * 
-		 * @param l	Location for determining the output
-		 * @return	Output at location l.
-		 */
-		public double getSingleOutput(Location l)
-		{
-			return outputs[l.getPlane()][(int)l.getPoint().X][(int)l.getPoint().Y];
-		}
 
 		/**
 		 * For a given s-column, determine the location of the maximum output value. This
@@ -302,10 +287,13 @@ namespace Tac.Neocognitron
 		 * @param windowSize	window size used to generate the s-column
 		 * @return				Location of maximum value
 		 */
-		public static Location getLocationOfMax(double[][][] sColumn, Point2D center, int windowSize)
+		public Location getLocationOfMax(Point2D center, int windowSize)
 		{
 			Location maxL = null;
 			double maxValue = 0;
+
+			double[][][] sColumn = getSquareWindows((int)center.X, (int)center.Y, windowSize);
+
 
 			// Find maximum value and corresponding location
 			for (int k = 0; k < sColumn.Length; k++)
@@ -329,24 +317,11 @@ namespace Tac.Neocognitron
 			// If a max exists, generate location object
 			if (maxL != null)
 			{
-				Point2D p = maxL.getPoint();
-				p.X = p.X + center.X - offset;
-				p.Y = p.Y + center.Y - offset;
-				maxL.setPoint(p);
+				maxL.Point.X = maxL.Point.X + center.X - offset;
+				maxL.Point.Y = maxL.Point.Y + center.Y - offset;
 			}
 
 			return maxL;
-		}
-
-		/**
-		 * Set an entire plane's output matrix
-		 * 
-		 * @param kValue		Plane location
-		 * @param newOutputs	Output matrix
-		 */
-		public void setPlaneOutput(int kValue, double[][] newOutputs)
-		{
-			outputs[kValue] = newOutputs;
 		}
 
 		public double[] getPointsOnPlanes()

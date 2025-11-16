@@ -10,7 +10,7 @@ namespace Tac.Neocognitron
 		private int windowSize;
 
 		private MWeights d;
-		private double alpha;
+		private float alpha;
 
 		public CLayer(int layer, NeocognitronStructure s)
 		{
@@ -26,9 +26,9 @@ namespace Tac.Neocognitron
 		{
 			OutputConnections output = new OutputConnections(planes, size);
 
-			double[][] windowInEachPlane;
-			double vOutput;
-			double value;
+			float[][] windowInEachPlane;
+			float vOutput;
+			float value;
 
 			// For every cell location in each plane, propagate the input 
 			for (int n = 0; n < size; n++)
@@ -54,10 +54,10 @@ namespace Tac.Neocognitron
 			return output;
 		}
 
-		public double propagateC(double[] input, double v, MWeights d, double alpha)
+		public float propagateC(float[] input, float v, MWeights d, float alpha)
 		{
-			double output = NeocognitronStructure.arrayMultiply(d.w, input);
-			output = (1 + output) / (1 + v) - 1;
+			float output = NeocognitronStructure.arrayMultiply(d.w, input);
+			output = (1f + output) / (1f + v) - 1f;
 
 			output = output / (alpha + output);
 
@@ -71,9 +71,9 @@ namespace Tac.Neocognitron
 		}
 
 
-		public double propagateVC(double[][] inputs, MWeights d)
+		public float propagateVC(float[][] inputs, MWeights d)
 		{
-			double output = 0;
+			float output = 0;
 
 			// where input is inputs[sk][window] a window in each plane
 			for (int sk = 0; sk < inputs.Length; sk++)

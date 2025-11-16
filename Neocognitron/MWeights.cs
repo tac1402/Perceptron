@@ -7,11 +7,11 @@ namespace Tac.Neocognitron
 {
 	public class MWeights
 	{
-		public double[] w;
+		public float[] w;
 
 		public MWeights(int size, double argBase, int planes, bool norm)
 		{ 
-			w = new double[size * size];
+			w = new float[size * size];
 			generateMonotonic(size, argBase, planes, norm);
 		}
 
@@ -25,7 +25,7 @@ namespace Tac.Neocognitron
 		/// <returns>Возвращает монотонную двумерную функцию</returns>
 		private void generateMonotonic(int size, double argBase, int planes, bool norm)
 		{
-			Point2D center = new Point2D(((double)size - 1) / 2, ((double)size - 1) / 2);
+			Point2D center = new Point2D((size - 1) / 2f, (size - 1) / 2f);
 
 			// Calculated each value
 			int index = 0;
@@ -33,7 +33,7 @@ namespace Tac.Neocognitron
 			{
 				for (int m = 0; m < size; m++)
 				{
-					w[index] = Math.Pow(argBase, center.Distance(n, m));
+					w[index] = (float)Math.Pow(argBase, center.Distance(n, m));
 					index++;
 				}
 			}
@@ -42,7 +42,7 @@ namespace Tac.Neocognitron
 			if (norm)
 			{
 				int size2 = size * size;
-				double sum = 0;
+				float sum = 0;
 				for (int i = 0; i < size2; i++)
 				{
 					sum += w[i];

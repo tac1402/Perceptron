@@ -15,10 +15,10 @@ namespace Tac.Neocognitron
 		private int columnSize;
 
 		// Learning constant q
-		private double q;
+		private float q;
 
 		// For every plane, there exists a b[k]
-		private double[] b;
+		private float[] b;
 
 
 		/// <summary>
@@ -27,12 +27,12 @@ namespace Tac.Neocognitron
 		/// ck — местоположение окна, входящего из плоскости c 
 		/// а v — окно
 		/// </summary>
-		private double[][][] a;
+		private float[][][] a;
 
 		// Weights for v-cells c[window]
 		private MWeights c;
 
-		private double r;
+		private float r;
 
 		private NeocognitronStructure s;
 
@@ -60,7 +60,7 @@ namespace Tac.Neocognitron
 
 			InitializeA(previousPlanes);
 
-			b = new double[planes];
+			b = new float[planes];
 
 		}
 
@@ -71,28 +71,28 @@ namespace Tac.Neocognitron
 		public void InitializeA(int previousPlanes)
 		{
 			//a = new double[planes][previousPlanes][(int)Math.Pow(windowSize, 2)];
-			a = new double[planes][][];
+			a = new float[planes][][];
 
 			int ws = (int)Math.Pow(windowSize, 2);
 
 			for (int k = 0; k < planes; k++)
 			{
-				a[k] = new double[previousPlanes][];
+				a[k] = new float[previousPlanes][];
 				for (int ck = 0; ck < previousPlanes; ck++)
 				{
 
-					a[k][ck] = new double[ws];
+					a[k][ck] = new float[ws];
 					for (int w = 0; w < ws; w++)
 					{
-						a[k][ck][w] = s.rnd.NextDouble() * .4;
+						a[k][ck][w] = (float)s.rnd.NextDouble() * 0.4f;
 					}
 				}
 			}
 		}
 
-		public double propagateVS(double[][] inputs, MWeights c)
+		public float propagateVS(float[][] inputs, MWeights c)
 		{
-			double output = 0;
+			float output = 0;
 			for (int i = 0; i < inputs.Length; i++)
 			{
 				for (int j = 0; j < inputs[0].Length; j++)
@@ -100,7 +100,7 @@ namespace Tac.Neocognitron
 					output += inputs[i][j] * inputs[i][j] * c.w[j];
 				}
 			}
-			output = Math.Sqrt(output);
+			output = (float)Math.Sqrt(output);
 			return output;
 		}
 
@@ -111,15 +111,15 @@ namespace Tac.Neocognitron
 			// Initialize output object
 			OutputConnections output = new OutputConnections(planes, size);
 
-			double[][] windowsFromEachPlane;
-			double[][] vOutput = new double[size][];
-			double value;
+			float[][] windowsFromEachPlane;
+			float[][] vOutput = new float[size][];
+			float value;
 
 
 			// For every cell location in each plane, propagate the input 
 			for (int n = 0; n < size; n++)
 			{
-				vOutput[n] = new double[size];
+				vOutput[n] = new float[size];
 				for (int m = 0; m < size; m++)
 				{
 					//DateTime beginA = DateTime.Now;
@@ -148,15 +148,15 @@ namespace Tac.Neocognitron
 			return output;
 		}
 
-		public double propagateS(double[][] inputs, double vInput, double b, double[][] a, double r)
+		public float propagateS(float[][] inputs, float vInput, float b, float[][] a, float r)
 		{
-			double output = 0;
+			float output = 0;
 			for (int ck = 0; ck < inputs.Length; ck++)
 			{
 				output += NeocognitronStructure.arrayMultiply(a[ck], inputs[ck]);
 			}
 
-			double denominator = 1 + 2 * r / (1 + r) * b * vInput;
+			float denominator = 1 + 2 * r / (1 + r) * b * vInput;
 
 			output = (1 + output) / denominator - 1;
 
@@ -177,16 +177,16 @@ namespace Tac.Neocognitron
 		 * @param output	Output for the given input
 		 * @param vOutput	v-plane output for the given input
 		 */
-		public void train(OutputConnections input, OutputConnections output, double[][] vOutput)
+		public void train(OutputConnections input, OutputConnections output, float[][] vOutput)
 		{
 			//DateTime beginB = DateTime.Now;
 
 			// Determine length of the weight array that will be changed (for each window)
 			int weightLength = (int)Math.Pow(windowSize, 2);
-			double delta;
+			float delta;
 
 			// Получить репрезентативные местоположения ячеек из выходных данных
-			Point2D[] repLoc = output.getRepresentativeCells(columnSize);
+			List<Point2D> repLoc = output.getRepresentativeCells(columnSize);
 
 			// Для каждой плоскости в этом конкретном S-слое
 			for (int k = 0; k < planes; k++)
@@ -205,7 +205,7 @@ namespace Tac.Neocognitron
 					for (int ck = 0; ck < a[k].Length; ck++)
 					{
 						// Get the output for the previous C-layer (input for this layer)
-						double[] in_ = input.getWindowInPlane(ck, (int)p.X, (int)p.Y, windowSize);
+						float[] in_ = input.getWindowInPlane(ck, (int)p.X, (int)p.Y, windowSize);
 
 						// Loop through every weight a[k][ck][window] in the given window 
 						for (int w = 0; w < weightLength; w++)

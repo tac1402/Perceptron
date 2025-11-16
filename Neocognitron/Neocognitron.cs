@@ -38,7 +38,7 @@ namespace Tac.Neocognitron
 		 * 				be trained or not
 		 * @return		The integer representation of the recognized character
 		 */
-		public int propagate(double[][] input, bool argTrain)
+		public int propagate(float[][] input, bool argTrain)
 		{
 
 			// Initialize output class with the input matrix
