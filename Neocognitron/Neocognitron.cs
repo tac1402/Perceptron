@@ -43,7 +43,7 @@ namespace Tac.Neocognitron
 
 			// Initialize output class with the input matrix
 			OutputConnections output = new OutputConnections(1, s.inputLayerSize);
-			output.setPlaneOutput(0, input);
+			output.Set(0, input);
 
 			// Propagate the input through the matrix, layer by layer
 			for (int l = 0; l < s.numLayers; l++)
@@ -60,9 +60,9 @@ namespace Tac.Neocognitron
 		/// <summary>
 		/// Определяет выход последнего слоя. Выход — это целое число, которое попадает в диапазон всех возможных выходов.
 		/// </summary>
-		public int Max(double[] out_)
+		public int Max(float[] out_)
 		{
-			double maxValue = 0;
+			float maxValue = 0;
 			int index = -1;
 			for (int i = 0; i < out_.Length; i++)
 			{

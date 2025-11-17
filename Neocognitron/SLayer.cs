@@ -112,14 +112,13 @@ namespace Tac.Neocognitron
 			OutputConnections output = new OutputConnections(planes, size);
 
 			float[][] windowsFromEachPlane;
-			float[][] vOutput = new float[size][];
+			float[,] vOutput = new float[size, size];
 			float value;
 
 
 			// For every cell location in each plane, propagate the input 
 			for (int n = 0; n < size; n++)
 			{
-				vOutput[n] = new float[size];
 				for (int m = 0; m < size; m++)
 				{
 					//DateTime beginA = DateTime.Now;
@@ -128,13 +127,13 @@ namespace Tac.Neocognitron
 					//NeocognitronStructure.tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
-					vOutput[n][m] = propagateVS(windowsFromEachPlane, c);
+					vOutput[n, m] = propagateVS(windowsFromEachPlane, c);
 
 					// Cycle through each plane and determine the output for a specific location (n,m)
 					for (int k = 0; k < planes; k++)
 					{
-						value = propagateS(windowsFromEachPlane, vOutput[n][m], b[k], a[k], r);
-						output.setSingleOutput(k, n, m, value);
+						value = propagateS(windowsFromEachPlane, vOutput[n, m], b[k], a[k], r);
+						output.Set(k, n, m, value);
 					}
 				}
 			}
@@ -177,7 +176,7 @@ namespace Tac.Neocognitron
 		 * @param output	Output for the given input
 		 * @param vOutput	v-plane output for the given input
 		 */
-		public void train(OutputConnections input, OutputConnections output, float[][] vOutput)
+		public void train(OutputConnections input, OutputConnections output, float[,] vOutput)
 		{
 			//DateTime beginB = DateTime.Now;
 
@@ -186,7 +185,7 @@ namespace Tac.Neocognitron
 			float delta;
 
 			// Получить репрезентативные местоположения ячеек из выходных данных
-			List<Point2D> repLoc = output.getRepresentativeCells(columnSize);
+			Point2D[] repLoc = output.getRepresentativeCells(columnSize);
 
 			// Для каждой плоскости в этом конкретном S-слое
 			for (int k = 0; k < planes; k++)
@@ -198,19 +197,21 @@ namespace Tac.Neocognitron
 					Point2D p = repLoc[k];
 
 					// Update b weights, one value for each plane (not dependent on (n,m) )
-					delta = q / 2 * vOutput[(int)p.X][(int)p.Y];
+					delta = q / 2 * vOutput[(int)p.X, (int)p.Y];
 					b[k] += delta;
+
+					float[][] win = input.getWindows((int)p.X, (int)p.Y, windowSize);
 
 					// Loop for every plane in the input (from the previous C-layer) 
 					for (int ck = 0; ck < a[k].Length; ck++)
 					{
 						// Get the output for the previous C-layer (input for this layer)
-						float[] in_ = input.getWindowInPlane(ck, (int)p.X, (int)p.Y, windowSize);
+						//float[] in_ = input.getWindowInPlane(ck, (int)p.X, (int)p.Y, windowSize);
 
 						// Loop through every weight a[k][ck][window] in the given window 
 						for (int w = 0; w < weightLength; w++)
 						{
-							delta = q * c.w[w] * in_[w];
+							delta = q * c.w[w] * win[ck][w];
 							a[k][ck][w] += delta;
 						}
 					}

@@ -46,7 +46,7 @@ namespace Tac.Neocognitron
 					for (int k = 0; k < planes; k++)
 					{
 						value = propagateC(windowInEachPlane[k], vOutput, d, alpha);
-						output.setSingleOutput(k, n, m, value);
+						output.Set(k, n, m, value);
 					}
 				}
 			}
