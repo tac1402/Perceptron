@@ -10,9 +10,9 @@ namespace Tac.Neocognitron
 	public class OutputConnections
 	{
 		// Number of planes
-		private int K;
+		public int K;
 		// Matrix size of each plane (square)
-		private int size;
+		public int size;
 
 		// Actual output values (size x size x K)
 		private Window[] outputsW;
@@ -63,9 +63,10 @@ namespace Tac.Neocognitron
 		{
 			Point2D[] rp = new Point2D[K];
 			float[] maxV = new float[K];
-			for (int n = 0; n < size - wSize; n++)
+
+			for (int n = 0; n < size - wSize+1; n++)
 			{
-				for (int m = 0; m < size - wSize; m++)
+				for (int m = 0; m < size - wSize+1; m++)
 				{
 					for (int k = 0; k < K; k++)
 					{

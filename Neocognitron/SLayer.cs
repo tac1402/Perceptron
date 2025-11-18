@@ -11,7 +11,7 @@ namespace Tac.Neocognitron
 	{
 		private int planes;
 		private int size;
-		private int windowSize;
+		private int wSize;
 		private int columnSize;
 
 		// Learning constant q
@@ -34,16 +34,15 @@ namespace Tac.Neocognitron
 
 		private float r;
 
-		private NeocognitronStructure s;
+		private Random rnd = new Random();
 
-		public SLayer(int layer, NeocognitronStructure argS)
+		public SLayer(int layer, NeocognitronStructure s)
 		{
-			s = argS;
 
 			// Initial values
 			size = s.sLayerSizes[layer];
 			planes = s.numSPlanes[layer];
-			windowSize = s.sWindowSize[layer];
+			wSize = s.sWindowSize[layer];
 			columnSize = s.sColumnSize[layer];
 
 			q = s.q[layer];
@@ -72,8 +71,7 @@ namespace Tac.Neocognitron
 		{
 			//a = new double[planes][previousPlanes][(int)Math.Pow(windowSize, 2)];
 			a = new float[planes][][];
-
-			int ws = (int)Math.Pow(windowSize, 2);
+			int ws = wSize * wSize;
 
 			for (int k = 0; k < planes; k++)
 			{
@@ -84,18 +82,18 @@ namespace Tac.Neocognitron
 					a[k][ck] = new float[ws];
 					for (int w = 0; w < ws; w++)
 					{
-						a[k][ck][w] = (float)s.rnd.NextDouble() * 0.4f;
+						a[k][ck][w] = rnd.NextSingle() * 1.0f;
 					}
 				}
 			}
 		}
 
-		public float propagateVS(float[][] inputs, MWeights c)
+		public float propagateVS(float[][] inputs, int prevPlanes)
 		{
 			float output = 0;
-			for (int i = 0; i < inputs.Length; i++)
+			for (int i = 0; i < prevPlanes; i++)
 			{
-				for (int j = 0; j < inputs[0].Length; j++)
+				for (int j = 0; j < wSize * wSize; j++)
 				{
 					output += inputs[i][j] * inputs[i][j] * c.w[j];
 				}
@@ -111,28 +109,27 @@ namespace Tac.Neocognitron
 			// Initialize output object
 			OutputConnections output = new OutputConnections(planes, size);
 
-			float[][] windowsFromEachPlane;
 			float[,] vOutput = new float[size, size];
 			float value;
 
 
 			// For every cell location in each plane, propagate the input 
-			for (int n = 0; n < size; n++)
+			for (int n = 0; n < size - wSize+1; n++)
 			{
-				for (int m = 0; m < size; m++)
+				for (int m = 0; m < size - wSize+1; m++)
 				{
 					//DateTime beginA = DateTime.Now;
 					// Get the window array for a specific location (n,m).
-					windowsFromEachPlane = input.getWindows(n, m, windowSize);
+					float[][] win = input.getWindows(n, m, wSize);
 					//NeocognitronStructure.tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
-					vOutput[n, m] = propagateVS(windowsFromEachPlane, c);
+					vOutput[n, m] = propagateVS(win, input.K);
 
 					// Cycle through each plane and determine the output for a specific location (n,m)
 					for (int k = 0; k < planes; k++)
 					{
-						value = propagateS(windowsFromEachPlane, vOutput[n, m], b[k], a[k], r);
+						value = propagateS(win, vOutput[n, m], k);
 						output.Set(k, n, m, value);
 					}
 				}
@@ -147,22 +144,28 @@ namespace Tac.Neocognitron
 			return output;
 		}
 
-		public float propagateS(float[][] inputs, float vInput, float b, float[][] a, float r)
+		public float propagateS(float[][] inputs, float vInput, int k)
 		{
 			float output = 0;
 			for (int ck = 0; ck < inputs.Length; ck++)
 			{
-				output += NeocognitronStructure.arrayMultiply(a[ck], inputs[ck]);
+				output += NeocognitronStructure.arrayMultiply(a[k][ck], inputs[ck]);
 			}
 
-			float denominator = 1 + 2 * r / (1 + r) * b * vInput;
+			float denominator = 1 + ((2f * r) / (1f + r)) * b[k] * vInput;
+
+			if (denominator == 1)
+			{
+				int a1 = 1;
+			}
 
 			output = (1 + output) / denominator - 1;
 
 			// Output function, set to zero if negative
 			if (output < 0)
 			{
-				output = 0;
+				//output = 0;
+				int a2 = 1;
 			}
 
 			// Final multiplication
@@ -180,10 +183,6 @@ namespace Tac.Neocognitron
 		{
 			//DateTime beginB = DateTime.Now;
 
-			// Determine length of the weight array that will be changed (for each window)
-			int weightLength = (int)Math.Pow(windowSize, 2);
-			float delta;
-
 			// Получить репрезентативные местоположения ячеек из выходных данных
 			Point2D[] repLoc = output.getRepresentativeCells(columnSize);
 
@@ -197,10 +196,10 @@ namespace Tac.Neocognitron
 					Point2D p = repLoc[k];
 
 					// Update b weights, one value for each plane (not dependent on (n,m) )
-					delta = q / 2 * vOutput[(int)p.X, (int)p.Y];
-					b[k] += delta;
+					float deltaB = q / 2 * vOutput[p.X, p.Y];
+					b[k] += deltaB;
 
-					float[][] win = input.getWindows((int)p.X, (int)p.Y, windowSize);
+					float[][] win = input.getWindows(p.X, p.Y, wSize);
 
 					// Loop for every plane in the input (from the previous C-layer) 
 					for (int ck = 0; ck < a[k].Length; ck++)
@@ -209,10 +208,10 @@ namespace Tac.Neocognitron
 						//float[] in_ = input.getWindowInPlane(ck, (int)p.X, (int)p.Y, windowSize);
 
 						// Loop through every weight a[k][ck][window] in the given window 
-						for (int w = 0; w < weightLength; w++)
+						for (int w = 0; w < wSize * wSize; w++)
 						{
-							delta = q * c.w[w] * win[ck][w];
-							a[k][ck][w] += delta;
+							float deltaA = q * c.w[w] * win[ck][w];
+							a[k][ck][w] += deltaA;
 						}
 					}
 				}

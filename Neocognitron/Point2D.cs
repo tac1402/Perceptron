@@ -5,19 +5,19 @@ namespace Tac.Neocognitron
 {
 	public class Point2D
 	{
-		public float X;
-		public float Y;
+		public int X;
+		public int Y;
 
-		public Point2D(float x, float y)
+		public Point2D(int x, int y)
 		{
 			X = x;
 			Y = y;
 		}
 
-		public float Distance(float x, float y)
+		public static float Distance(float centerX, float centerY, float x, float y)
 		{
-			float dx = X - x;
-			float dy = Y - y;
+			float dx = centerX - x;
+			float dy = centerY - y;
 			return (float)Math.Sqrt(dx * dx + dy * dy);
 		}
 

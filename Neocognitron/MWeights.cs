@@ -25,15 +25,13 @@ namespace Tac.Neocognitron
 		/// <returns>Возвращает монотонную двумерную функцию</returns>
 		private void generateMonotonic(int size, double argBase, int planes, bool norm)
 		{
-			Point2D center = new Point2D((size - 1) / 2f, (size - 1) / 2f);
-
 			// Calculated each value
 			int index = 0;
 			for (int n = 0; n < size; n++)
 			{
 				for (int m = 0; m < size; m++)
 				{
-					w[index] = (float)Math.Pow(argBase, center.Distance(n, m));
+					w[index] = (float)Math.Pow(argBase, Point2D.Distance(size / 2f, size / 2f, n, m));
 					index++;
 				}
 			}

@@ -18,7 +18,7 @@ namespace Tac.Neocognitron
 		// Layer specific values
 		public int[] sLayerSizes = { 16, 8, 2 };
 		public int[] cLayerSizes = { 10, 6, 1 };
-		public int[] sWindowSize = { 5, 5, 5 };
+		public int[] sWindowSize = { 5, 5, 2 };
 		public int[] cWindowSize = { 5, 5, 2 };
 		public int[] sColumnSize = { 5, 5, 2 };
 
@@ -28,25 +28,21 @@ namespace Tac.Neocognitron
 		public float[] q;
 		public float alpha;
 
-		// Values used to determine c and d
-		//double[] gamma;
-		//double[] delta;
-		//double[] delta_bar;
-
-		public Random rnd = new Random();
+		private Random rnd = new Random();
 
 		public NeocognitronStructure()
 		{
-			p = (int)Math.Round(rnd.NextDouble() * 10 + 10);
-			numSPlanes = new int[] { p, p, 100 };
-			numCPlanes = new int[] { p, p, 100 };
+			//p = (int)Math.Round(rnd.NextDouble() * 10 + 10);
+			numSPlanes = new int[] { 24, 24, 24 };
+			numCPlanes = new int[] { 24, 24, 24 };
 
-			//r = new double[] { rnd.NextDouble() * 4 + 1, rnd.NextDouble() * 1 + 2, rnd.NextDouble() * 2 + 2 };
-			//q = new double[] { rnd.NextDouble() * .1 + .2, rnd.NextDouble() * 4 + 8, rnd.NextDouble() * 10 + 6 };
-			r = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
-			q = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
-			//alpha = rnd.NextDouble() * .08 + .42;
-			alpha = (float)rnd.NextDouble();
+			r = new float[] { 4, 1.5f, 1.5f };
+			q = new float[] { 1, 16, 16 };
+			//r = new float[] { (float)rnd.NextDouble() * 4 + 1, (float)rnd.NextDouble() * 1 + 2, (float)rnd.NextDouble() * 2 + 2 };
+			//q = new float[] { (float)rnd.NextDouble() * .1f + .2f, (float)rnd.NextDouble() * 4 + 8, (float)rnd.NextDouble() * 10 + 6 };
+			//r = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
+			//q = new float[] { (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10, (float)rnd.NextDouble() * 10 };
+			alpha = 0.5f;
 
 			generateC();
 			generateD();
@@ -75,7 +71,7 @@ namespace Tac.Neocognitron
 		public void generateD()
 		{
 			d = new MWeights[numLayers];
-			//double[] delta = new double[] { rnd.NextDouble() * .2 + .4, rnd.NextDouble() * .75 + .2, rnd.NextDouble() * .3 + .4 };
+			//float[] delta = new float[] { (float)rnd.NextDouble() * .2f + .4f, (float)rnd.NextDouble() * .75f + .2f, (float)rnd.NextDouble() * .3f + .4f };
 			float[] delta = new float[] { (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble() };
 			float[] delta_bar = new float[] { (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble() };
 

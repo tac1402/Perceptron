@@ -5,6 +5,8 @@ using Tac.Neocognitron;
 public class RunTest
 {
 
+	string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 	public void TrainerTest()
 	{
 
@@ -47,7 +49,7 @@ public class RunTest
 		NeocognitronTrainer trainer = new NeocognitronTrainer(inputs, testInputs);
 
 		//(int)Math.Round(Math.random() * 15 + 5)
-		Neocognitron n = trainer.getNeocognitron(10);
+		Neocognitron n = trainer.getNeocognitron(50, 5);
 
 		//Neocognitron n = trainer.runTrainingSet(10);
 		//trainer.verifyTraining(n);
@@ -55,6 +57,64 @@ public class RunTest
 		trainer.verifyNeocognitron(n, testInputs, false);
 	}
 
+	public void TrainerTest2()
+	{
+		List<string> files = new List<string>();
+
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 11; j < 21; j++)
+			{
+				string file = "data3\\Training\\" + Alphabet.Substring(i, 1) + "\\" + "matrix_" + Alphabet.Substring(i, 1) + j.ToString();
+				files.Add(file + ".bmp");
+			}
+		}
+
+		List<float[][]> inputs = new List<float[][]>();
+		for (int i = 0; i < files.Count; i++)
+		{
+			inputs.Add(readImage(files[i]));
+		}
+
+
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 1; j < 21; j++)
+			{
+				string file = "data3\\Test\\" + Alphabet.Substring(i, 1) + "\\" + "matrix_" + Alphabet.Substring(i, 1) + j.ToString();
+				files.Add(file + ".bmp");
+			}
+		}
+
+		List<float[][]> testInputs = new List<float[][]>();
+		for (int i = 0; i < files.Count; i++)
+		{
+			testInputs.Add(readImage(files[i]));
+		}
+
+		NeocognitronTrainer trainer = new NeocognitronTrainer(inputs, testInputs);
+
+		Neocognitron n = trainer.getNeocognitron(50, 10);
+
+		trainer.verifyNeocognitron(n, testInputs, false);
+
+	}
+
+	public void Save()
+	{
+		for (int i = 0; i < Alphabet.Length; i++)
+		{
+			for (int j = 1; j < 21; j++)
+			{
+				//string file = "data3\\Training\\" + Alphabet.Substring(i, 1) + "\\" + "matrix_" + Alphabet.Substring(i, 1) + j.ToString();
+				string file = "data3\\Test\\" + Alphabet.Substring(i, 1) + "\\" + "matrix_" + Alphabet.Substring(i, 1) + j.ToString();
+
+				float[][] image = readTextImage(file + ".txt");
+				writeImage(image, file + ".bmp");
+			}
+		}
+
+	}
 
 	public float[][] readImage(string file) 
 	{
@@ -81,5 +141,46 @@ public class RunTest
 		}
 	}
 
+	public void writeImage(float[][] image, string file)
+	{
+		int height = image.Length;
+		int width = image[0].Length;
+
+		using (var bmp = new Bitmap(width, height))
+		{
+			for (int x = 0; x < height; x++)
+			{
+				for (int y = 0; y < width; y++)
+				{
+					Color color = image[x][y] == 1 ? Color.Black : Color.White;
+					bmp.SetPixel(y, x, color);
+				}
+			}
+
+			bmp.Save(file, System.Drawing.Imaging.ImageFormat.Bmp);
+		}
+	}
+
+	public float[][] readTextImage(string file)
+	{
+		string[] lines = File.ReadAllLines(file);
+		int height = lines.Length;
+		int width = lines[0].Split(' ').Length;
+
+		float[][] output = new float[height][];
+
+		for (int i = 0; i < height; i++)
+		{
+			output[i] = new float[width];
+			string[] values = lines[i].Split(' ');
+
+			for (int j = 0; j < width; j++)
+			{
+				output[i][j] = float.Parse(values[j]);
+			}
+		}
+
+		return output;
+	}
 }
 

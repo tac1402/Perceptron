@@ -7,6 +7,7 @@
 CIFAR_Task task = new CIFAR_Task();
 task.Run();
 
+
 //RandomTest task = new RandomTest();
 //task.Run();
 

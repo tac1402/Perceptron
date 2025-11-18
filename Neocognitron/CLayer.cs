@@ -26,8 +26,6 @@ namespace Tac.Neocognitron
 		{
 			OutputConnections output = new OutputConnections(planes, size);
 
-			float[][] windowInEachPlane;
-			float vOutput;
 			float value;
 
 			// For every cell location in each plane, propagate the input 
@@ -37,15 +35,16 @@ namespace Tac.Neocognitron
 				{
 					//DateTime beginB = DateTime.Now;
 					// Get the window array for a specific location (n,m).
-					windowInEachPlane = inputs.getWindows(n, m, windowSize);
+					float[][] windowInEachPlane = inputs.getWindows(n, m, windowSize);
 					//NeocognitronStructure.tB += (DateTime.Now - beginB).TotalMilliseconds;
 
 					// Determine v-cell output for specific location
-					vOutput = propagateVC(windowInEachPlane, d);
+					(float[] vOutput, float avg) = propagateVC(windowInEachPlane);
+
 					// Cycle through each plane and determine the output for a specific location (n,m)
 					for (int k = 0; k < planes; k++)
 					{
-						value = propagateC(windowInEachPlane[k], vOutput, d, alpha);
+						value = propagateC(avg, vOutput[k]);
 						output.Set(k, n, m, value);
 					}
 				}
@@ -54,34 +53,38 @@ namespace Tac.Neocognitron
 			return output;
 		}
 
-		public float propagateC(float[] input, float v, MWeights d, float alpha)
+		public float propagateC(float avg, float vOutput)
 		{
-			float output = NeocognitronStructure.arrayMultiply(d.w, input);
-			output = (1f + output) / (1f + v) - 1f;
+			//float output = NeocognitronStructure.arrayMultiply(d.w, input);
+			float output = (1f + vOutput) / (1f + avg) - 1f;
 
 			output = output / (alpha + output);
 
 			// For negative outputs, set to zero
 			if (output < 0)
 			{
-				output = 0;
+				//output = 0;
 			}
 
 			return output;
 		}
 
 
-		public float propagateVC(float[][] inputs, MWeights d)
+		public (float[], float) propagateVC(float[][] inputs)
 		{
-			float output = 0;
+			float[] output = new float[planes];
+			float avg = 0;
 
 			// where input is inputs[sk][window] a window in each plane
-			for (int sk = 0; sk < inputs.Length; sk++)
+			for (int i = 0; i < planes; i++)
 			{
-				output += NeocognitronStructure.arrayMultiply(d.w, inputs[sk]);
+				output[i] = NeocognitronStructure.arrayMultiply(d.w, inputs[i]);
+				avg += output[i];
 			}
 
-			return output / inputs.Length;
+			avg = avg / planes;
+
+			return (output, avg);
 		}
 
 	}

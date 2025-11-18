@@ -24,7 +24,7 @@ namespace Tac.Neocognitron
 		/// Обучаем неокогнитрон, используя определённое количество циклов. Используя определённый обучающий набор изображений.
 		/// </summary>
 		/// <param name="loops">Количество раз, сколько каждое изображение должно быть показано сети</param>
-		public Neocognitron runTrainingSet(int loops)
+		public Neocognitron runTrainingSet(int loops, int classCount)
 		{
 			Neocognitron output = new Neocognitron(new NeocognitronStructure());
 
@@ -35,8 +35,15 @@ namespace Tac.Neocognitron
 					output.propagate(inputs[n2], true);
 					//Console.Write(".");
 				}
-				//Console.Write("*");
+				int isAllOk = verifyTraining(output);
+				Console.Write(isAllOk.ToString()+".");
+
+				if (isAllOk == classCount)
+				{
+					break;
+				}
 			}
+			Console.WriteLine();
 			return output;
 		}
 
@@ -79,17 +86,17 @@ namespace Tac.Neocognitron
 				}
 				outLoc.Add(output);
 			}
-			return -1;
+			return outLoc.Count;
 		}
 
-		public Neocognitron getNeocognitron(int trainingLoops)
+		public Neocognitron getNeocognitron(int trainingLoops, int classCount)
 		{
 			Neocognitron output = null;
 
 			int count = 0;
-			double errorRate = 100;
-			double errorRate2 = 100;
-			double bestError = 100;
+			double errorRate = 10000;
+			double errorRate2 = 10000;
+			double bestError = 10000;
 			do
 			{       // While the error rate is not zero
 				int isAllOk = 0;
@@ -97,7 +104,7 @@ namespace Tac.Neocognitron
 				do
 				{   // and while the training is not successful
 					//output = runTrainingSet2(trainingLoops, output);
-					output = runTrainingSet(trainingLoops);
+					output = runTrainingSet(trainingLoops, classCount);
 
 					isAllOk = verifyTraining(output);
 					errorRate2 = verifyNeocognitron(output, testInputs, false);
@@ -106,7 +113,7 @@ namespace Tac.Neocognitron
 					Console.WriteLine("Loop: " + count.ToString() + "\tBest: " + bestError.ToString("F4") + 
 						"\tCurrent: " + errorRate.ToString("F4") + "\t" + errorRate2.ToString("F4") +
 						"\tCount: " + isAllOk);
-				} while (isAllOk != -1 || errorRate2 > bestError);
+				} while (isAllOk != classCount || errorRate2 > bestError);
 
 				errorRate = verifyNeocognitron(output, testInputs, false);
 				if (errorRate < bestError)
