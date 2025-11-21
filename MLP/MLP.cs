@@ -20,11 +20,11 @@ namespace Tac.Perceptron
 		private int RCount; // Количество реакций
 		private int HCount; // Количество примеров
 
-		public Dictionary<int, BitBlock> LearnedStimuls; // Обучающие стимулы из обучающей выборки
-		public Dictionary<int, BitBlock> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
+		public Dictionary<int, float[]> LearnedStimuls; // Обучающие стимулы из обучающей выборки
+		public Dictionary<int, float[]> ExaminStimuls; // Стимулы для экзамена
 
-		public Dictionary<int, BitBlock> ExaminStimuls; // Стимулы для экзамена
-		public Dictionary<int, BitBlock> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
+		public Dictionary<int, sbyte[]> NecessaryReactions; // Требуемая реакция на каждый стимул из обучающей выборки
+		public Dictionary<int, sbyte[]> ExaminReactions; // Требуемая реакция на каждый стимул во время экзамена
 
 
 		public MLP(int argSCount, int argACount, int argRCount, int argHCount, int argA2Count)
@@ -35,11 +35,11 @@ namespace Tac.Perceptron
 			RCount = argRCount;
 			HCount = argHCount;
 
-			LearnedStimuls = new Dictionary<int, BitBlock>();
-			NecessaryReactions = new Dictionary<int, BitBlock>();
+			LearnedStimuls = new Dictionary<int, float[]>();
+			ExaminStimuls = new Dictionary<int, float[]>();
 
-			ExaminStimuls = new Dictionary<int, BitBlock>();
-			ExaminReactions = new Dictionary<int, BitBlock>();
+			NecessaryReactions = new Dictionary<int, sbyte[]>();
+			ExaminReactions = new Dictionary<int, sbyte[]>();
 		}
 
 		/// <summary>
@@ -48,7 +48,7 @@ namespace Tac.Perceptron
 		/// <param name="argStimulNumber">Номер примера из обучающей выборки</param>
 		/// <param name="argPerception">Стимулы (входы) из примера обучающей выборки</param>
 		/// <param name="argReaction">Нужная реакция (выходы) из примера обучающей выборки</param>
-		public void JoinStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		public void JoinStimul(int argStimulNumber, float[] argPerception, sbyte[] argReaction)
 		{
 			// Запомним обучающий стимул
 			LearnedStimuls.Add(argStimulNumber, argPerception);
@@ -57,7 +57,7 @@ namespace Tac.Perceptron
 			NecessaryReactions.Add(argStimulNumber, argReaction);
 		}
 
-		public void JoinEStimul(int argStimulNumber, BitBlock argPerception, BitBlock argReaction)
+		public void JoinEStimul(int argStimulNumber, float[] argPerception, sbyte[] argReaction)
 		{
 			// Запомним обучающий стимул
 			ExaminStimuls.Add(argStimulNumber, argPerception);
@@ -66,27 +66,30 @@ namespace Tac.Perceptron
 			ExaminReactions.Add(argStimulNumber, argReaction);
 		}
 
-		MNIST_Network model;
+		//MNIST_Network model;
+		MNIST_CNN model;
 
 		public void Learned()
 		{
 			// Конвертируем словари в тензоры
-			Tensor x_train = ConvertToTensor(LearnedStimuls, SCount);
+			Tensor x_train = ConvertToTensor2D(LearnedStimuls, 28);
 			Tensor y_train = ConvertToTensor(NecessaryReactions, RCount);
 
 			// Создаем экземпляр набора данных
 			var train_dataset = new ParityDataset(x_train, y_train);
 
 			// Создание загрузчика данных
-			int batch_size = 64;
+			int batch_size = 256;
 			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: false);
 
 			// Создание модели, функции потерь и оптимизатора
-			model = new MNIST_Network(SCount, ACount, RCount, A2Count);
+			//model = new MNIST_Network(SCount, ACount, RCount, A2Count);
+			model = new MNIST_CNN();
 
 			//var criterion = BCELoss();
 			var criterion = MSELoss();
-			var optimizer = new Adam(model.parameters(), 0.1);
+			//var criterion = CrossEntropyLoss();
+			var optimizer = new Adam(model.parameters(), 0.001);
 
 			// Обучение модели
 			int num_epochs = 100000;
@@ -102,7 +105,7 @@ namespace Tac.Perceptron
 				foreach (var batch in train_loader)
 				{
 					// Получение признаков и меток из батча
-					var batch_X = batch["features"];
+					var batch_X = batch["features"].unsqueeze(1);
 					var batch_y = batch["labels"];
 
 					using (var d = torch.NewDisposeScope())
@@ -142,7 +145,7 @@ namespace Tac.Perceptron
 				File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", output + "\n");
 
 				// Прерывание обучения при достижении 100% точности
-				if (correct >= HCount - 150)
+				if (correct >= HCount)
 				{
 					break;
 				}
@@ -240,7 +243,7 @@ namespace Tac.Perceptron
 		}
 
 
-		public static torch.Tensor ConvertToTensor(Dictionary<int, BitBlock> dataDict, int argCount)
+		public static torch.Tensor ConvertToTensor(Dictionary<int, float[]> dataDict, int argCount)
 		{
 			float[] dataArray = new float[dataDict.Count * argCount];
 			int index = 0;
@@ -248,13 +251,48 @@ namespace Tac.Perceptron
 			{
 				for (int j = 0; j < argCount; j++)
 				{
-					dataArray[index++] = block.Value[j] ? 1.0f : 0.0f;
+					dataArray[index++] = block.Value[j];
 				}
 			}
 
 			return torch.tensor(dataArray, torch.float32).reshape(dataDict.Count, argCount);
 		}
 
+		public static torch.Tensor ConvertToTensor(Dictionary<int, sbyte[]> dataDict, int argCount)
+		{
+			float[] dataArray = new float[dataDict.Count * argCount];
+			int index = 0;
+			foreach (var block in dataDict)
+			{
+				for (int j = 0; j < argCount; j++)
+				{
+					dataArray[index++] = block.Value[j];
+				}
+			}
+
+			return torch.tensor(dataArray, torch.float32).reshape(dataDict.Count, argCount);
+		}
+
+		public static torch.Tensor ConvertToTensor2D(Dictionary<int, float[]> dataDict, int argCount)
+		{
+			float[,,] dataArray = new float[dataDict.Count, argCount, argCount];
+			int index = 0;
+			foreach (var block in dataDict)
+			{
+				int n = 0;
+				for (int i = 0; i < argCount; i++)
+				{
+					for (int j = 0; j < argCount; j++)
+					{
+						dataArray[index, i, j] = block.Value[n];
+						n++;
+					}
+				}
+				index++;
+			}
+
+			return torch.tensor(dataArray, torch.float32);
+		}
 
 
 	}

@@ -11,7 +11,6 @@ public class MNIST_Network : Module<Tensor, Tensor>
 	private readonly ReLU relu;
 	private readonly Sigmoid sigmoid;
 
-
 	public MNIST_Network(int SCount, int ACount, int RCount, int A2Count) : base("ParityNetwork")
 	{
 		fc1 = Linear(SCount, ACount);
