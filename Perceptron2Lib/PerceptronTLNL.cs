@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Tac.Perceptron
 {
@@ -21,6 +19,7 @@ namespace Tac.Perceptron
 
 		public float[] AField;
 		public float[] AFieldNorm;
+		public float[][] AFieldT;
 
 
 		public List<int> ExceptStimul = new List<int>();
@@ -49,27 +48,30 @@ namespace Tac.Perceptron
 		{
 			Name = argName;
 
+
 			SensorsField = new float[SCount];
 
-			AField = new float[ACount];
+			AFieldT = new float[1][];
 
 			ErrorLog = new int[HCount];
 
 			AB = new PerceptronAA(SCount, ACount, RCount);
 		}
 
-		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount, LayerSA argLayerSA, string argName = "")
-			: base(argSCount, argACount, argRCount, argHCount, argECount)
+		public PerceptronTLNL(int argSCount, int argACount, int argRCount, int argHCount, int argECount, LayerSA argLayerSA, string argName = "", int argTSet = 1)
+			: base(argSCount, argACount, argRCount, argHCount, argECount, argTSet)
 		{
 			Name = argName;
 
 			SensorsField = new float[SCount];
-			AField = new float[ACount];
 			ErrorLog = new int[HCount];
+
+			AField = new float[ACount];
+			AFieldT = new float[TSet][];
 
 			LayerSA = argLayerSA;
 			AB = new PerceptronAA(SCount, ACount, 0);
-			LayerAR = new LayerAR(ACount + LayerSA.ACount, RCount);
+			LayerAR = new LayerAR((ACount + LayerSA.ACount) * TSet, RCount);
 		}
 
 
@@ -298,11 +300,14 @@ namespace Tac.Perceptron
 		public void ExaminOne2(int argNumber)
 		{
 			// Активируем A-элементы
-			LayerSA.SActivation(ExaminStimuls[argNumber]);
-			SActivation(argNumber, 1);
+			for (int t = 0; t < TSet; t++)
+			{
+				LayerSA.SActivation(ExaminStimuls[t].Stimuls[argNumber], 0, -1, t);
+				SActivation(argNumber, 1, t);
+			}
 
 			// Активируем R-элементы, т.е. рассчитываем выходы
-			float[] AField2 = AFieldSum(LayerSA.AField, AField);
+			float[] AField2 = LayerSA.AFieldSum(LayerSA.AField, AField);
 			LayerAR.RActivation(AField2);
 			RField = LayerAR.RField;
 
@@ -357,10 +362,10 @@ namespace Tac.Perceptron
 			if (File.Exists(weightFileName))
 			{
 				int ret = AB.LoadWeights(weightFileName);
-
-				LayerSA.LoadWeights();
-				LayerAR.LoadWeights();
 			}
+
+			LayerSA.LoadWeights();
+			LayerAR.LoadWeights();
 		}
 
 
@@ -405,13 +410,18 @@ namespace Tac.Perceptron
 					int index = indexL[i];
 
 					beginA = DateTime.Now;
-					LayerSA.SActivation(LearnedStimuls[index]);
-					SActivation(index);
+
+					for (int t = 0; t < TSet; t++)
+					{
+						LayerSA.SActivation(LearnedStimuls[t].Stimuls[index], 0, -1, t);
+						SActivation(index, 0, t);
+					}
+
 					tA += (DateTime.Now - beginA).TotalMilliseconds;
 
 					// Активируем R-элементы, т.е. рассчитываем выходы
 					beginR = DateTime.Now;
-					float[] AField2 = AFieldSum(LayerSA.AField, AField);
+					float[] AField2 = LayerSA.AFieldSum(LayerSA.AField, AField);
 					LayerAR.RActivation(AField2);
 					RField = LayerAR.RField;
 					tR += (DateTime.Now - beginR).TotalMilliseconds;
@@ -458,9 +468,9 @@ namespace Tac.Perceptron
 					(er, fer) = Examin(ECount, false);
 				}
 
-				double t = (DateTime.Now - begin).TotalMilliseconds;
+				double time = (DateTime.Now - begin).TotalMilliseconds;
 				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()  
-								+ "\t" + t.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
+								+ "\t" + time.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
 								+ " " + tLar.ToString("F0") + "-" + tLsa.ToString("F0") + "-" + tRnd.ToString("F0")
 								+ "\tE: " + er.ToString() + " / " + fer.ToString();
 
@@ -482,13 +492,6 @@ namespace Tac.Perceptron
 			File.AppendAllText("Error_" + Arh + ".txt", outputF + "\n");
 		}
 
-		public float[] AFieldSum(float[] AField1, float[] AField2)
-		{
-			float[] AField = new float[AField1.Length + AField2.Length];
-			Array.Copy(AField1, 0, AField, 0, AField1.Length);
-			Array.Copy(AField2, 0, AField, AField1.Length, AField2.Length);
-			return AField;
-		}
 
 
 		/// <summary>
@@ -514,7 +517,7 @@ namespace Tac.Perceptron
 			int indexR = 0;
 			foreach (var rr in NecessaryReactions)
 			{
-				if (ExaminStimuls.Count != 0)
+				if (ExceptStimul.Count != 0)
 				{
 					if (ExceptStimul.Contains(rr.Key)) { continue; }
 				}
@@ -792,42 +795,41 @@ namespace Tac.Perceptron
 		/// </summary>
 		/// <param name="argStimulNumber">Номер примера в выборке</param>
 		/// <param name="argMode">0 - обучение, 1 - экзамен</param>
-		private void SActivation(int argStimulNumber, int argMode = 0)
+		private void SActivation(int argStimulNumber, int argMode = 0, int t = 0)
 		{
 			// Кинем на сенсоры обучающий пример
 			if (argMode == 0)
 			{
-				SensorsField = LearnedStimuls[argStimulNumber];
+				SensorsField = LearnedStimuls[t].Stimuls[argStimulNumber];
 			}
 			else if (argMode == 1)
 			{
-				SensorsField = ExaminStimuls[argStimulNumber];
+				SensorsField = ExaminStimuls[t].Stimuls[argStimulNumber];
 			}
 
-			/*AField = new float[ACount];
-			for (int j = 0; j < ACount; j++)
-			{
-				for (int i = 0; i < SCount; i++)
-				{
-					//if (SensorsField[i] == true)
-					{
-						AField[j] += WeightSA[i][j] * SensorsField.DataByte[i];
-					}
-				}
-			}*/
-
-			AField = AB.AActivation(SensorsField);
+			AFieldT[t] = AB.AActivation(SensorsField);
 
 			//Activations[argStimulNumber] = AField;
 
-			if (PuritySamples != null && PuritySamples.Contains(argStimulNumber))
+			/*if (PuritySamples != null && PuritySamples.Contains(argStimulNumber))
 			{
 				int index = PuritySamples_[argStimulNumber];
 				Activations[index] = AField;
+			}*/
+
+			if (t == 0)
+			{
+				AField = AFieldT[0];
+			}
+			else if (t > 0)
+			{
+				AField = LayerSA.AFieldSum(AField, AFieldT[t]);
 			}
 
-
-			AFieldNorm = AB.Normalize(AField);
+			if (t + 1 == TSet)
+			{
+				AFieldNorm = AB.Normalize(AField);
+			}
 		}
 
 		private void RActivation(int argStimulNumber)

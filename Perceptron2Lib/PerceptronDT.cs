@@ -614,11 +614,11 @@ namespace Tac.Perceptron
 			// Кинем на сенсоры обучающий пример
 			if (argMode == 0)
 			{
-				SensorsField = LearnedStimuls[argStimulNumber];
+				SensorsField = LearnedStimuls[0].Stimuls[argStimulNumber];
 			}
 			else if (argMode == 1)
 			{
-				SensorsField = ExaminStimuls[argStimulNumber];
+				SensorsField = ExaminStimuls[0].Stimuls[argStimulNumber];
 			}
 
 			AField = AB.AActivation(SensorsField, startA, endA);
