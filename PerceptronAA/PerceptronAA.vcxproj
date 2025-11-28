@@ -123,7 +123,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;PERCEPTRONF_EXPORTS;PERCEPTROND_EXPORTS;HAMMING_EXPORTS;ID3_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;PERCEPTRONF_EXPORTS;PERCEPTROND_EXPORTS;HAMMING_EXPORTS;ID3_EXPORTS;CNN_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -135,15 +135,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Flatten.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="ID3.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PerceptronD.h" />
     <ClInclude Include="PerceptronF.h" />
+    <ClInclude Include="ReLu.h" />
+    <ClInclude Include="Tensor.h" />
+    <ClInclude Include="WinSumCalculator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="Flatten.cpp" />
     <ClCompile Include="Hamming.cpp" />
     <ClCompile Include="ID3.cpp" />
     <ClCompile Include="pch.cpp">
@@ -154,6 +159,9 @@
     </ClCompile>
     <ClCompile Include="PerceptronD.cpp" />
     <ClCompile Include="PerceptronF.cpp" />
+    <ClCompile Include="ReLU.cpp" />
+    <ClCompile Include="Tensor.cpp" />
+    <ClCompile Include="WinSumCalculator.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

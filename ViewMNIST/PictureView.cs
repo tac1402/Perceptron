@@ -28,8 +28,8 @@ namespace ViewMNIST
 		{
 			InitializeComponent();
 			//ReadMNIST_E();
-			//ReadMNIST_L();
-			ReadCIFAR();
+			ReadMNIST_L();
+			//ReadCIFAR();
 		}
 
 		public void ReadMNIST_L()
@@ -51,8 +51,8 @@ namespace ViewMNIST
 			//ReadPicture("train-images-idx3-ubyte", 60000);
 			//ReadLabels("train-labels-idx1-ubyte", 60000);
 			//MNIST
-			ReadPicture("train-images.idx3-ubyte", 60000, 0);
-			ReadLabels("train-labels.idx1-ubyte", 60000);
+			ReadPicture("MNIST\\train-images.idx3-ubyte", 60000, 0);
+			ReadLabels("MNIST\\train-labels.idx1-ubyte", 60000);
 		}
 
 		public void ReadMNIST_E()
@@ -196,18 +196,18 @@ namespace ViewMNIST
 				}
 			}
 
-			Bitmap newBitmap2 = ExposureCorrection.AdjustExposure(newBitmap, 1.0f, -0.3f);
+			//Bitmap newBitmap2 = ExposureCorrection.AdjustExposure(newBitmap, 1.0f, -0.3f);
 
-			MyColor[] image0 = BitmapConverter.FromBitmap(newBitmap2, ImageWidth, ImageHeight);
+			//MyColor[] image0 = BitmapConverter.FromBitmap(newBitmap2, ImageWidth, ImageHeight);
 
 			//MyColor[] image2 = Shift(tmpPicture[PictureNumber], -1, -1);
-			CheckImage(image0, newBitmap2);
+			//CheckImage(image0, newBitmap2);
 
-			Bitmap newBitmap3 = new Bitmap(ImageWidth, ImageHeight);
+			//Bitmap newBitmap3 = new Bitmap(ImageWidth, ImageHeight);
 
-			ApplyImportanceMask(image0, mask, ImageWidth, ImageHeight, 0.5f);
+			//ApplyImportanceMask(image0, mask, ImageWidth, ImageHeight, 0.5f);
 
-			g = 0;
+			/*g = 0;
 			for (int y = 0; y < ImageHeight; y++)
 			{
 				for (int x = 0; x < ImageWidth; x++)
@@ -226,10 +226,10 @@ namespace ViewMNIST
 			if (argView == false)
 			{
 				tmpPictureOut[PictureNumber] = image1;
-			}
+			}*/
 
-			Bitmap newBitmap4 = new Bitmap(ImageWidth, ImageHeight);
-			Bitmap newBitmap5 = new Bitmap(ImageWidth, ImageHeight);
+			//Bitmap newBitmap4 = new Bitmap(ImageWidth, ImageHeight);
+			//Bitmap newBitmap5 = new Bitmap(ImageWidth, ImageHeight);
 
 			g = 0;
 			for (int y = 0; y < ImageHeight; y++)
@@ -241,7 +241,7 @@ namespace ViewMNIST
 						byte tmpValue = tmpPicture[PictureNumber][g].R;
 						newBitmap.SetPixel(x, y, Color.FromArgb(tmpValue, Color.Black));
 					}
-					else
+					/*else
 					{
 						//MyColor c = image1[g];
 						//newBitmap3.SetPixel(x, y, Color.FromArgb(c.R, c.G, c.B));
@@ -250,7 +250,7 @@ namespace ViewMNIST
 
 						byte tmpValue2 = ToGray(tmpPicture[PictureNumber][g]);
 						newBitmap5.SetPixel(x, y, Color.FromArgb(tmpValue2, Color.Black));
-					}
+					}*/
 
 					g++;
 				}
@@ -273,10 +273,10 @@ namespace ViewMNIST
 			if (argView)
 			{
 				// Обновление на форме
-				pictureBox.Image = newBitmap2;
-				pictureBox2.Image = newBitmap3;
-				pictureBox3.Image = newBitmap4;
-				pictureBox4.Image = newBitmap5;
+				pictureBox.Image = newBitmap;
+				//pictureBox2.Image = newBitmap3;
+				//pictureBox3.Image = newBitmap4;
+				//pictureBox4.Image = newBitmap5;
 				PictureNumberTxt.Text = PictureNumber.ToString();
 			}
 		}

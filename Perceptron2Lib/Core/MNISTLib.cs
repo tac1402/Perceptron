@@ -41,7 +41,7 @@ namespace Tac.Experiment
 			ReadLabels("MNIST\\t10k-labels.idx1-ubyte", 10000, ExamLabels);
 		}
 
-		public void LoadHard(int argCount)
+		/*public void LoadHard(int argCount)
 		{
 			Init();
 
@@ -50,7 +50,7 @@ namespace Tac.Experiment
 
 			ReadPicture("MNIST\\t10k-images.idx3-ubyte", 10000, ExamSet);
 			ReadLabels("MNIST\\t10k-labels.idx1-ubyte", 10000, ExamLabels);
-		}
+		}*/
 
 		public void LoadF(int argAdd = 0)
 		{
@@ -61,18 +61,6 @@ namespace Tac.Experiment
 
 			ReadPicture("MNIST_Fashion\\t10k-images-idx3-ubyte", 10000, ExamSet);
 			ReadLabels("MNIST_Fashion\\t10k-labels-idx1-ubyte", 10000, ExamLabels);
-		}
-
-
-		public void Load2()
-		{
-			Init();
-
-			ReadPicture("MNIST\\train-images#", 60000, TrainSet);
-			ReadLabels("MNIST\\train-labels#", 60000, TrainLabels);
-
-			ReadPicture("MNIST\\t10k-images#", 10000, ExamSet);
-			ReadLabels("MNIST\\t10k-labels#", 10000, ExamLabels);
 		}
 
 

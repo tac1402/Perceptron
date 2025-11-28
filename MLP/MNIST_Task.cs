@@ -59,7 +59,7 @@ public class MNIST_Task
 
 
 		net.Learned();
-		net.Examin(E);
+		//net.Examin();
 	}
 
 }

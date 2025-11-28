@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
+using Tac.CNN;
+
 namespace Tac.Perceptron
 {
 
@@ -74,6 +76,23 @@ namespace Tac.Perceptron
 			LayerAR = new LayerAR((ACount + LayerSA.ACount) * TSet, RCount);
 		}
 
+
+		CNN.CNN cnn;
+		Tensor inputCNN;
+		int InputSize;
+		public void AddCNN(int argFCount, int argInputSize, int argWindowSize = 5)
+		{
+			InputSize = argInputSize;
+
+			cnn = new CNN.CNN(argFCount, argWindowSize);
+
+			//argFCount = 32, argSize = 28
+			//int inSize = argInputSize - argWindowSize + 1;
+			inputCNN = new Tensor(new int[] { 1, InputSize, InputSize });
+
+			// output = 32x12x12 = 4068 (flatten = ACount)
+			//cnn.forward(input);
+		}
 
 
 		int PCount = 1000;
@@ -235,7 +254,7 @@ namespace Tac.Perceptron
 				//if (n % 100 == 0)
 				//	Console.WriteLine("n=" + n.ToString() + "; Error=" + AllErrorCount.ToString());
 
-				ExaminOne2(n);
+				ExaminOneCNN(n);
 
 				for (int i = 0; i < RCount; i++)
 				{
@@ -292,7 +311,7 @@ namespace Tac.Perceptron
 		{
 			SActivation(argNumber, 1);
 			// Активируем R-элементы, т.е. рассчитываем выходы
-			RActivation(argNumber);
+			RActivation();
 			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
 			GetError(argNumber, 1);
 		}
@@ -315,6 +334,19 @@ namespace Tac.Perceptron
 			GetError(argNumber, 1);
 		}
 
+		public void ExaminOneCNN(int argNumber)
+		{
+			// Активируем A-элементы
+			CreateInputCNN(argNumber, 1);
+			Tensor outputCNN = cnn.forward(inputCNN);
+			AField = outputCNN.Data;
+
+			// Активируем R-элементы, т.е. рассчитываем выходы
+			RActivation();
+
+			// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
+			GetError(argNumber, 1);
+		}
 
 
 		private List<int> top(int[] argErrorLog, int N)
@@ -366,6 +398,154 @@ namespace Tac.Perceptron
 
 			LayerSA.LoadWeights();
 			LayerAR.LoadWeights();
+		}
+
+
+		public void CreateInputCNN(int argStimulNumber, int argMode = 0)
+		{
+			// Кинем на сенсоры обучающий пример
+			if (argMode == 0)
+			{
+				SensorsField = LearnedStimuls[0].Stimuls[argStimulNumber];
+			}
+			else if (argMode == 1)
+			{
+				SensorsField = ExaminStimuls[0].Stimuls[argStimulNumber];
+			}
+
+			for (int y = 0; y < InputSize; y++)
+			{
+				for (int x = 0; x < InputSize; x++)
+				{
+					inputCNN[0, x, y] = SensorsField[y * InputSize + x];
+				}
+			}
+		}
+
+		public void LearnedCNN()
+		{
+			DateTime beginFull = DateTime.Now;
+			//string weightFileName = WeightFileName();
+			//LoadWeights2();
+
+			int[] indexL = new int[HCount];
+			int indexR = 0;
+			foreach (var rr in NecessaryReactions)
+			{
+				indexL[indexR] = rr.Key;
+				indexR++;
+			}
+
+			for (int n = 0; n < 100000; n++)
+			{
+				DateTime begin = DateTime.Now;
+				DateTime beginA;
+				DateTime beginR;
+				DateTime beginLar;
+				DateTime beginLsa;
+				DateTime beginRnd;
+
+				double tA = 0;
+				double tR = 0;
+				double tLar = 0;
+				double tLsa = 0;
+				double tRnd = 0;
+
+
+				Error = 0;
+				Error2 = 0;
+
+				indexL = Shuffle(indexL);
+
+				// За каждую итерацию прокручиваем все примеры из обучающей выборки
+				for (int i = 0; i < HCount; i++)
+				{
+					int index = indexL[i];
+
+					beginA = DateTime.Now;
+
+					CreateInputCNN(index);
+					Tensor outputCNN = cnn.forward(inputCNN);
+					AField = outputCNN.Data;
+
+					/*for (int t = 0; t < TSet; t++)
+					{
+						LayerSA.SActivation(LearnedStimuls[t].Stimuls[index], 0, -1, t);
+						SActivation(index, 0, t);
+					}*/
+
+					tA += (DateTime.Now - beginA).TotalMilliseconds;
+
+					// Активируем R-элементы, т.е. рассчитываем выходы
+					beginR = DateTime.Now;
+					RActivation();
+					tR += (DateTime.Now - beginR).TotalMilliseconds;
+
+					// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
+					GetError(index);
+					if (r.E == true)
+					{
+						beginLar = DateTime.Now;
+						LearnedStimulAR(r.Error);
+						tLar += (DateTime.Now - beginLar).TotalMilliseconds;
+
+						beginR = DateTime.Now;
+						RActivation();
+						tR += (DateTime.Now - beginR).TotalMilliseconds;
+
+						GetError(index);
+						if (r.E == true)
+						{
+							beginRnd = DateTime.Now;
+
+							float d = 1;
+							if (OldError != 0) d = ((float)OldError / (float)HCount);
+
+							cnn.RandomChange(inputCNN, d);
+							tRnd += (DateTime.Now - beginRnd).TotalMilliseconds;
+
+							beginLsa = DateTime.Now;
+							//float[] arWeights = AB.GetARWeights();
+							//cnn.LearnedStimulSA(r.Error, arWeights);
+							tLsa += (DateTime.Now - beginLsa).TotalMilliseconds;
+							
+
+							Error2++;
+						}
+						Error++; // Число ошибок, если в конце итерации =0, то выскакиваем из обучения.
+					}
+				}
+
+				OldError = Error;
+
+				int er = 0; int fer = 0;
+				//if (Error < 1000)
+				{
+					(er, fer) = Examin(ECount, false);
+				}
+
+				double time = (DateTime.Now - begin).TotalMilliseconds;
+				string output = n.ToString() + ". E1/E2 \t" + Error.ToString() + " / " + Error2.ToString()
+								+ "\t" + time.ToString("F0") + " ms " + tA.ToString("F0") + "/" + tR.ToString("F0")
+								+ " " + tLar.ToString("F0") + "-" + tLsa.ToString("F0") + "-" + tRnd.ToString("F0")
+								+ "\tE: " + er.ToString() + " / " + fer.ToString();
+
+				Console.WriteLine(output);
+				File.AppendAllText("Error_" + Arh + ".txt", output + "\n");
+
+				//LayerSA.SaveWeights();
+				//LayerAR.SaveWeights();
+				//AB.SaveWeights(weightFileName);
+
+				if (Error == 0) { break; }
+			}
+
+			double tFull = (DateTime.Now - beginFull).TotalMilliseconds;
+
+			string outputF = "\tFullTime = " + tFull.ToString() + " ms ";
+
+			Console.WriteLine(outputF);
+			File.AppendAllText("Error_" + Arh + ".txt", outputF + "\n");
 		}
 
 
@@ -573,7 +753,7 @@ namespace Tac.Perceptron
 
 					// Активируем R-элементы, т.е. рассчитываем выходы
 					beginR = DateTime.Now;
-					RActivation(index);
+					RActivation();
 					tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 					// Узнаем ошибся перцептрон или нет, если ошибся отправляем на обучение
@@ -581,11 +761,11 @@ namespace Tac.Perceptron
 					if (r.E == true)
 					{
 						beginLar = DateTime.Now;
-						LearnedStimulAR(index, r.Error);
+						LearnedStimulAR(r.Error);
 						tLar += (DateTime.Now - beginLar).TotalMilliseconds;
 
 						beginR = DateTime.Now;
-						RActivation(index);
+						RActivation();
 						tR += (DateTime.Now - beginR).TotalMilliseconds;
 
 						GetError(index);
@@ -600,7 +780,7 @@ namespace Tac.Perceptron
 							tLsa += (DateTime.Now - beginLsa).TotalMilliseconds;
 
 							beginLar = DateTime.Now;
-							LearnedStimulAR(index, r.Error);
+							LearnedStimulAR(r.Error);
 							tLar += (DateTime.Now - beginLar).TotalMilliseconds;
 
 							Error2++;
@@ -832,7 +1012,7 @@ namespace Tac.Perceptron
 			}
 		}
 
-		private void RActivation(int argStimulNumber)
+		private void RActivation()
 		{
 			RField = AB.RActivation(AField);
 		}
@@ -863,7 +1043,7 @@ namespace Tac.Perceptron
 		}
 
 
-		private void LearnedStimulAR(int argStimulNumber, float[] rError)
+		private void LearnedStimulAR(float[] rError)
 		{
 			AB.LearnedStimulAR(rError, AField);
 		}

@@ -10,13 +10,12 @@ public class MNIST_Task : MNISTLib
 	public void Run()
 	{
 		int N1 = 60000;
-		//int N1 = 10000;
 		int L = 28*28;
 		int E = 10000;
 
 		//int Add = 100;
 
-		LayerSA layerSA = new LayerSA(L, 7233);
+		//LayerSA layerSA = new LayerSA(L, 7233);
 
 		/*
 		PerceptronDT net = new PerceptronDT(L, 100000, 1, N1, E, 5);
@@ -27,16 +26,16 @@ public class MNIST_Task : MNISTLib
 		*/
 
 		//PerceptronTLNL net = new PerceptronTLNL(L + Add, 20000, 10, N1, E, "B");
-		//PerceptronTLNL net = new PerceptronTLNL(L, 5000, 1, N1, E, "С");
+		PerceptronTLNL net = new PerceptronTLNL(L, 32 * 144, 10, N1, E);
+		net.AddCNN(32, 28);
 		
-		PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1, E, layerSA);
+		//PerceptronTLNL net = new PerceptronTLNL(L, 10000, 10, N1, E, layerSA);
 
 		//Perceptron2TLNL net = new Perceptron2TLNL(L, 1000, 1000, 1, N1, E);
 
-		LoadF(0);
+		//LoadF(0);
 
-		//Load();
-		//LoadHard(5000);
+		Load();
 
 		//ReSort();
 		
@@ -125,8 +124,8 @@ public class MNIST_Task : MNISTLib
 		//net.ExceptStimul = topError;
 		//netB.OnlyStimul = topError;
 
-		net.Learned2();
-		net.Examin(E);
+		net.LearnedCNN();
+		//net.Examin(E);
 
 		//net.LoadWeights();
 		//netB.LoadWeights();
@@ -154,33 +153,6 @@ public class MNIST_Task : MNISTLib
 		int a = 1;
 		*/
 	}
-
-
-	public float[] InsertGaps(float[] argSet, int L, int Add, float gapValue)
-	{
-		float[] dest = new float[L + Add];
-
-		// Вычисляем шаг для равномерного распределения
-		float step = (float)L / (Add + 1);
-
-		int srcIndex = 0;
-		for (int i = 0; i < L + Add; i++)
-		{
-			// Определяем, должна ли это быть позиция для дырки
-			if (srcIndex < L && i > 0 && Math.Abs(i - (srcIndex * step)) < 0.5f)
-			{
-				dest[i] = gapValue;
-			}
-			else
-			{
-				dest[i] = argSet[srcIndex];
-				srcIndex++;
-			}
-		}
-
-		return dest;
-	}
-
 
 
 	/// <summary>

@@ -46,5 +46,8 @@ extern "C"
 
     PERCEPTRONF_API bool SaveWeights(PerceptronFHandle handle, const char* filename);
     PERCEPTRONF_API int LoadWeights(PerceptronFHandle handle, const char* filename);
+
+    PERCEPTRONF_API float* GetARWeights(PerceptronFHandle handle);
+
 }
 

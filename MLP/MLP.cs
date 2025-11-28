@@ -66,7 +66,6 @@ namespace Tac.Perceptron
 			ExaminReactions.Add(argStimulNumber, argReaction);
 		}
 
-		//MNIST_Network model;
 		MNIST_CNN model;
 
 		public void Learned()
@@ -80,10 +79,11 @@ namespace Tac.Perceptron
 
 			// Создание загрузчика данных
 			int batch_size = 256;
-			var train_loader = new DataLoader(train_dataset, batch_size, shuffle: false);
+			DataLoader train_loader = new DataLoader(train_dataset, batch_size, shuffle: true);
+
+			DataLoader exam_loader = InitExam();
 
 			// Создание модели, функции потерь и оптимизатора
-			//model = new MNIST_Network(SCount, ACount, RCount, A2Count);
 			model = new MNIST_CNN();
 
 			//var criterion = BCELoss();
@@ -139,8 +139,12 @@ namespace Tac.Perceptron
 					}
 				}
 
+				(int examErrorHard, int examErrorSoft) = Examin(exam_loader);
+
 				// Вывод статистики
-				string output = epoch.ToString() + " - " + (HCount - correct).ToString() +  "\tloss = " + train_loss.ToString();
+				string output = epoch.ToString() + " - " + (HCount - correct).ToString() +  "\tloss = " + train_loss.ToString("F6") +
+								"\tE: " + (10000 - examErrorHard).ToString() + " / " + (10000 - examErrorSoft).ToString();
+				
 				Console.WriteLine(output);
 				File.AppendAllText("Error_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", output + "\n");
 
@@ -154,23 +158,35 @@ namespace Tac.Perceptron
 
 		}
 
-		public void Examin(int argECount)
+		public DataLoader InitExam()
 		{
 			// Конвертируем экзаменационные данные в тензоры
-			Tensor x_exam = ConvertToTensor(ExaminStimuls, SCount);
+			Tensor x_exam = ConvertToTensor2D(ExaminStimuls, 28);
 			Tensor y_exam = ConvertToTensor(ExaminReactions, RCount);
 
 			// Создаем экземпляр набора данных для экзамена
 			var exam_dataset = new ParityDataset(x_exam, y_exam);
 
 			// Создание загрузчика данных
-			int batch_size = 32;
-			var exam_loader = new DataLoader(exam_dataset, batch_size, shuffle: false);
+			int batch_size = 256;
+			DataLoader exam_loader = new DataLoader(exam_dataset, batch_size, shuffle: false);
+			return exam_loader;
+		}
+
+		public (int, int) Examin()
+		{
+			return Examin(InitExam());
+		}
+
+		public (int, int) Examin(DataLoader exam_loader)
+		{
 
 			// Переводим модель в режим оценки
 			model.eval();
 
-			long total_correct = 0;
+			long total_correctHard = 0;
+			long total_correctSoft = 0;
+
 			long total_samples = 0;
 
 			// Отключаем вычисление градиентов для ускорения и экономии памяти
@@ -178,7 +194,7 @@ namespace Tac.Perceptron
 			{
 				foreach (var batch in exam_loader)
 				{
-					var batch_X = batch["features"];
+					var batch_X = batch["features"].unsqueeze(1);
 					var batch_y = batch["labels"];
 
 					using (var d = torch.NewDisposeScope())
@@ -194,20 +210,35 @@ namespace Tac.Perceptron
 						var all_correct_in_row = elementwise_correct.all(dim: 1);
 						long batch_correct = all_correct_in_row.sum().item<long>();
 
-						total_correct += batch_correct;
+						total_correctHard += batch_correct;
 						total_samples += batch_y.shape[0]; // Общее количество примеров в батче
+
+						// Получаем предсказания через argmax
+						var predictionsSoft = outputs.argmax(1);
+						// Если метки в one-hot формате, преобразуем в индексы
+						var true_labels = batch_y.argmax(1);
+
+						// Сравниваем предсказания с истинными метками
+						var correct = predictionsSoft == true_labels;
+						long batch_correctSoft = correct.sum().item<long>();
+
+						total_correctSoft += batch_correctSoft;
+
 					}
 				}
 			}
 
+			return ((int)total_correctHard, (int)total_correctSoft);
+
 			// Вывод результатов экзамена
-			double accuracy = (double)total_correct / total_samples * 100;
-			string result = $"Результаты экзамена: {total_correct}/{total_samples} ({accuracy:F2}%)";
-			Console.WriteLine(result);
-			File.AppendAllText("Exam_Results_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", result + "\n");
+			//double accuracy = (double)total_correct / total_samples * 100;
+			//string result = $"Результаты экзамена: {total_correct}/{total_samples} ({accuracy:F2}%)";
+			//Console.WriteLine("\tE: " + total_correct.ToString());
+			//File.AppendAllText("Exam_Results_" + SCount.ToString() + "x" + ACount.ToString() + ".txt", result + "\n");
+
 
 			// Дополнительно: можно сохранить детальные предсказания
-			SaveDetailedPredictions(x_exam, y_exam, "exam_predictions.txt");
+			//SaveDetailedPredictions(x_exam, y_exam, "exam_predictions.txt");
 
 		}
 

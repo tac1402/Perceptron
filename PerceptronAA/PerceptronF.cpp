@@ -249,6 +249,10 @@ public:
         return loadedCount;
     }
 
+    float* GetARWeights()
+    {
+        return ARWeights;
+    }
 
 private:
 
@@ -954,5 +958,8 @@ extern "C"
         return static_cast<PerceptronF*>(handle)->LoadWeights(filename);
     }
 
-
+    PERCEPTRONF_API float* GetARWeights(PerceptronFHandle handle)
+    {
+        return static_cast<PerceptronF*>(handle)->GetARWeights();
+    }
 }

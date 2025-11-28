@@ -71,6 +71,9 @@ public class PerceptronAA : IDisposable
 	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
 	private static extern int LoadWeights(IntPtr handle, string filename);
 
+	[DllImport("PerceptronAA.dll", CallingConvention = CallingConvention.Cdecl)]
+	private static extern IntPtr GetARWeights(IntPtr handle);
+
 
 	private int SCount;
 	private int ACount;
@@ -204,6 +207,13 @@ public class PerceptronAA : IDisposable
 		return LoadWeights(_handle, filename);
 	}
 
+	public float[] GetARWeights()
+	{
+		IntPtr ptr = GetARWeights(_handle);
+		float[] managedArray = new float[ACount * RCount];
+		Marshal.Copy(ptr, managedArray, 0, ACount * RCount);
+		return managedArray;
+	}
 
 	~PerceptronAA()
 	{
