@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Threading.Tasks;
 
+using PerceptronWrapper;
+
 namespace Tac.CNN
 {
 
@@ -109,9 +111,8 @@ namespace Tac.CNN
 
 			InitWeight();
 
-			c = new MWeights(windowSize, rnd.NextSingle(), 1, true);
-
 			CreatePointField(28);
+			PrecomputeIndices(inPointField, 28, 24, 5);
 
 			maxPool.outPointField = outPointField;
 		}
@@ -237,12 +238,41 @@ namespace Tac.CNN
 			int a = 1;
 		}
 
+
 		public Tensor FullForward(Tensor input)
 		{
 			input = Forward(input);
 			input = relu.Forward(input);
 			input = maxPool.Forward(input);
 			return input;
+		}
+
+		int[] indices;
+
+		public void PrecomputeIndices(Point2D[] inPointField, int inSize, int outSize, int winSize)
+		{
+			int totalPoints = winSize * winSize;
+			int totalIndices = outSize * outSize * totalPoints;
+			indices = new int[totalIndices];
+
+			// Параллельное заполнение для скорости
+			for (int oh= 0; oh < outSize; oh++)
+			{
+				for (int ow = 0; ow < outSize; ow++)
+				{
+					int baseIndex = (oh * outSize + ow) * totalPoints;
+
+					for (int w = 0; w < totalPoints; w++)
+					{
+						int x = w % winSize;
+						int y = w / winSize;
+
+						Point2D pointIn = inPointField[(oh + y) * outSize + (ow + x)];
+
+						indices[baseIndex + w] = pointIn.Y * inSize + pointIn.X;
+					}
+				}
+			}
 		}
 
 
@@ -257,10 +287,23 @@ namespace Tac.CNN
 
 			var output = new Tensor(new[] { outChannels, outWidth, outHeight });
 
+			//int oc = 0;
 			// Основной параллельный цикл по выходным каналам
 			Parallel.For(0, outChannels, oc =>
 			{
+				outputsW[oc].To1D();
+				WinSumWrapper calculator = new WinSumWrapper(input.Data, indices, outputsW[oc].Full_1D, outWidth, inWidth, windowSize);
 				for (int oh = 0; oh < outHeight; oh++)
+				{
+					for (int ow = 0; ow < outWidth; ow++)
+					{
+						float sum = calculator.Compute(oh, ow);
+						// Используем результат...
+						output[oc, ow, oh] = sum;
+					}
+				}
+
+				/*for (int oh = 0; oh < outHeight; oh++)
 				{
 					for (int ow = 0; ow < outWidth; ow++)
 					{
@@ -272,8 +315,6 @@ namespace Tac.CNN
 							int y = w / windowSize;
 
 							Point2D pointIn = inPointField[(oh + y) * outWidth + (ow + x)];
-							//Point2D pointOut = outPointField[oh * outWidth + ow, w];
-
 
 							float val = input[0, pointIn.X, pointIn.Y];
 							float weight = outputsW[oc].Full[x, y];
@@ -282,7 +323,7 @@ namespace Tac.CNN
 						}
 						output[oc, ow, oh] = sum;
 					}
-				}
+				}*/
 			});
 
 			return output;
@@ -397,9 +438,6 @@ namespace Tac.CNN
 			}
 
 		}
-
-
-		private MWeights c;
 
 
 		/// <summary>
@@ -587,7 +625,7 @@ namespace Tac.CNN
 		}
 	}
 
-	public class Point2D
+	/*public class Point2D
 	{
 		public int X;
 		public int Y;
@@ -602,12 +640,14 @@ namespace Tac.CNN
 			float dy = centerY - y;
 			return (float)Math.Sqrt(dx * dx + dy * dy);
 		}
-	}
+	}*/
 
 	public class Window
 	{
 		public float[,] Full;
 		public int size;
+
+		public float[] Full_1D;
 
 		public string key(int x, int y) { return x.ToString() + "-" + y.ToString(); }
 
@@ -682,56 +722,18 @@ namespace Tac.CNN
 		{
 			Full[x, y] += value;
 		}
-	}
 
-	public class MWeights
-	{
-		public float[] w;
-
-		public MWeights(int size, double argBase, int planes, bool norm)
+		public void To1D()
 		{
-			w = new float[size * size];
-			generateMonotonic(size, argBase, planes, norm);
+			int height = Full.GetLength(0);
+			int width = Full.GetLength(1);
+			Full_1D = new float[height * width];
+
+			Buffer.BlockCopy(Full, 0, Full_1D, 0, Full_1D.Length * sizeof(float));
 		}
 
-		/// <summary>
-		/// Сгенерировать монотонно убывающую двумерную функцию.
-		/// </summary>
-		/// <param name="argBase">Базовое значение для функции</param>
-		/// <param name="size">Размер используемого окна</param>
-		/// <param name="planes">Количество плоскостей, используемых для нормализации</param>
-		/// <param name="norm">Нормализовать выход, чтобы получить сумму 1</param>
-		/// <returns>Возвращает монотонную двумерную функцию</returns>
-		private void generateMonotonic(int size, double argBase, int planes, bool norm)
-		{
-			// Calculated each value
-			int index = 0;
-			for (int n = 0; n < size; n++)
-			{
-				for (int m = 0; m < size; m++)
-				{
-					w[index] = (float)Math.Pow(argBase, Point2D.Distance(size / 2f, size / 2f, n, m));
-					index++;
-				}
-			}
-
-			// Normalize the entire function
-			if (norm)
-			{
-				int size2 = size * size;
-				float sum = 0;
-				for (int i = 0; i < size2; i++)
-				{
-					sum += w[i];
-				}
-				// Normalize with respect to # of planes
-				for (int i = 0; i < size2; i++)
-				{
-					w[i] /= (planes * sum);
-				}
-			}
-		}
 	}
+
 
 	public class CNN
 	{

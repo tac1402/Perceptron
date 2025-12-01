@@ -7,4 +7,10 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="PerceptronWrapper">
+      <HintPath>..\PerceptronWrapper\x64\Release\PerceptronWrapper.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
